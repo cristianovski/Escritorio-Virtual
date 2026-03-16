@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { generateWithFallback } from '../lib/aiService';
 import { Client } from '../types';
 import { OfficeProfile } from './useOfficeProfile';
+import { sanitizeHtml } from '../utils/sanitize';
 
 export function useDocumentAI() {
   const [generating, setGenerating] = useState(false);
@@ -59,7 +60,8 @@ export function useDocumentAI() {
       if (!cleanHtml.includes('<p>')) {
         cleanHtml = cleanHtml.split('\n').map(line => line.trim() ? `<p>${line}</p>` : '').join('');
       }
-      setDocumentHtml(cleanHtml);
+      const sanitizedHtml = sanitizeHtml(cleanHtml);
+      setDocumentHtml(sanitizedHtml);
       return true;
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Erro na geração do documento.';

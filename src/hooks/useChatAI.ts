@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { generateWithFallback } from '../lib/aiService';
+import { sanitizeHtml } from '../utils/sanitize';
 
 export function useChatAI() {
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -27,8 +28,9 @@ export function useChatAI() {
       `;
       const newHtml = await generateWithFallback(prompt);
       const cleanHtml = newHtml.replace(/```html/g, '').replace(/```/g, '');
+      const sanitizedHtml = sanitizeHtml(cleanHtml);
       setChatMessages(prev => [...prev, { role: 'model', text: 'Feito.' }]);
-      return cleanHtml;
+      return sanitizedHtml;
     } catch (err) {
       setChatMessages(prev => [...prev, { role: 'model', text: 'Erro ao ajustar.' }]);
       return null;

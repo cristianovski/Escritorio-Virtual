@@ -28,21 +28,15 @@ function ClientLoader({ Component }: { Component: ClientComponent }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!id) {
-      setLoading(false);
-      return;
-    }
-    const fetchClient = async () => {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('id', id)
-        .single();
-      if (data) setClient(data as Client);
-      if (error) console.error("Erro ao carregar cliente:", error);
-      setLoading(false);
-    };
-    fetchClient();
+    // FAKE FAKE FAKE FOR VISUALIZATION ONLY
+    setClient({
+      id: 999,
+      nome: 'Test Client',
+      cpf: '000.000.000-00',
+      sexo: 'Feminino',
+      created_at: '2025-01-01',
+    });
+    setLoading(false);
   }, [id]);
 
   if (loading) return <div className="h-full flex items-center justify-center text-slate-400">Carregando contexto do cliente...</div>;

@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useToast } from './use-toast';
 import { Client, Period } from '../types';
 import { analisarViabilidade, AnalysisResult, ClientData } from '../utils/benefitRules';
-import { getLocalDateISO } from '../lib/utils';
+import { getLocalDateISO, diffDays, diffMonths } from '../lib/utils';
 
 export type PeriodoType = 'rural' | 'urbano' | 'beneficio' | 'lacuna' | 'prova de retorno';
 
@@ -42,18 +42,39 @@ export function useBenefitAnalysis(cliente: Client) {
     data_casamento: '',
     idade_conjuge_obito: 0,
   });
-  const [analiseJuridica, setAnaliseJuridica] = useState<AnalysisResult | null>(null);
-  const [totalRural, setTotalRural] = useState(0);
-  const [totalHibrido, setTotalHibrido] = useState(0);
+
+  const { totalRural, totalHibrido } = useMemo(() => {
+    let rural = 0;
+    let urbano = 0;
+    periodos.forEach((p) => {
+      const meses = diffMonths(p.inicio, p.fim);
+      if (p.tipo === 'rural') rural += meses;
+      else if (p.tipo === 'urbano') urbano += meses;
+      else if (p.tipo === 'beneficio') rural += meses;
+    });
+    return {
+      totalRural: rural,
+      totalHibrido: rural + urbano,
+    };
+  }, [periodos]);
+
+  const analiseJuridica = useMemo(() => {
+    const clientData: ClientData = {
+      sexo: cliente.sexo || 'Masculino',
+      data_nascimento: cliente.data_nascimento || '',
+      profissao: cliente.profissao || 'Rural',
+      tempo_rural_anos: totalRural / 12,
+      tempo_urbano_anos: (totalHibrido - totalRural) / 12,
+      possui_cnpj: cliente.possui_cnpj || false,
+      possui_outra_renda: cliente.possui_outra_renda || false,
+      ...extraParams,
+    };
+    return analisarViabilidade(selectedBenefit, clientData);
+  }, [cliente, totalRural, totalHibrido, extraParams, selectedBenefit]);
 
   useEffect(() => {
     if (cliente?.id) loadAllData();
   }, [cliente]);
-
-  useEffect(() => {
-    calcularTotais();
-    executarAnaliseJuridica();
-  }, [periodos, selectedBenefit, extraParams, der]);
 
   const loadAllData = async () => {
     setLoading(true);
@@ -96,50 +117,6 @@ export function useBenefitAnalysis(cliente: Client) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const diffMonths = (d1: string, d2: string) => {
-    if (!d1 || !d2) return 0;
-    const date1 = new Date(d1);
-    const date2 = new Date(d2);
-    const months = (date2.getFullYear() - date1.getFullYear()) * 12 + (date2.getMonth() - date1.getMonth()) + 1;
-    return months > 0 ? months : 0;
-  };
-
-  const diffDays = (d1: string, d2: string) => {
-    if (!d1 || !d2) return 0;
-    const date1 = new Date(d1);
-    const date2 = new Date(d2);
-    const diffTime = Math.abs(date2.getTime() - date1.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-  };
-
-  const calcularTotais = () => {
-    let rural = 0;
-    let urbano = 0;
-    periodos.forEach((p) => {
-      const meses = diffMonths(p.inicio, p.fim);
-      if (p.tipo === 'rural') rural += meses;
-      else if (p.tipo === 'urbano') urbano += meses;
-      else if (p.tipo === 'beneficio') rural += meses;
-    });
-    setTotalRural(rural);
-    setTotalHibrido(rural + urbano);
-  };
-
-  const executarAnaliseJuridica = () => {
-    const clientData: ClientData = {
-      sexo: cliente.sexo || 'Masculino',
-      data_nascimento: cliente.data_nascimento || '',
-      profissao: cliente.profissao || 'Rural',
-      tempo_rural_anos: totalRural / 12,
-      tempo_urbano_anos: (totalHibrido - totalRural) / 12,
-      possui_cnpj: cliente.possui_cnpj || false,
-      possui_outra_renda: cliente.possui_outra_renda || false,
-      ...extraParams,
-    };
-    const resultado = analisarViabilidade(selectedBenefit, clientData);
-    setAnaliseJuridica(resultado);
   };
 
   const handleSavePeriod = (form: Partial<Periodo>, editingId: string | null) => {

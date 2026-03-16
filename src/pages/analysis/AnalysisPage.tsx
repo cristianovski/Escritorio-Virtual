@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { useBenefitAnalysis, Periodo } from '../../hooks/useBenefitAnalysis';
 import { Client } from '../../types';
-import { getLocalDateISO } from '../../lib/utils';
+import { getLocalDateISO, diffMonths } from '../../lib/utils';
 
 const BENEFIT_TYPES = [
   'Aposentadoria por Idade Rural',
@@ -90,14 +90,6 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
   const showDII = selectedBenefit.toLowerCase().includes('incapacidade');
   const showPensao = selectedBenefit.toLowerCase().includes('pensão');
   const fmtDate = (d: string) => new Date(d).toLocaleDateString('pt-BR');
-
-  const diffMonths = (d1: string, d2: string) => {
-    if (!d1 || !d2) return 0;
-    const date1 = new Date(d1);
-    const date2 = new Date(d2);
-    const months = (date2.getFullYear() - date1.getFullYear()) * 12 + (date2.getMonth() - date1.getMonth()) + 1;
-    return months > 0 ? months : 0;
-  };
 
   return (
     <div className="flex flex-col h-full bg-slate-50">

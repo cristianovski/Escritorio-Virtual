@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { supabase } from '../lib/supabase';
 import { useToast } from '../hooks/use-toast';
 import { ClientDocument } from '../types';
+import { updateDocument, deleteDocument } from '../services/documentService';
 
 const OPCOES_DOCUMENTOS: Record<string, string[]> = {
   'Pessoal': [
@@ -87,17 +87,12 @@ export function useDocumentEditor(onSuccess: () => void) {
     }
 
     try {
-      const { error } = await supabase
-        .from('client_documents')
-        .update({
-          title: finalTitle,
-          category: editForm.category,
-          reference_date: editForm.reference_date || null,
-          description: editForm.description,
-        })
-        .eq('id', selectedDoc.id);
-
-      if (error) throw error;
+      await updateDocument(selectedDoc.id, {
+        title: finalTitle,
+        category: editForm.category,
+        reference_date: editForm.reference_date || null,
+        description: editForm.description,
+      });
 
       toast({ title: 'Atualizado', description: 'Dados alterados com sucesso.', variant: 'success' });
       setIsEditing(false);
@@ -117,12 +112,7 @@ export function useDocumentEditor(onSuccess: () => void) {
     setSaving(true);
 
     try {
-      const { error } = await supabase
-        .from('client_documents')
-        .delete()
-        .eq('id', selectedDoc.id);
-
-      if (error) throw error;
+      await deleteDocument(selectedDoc.id);
 
       toast({ title: 'Excluído', description: 'Documento removido.', variant: 'success' });
       setSelectedDoc(null);

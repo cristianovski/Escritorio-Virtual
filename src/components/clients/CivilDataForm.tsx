@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { User, PenTool, AlertTriangle, Shield } from "lucide-react";
@@ -14,7 +15,7 @@ interface CivilDataFormProps {
 }
 
 export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormProps) {
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<CivilFormValues>({
+  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<CivilFormValues>({
     resolver: zodResolver(civilSchema),
     defaultValues: {
       nome: initialData?.nome || "",
@@ -24,6 +25,7 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
       capacidade_civil: initialData?.capacidade_civil || "Plena",
       cep: initialData?.cep || "",
       endereco: initialData?.endereco || "",
+      bairro: initialData?.bairro || "",
       cidade: initialData?.cidade || "",
       telefone: initialData?.telefone || "",
       rep_nome: initialData?.rep_nome || "",
@@ -55,6 +57,14 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
       status_processo: initialData?.status_processo || "A Iniciar",
     }
   });
+
+  // 🚨 AQUI ESTÁ O EXORCISMO DO FANTASMA 🚨
+  // Toda vez que o initialData mudar (quando chegar do banco de dados), ele "reseta" o formulário com os dados novos.
+  useEffect(() => {
+    if (initialData && Object.keys(initialData).length > 0) {
+      reset(initialData as CivilFormValues);
+    }
+  }, [initialData, reset]);
 
   const isIncapaz = watch("capacidade_civil") !== "Plena";
 
@@ -289,8 +299,8 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t mt-4">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <input type="checkbox" {...register("possui_cnpj")} className="w-4 h-4 text-indigo-600 rounded"/>
-              <label className="text-sm font-bold text-slate-700">Possui CNPJ Ativo?</label>
+              <input type="checkbox" id="possui_cnpj" {...register("possui_cnpj")} className="w-4 h-4 text-indigo-600 rounded"/>
+              <label htmlFor="possui_cnpj" className="text-sm font-bold text-slate-700">Possui CNPJ Ativo?</label>
             </div>
             {watch("possui_cnpj") && (
               <input {...register("detalhes_cnpj")} placeholder="Detalhes do CNPJ" className="w-full border border-slate-300 rounded-lg p-2 text-sm"/>
@@ -298,8 +308,8 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <input type="checkbox" {...register("possui_outra_renda")} className="w-4 h-4 text-indigo-600 rounded"/>
-              <label className="text-sm font-bold text-slate-700">Possui Outra Renda?</label>
+              <input type="checkbox" id="possui_outra_renda" {...register("possui_outra_renda")} className="w-4 h-4 text-indigo-600 rounded"/>
+              <label htmlFor="possui_outra_renda" className="text-sm font-bold text-slate-700">Possui Outra Renda?</label>
             </div>
             {watch("possui_outra_renda") && (
               <input {...register("detalhes_renda")} placeholder="Qual a fonte?" className="w-full border border-slate-300 rounded-lg p-2 text-sm"/>
@@ -307,8 +317,8 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <input type="checkbox" {...register("endereco_divergente")} className="w-4 h-4 text-indigo-600 rounded"/>
-              <label className="text-sm font-bold text-slate-700">Endereço Divergente?</label>
+              <input type="checkbox" id="endereco_divergente" {...register("endereco_divergente")} className="w-4 h-4 text-indigo-600 rounded"/>
+              <label htmlFor="endereco_divergente" className="text-sm font-bold text-slate-700">Endereço Divergente?</label>
             </div>
             {watch("endereco_divergente") && (
               <input {...register("justificativa_endereco")} placeholder="Justificativa" className="w-full border border-slate-300 rounded-lg p-2 text-sm"/>

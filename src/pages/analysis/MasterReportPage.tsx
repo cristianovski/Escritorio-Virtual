@@ -4,9 +4,7 @@ import {
   CheckSquare,
   Square,
   FileText,
-  Calendar,
   Scale,
-  Brain,
   TrendingUp,
   User,
   CheckCircle,
@@ -27,10 +25,7 @@ export function MasterReportPage({ cliente, onBack }: ReportProps) {
     periods,
     officeProfile,
     stats,
-    aiSummary,
-    generatingSummary,
     sections,
-    generateAiSummary,
     toggleSection,
     formatDate,
     getStart,
@@ -83,20 +78,12 @@ export function MasterReportPage({ cliente, onBack }: ReportProps) {
               </button>
             ))}
           </div>
-          <div className="mt-8 pt-4 border-t border-slate-200">
-            <button
-              onClick={generateAiSummary}
-              disabled={generatingSummary}
-              className="w-full bg-purple-100 hover:bg-purple-200 text-purple-800 p-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition disabled:opacity-50"
-            >
-              <Brain size={14} /> {generatingSummary ? 'Gerando...' : 'Gerar Resumo IA'}
-            </button>
-          </div>
         </aside>
 
         {/* Área de impressão */}
         <main className="flex-1 overflow-y-auto p-8 flex justify-center print:p-0 print:block">
           <div className="bg-white w-[210mm] min-h-[297mm] shadow-2xl print:shadow-none print:w-full mx-auto relative text-black text-[11pt] leading-relaxed">
+            
             {/* Capa */}
             {sections.capa && (
               <div className="p-[20mm] h-[297mm] flex flex-col justify-center relative page-break-after">
@@ -123,67 +110,33 @@ export function MasterReportPage({ cliente, onBack }: ReportProps) {
               </div>
             )}
 
-            {/* Dados cadastrais e resumo */}
-            {(sections.dados_cadastrais || sections.resumo_ia) && (
+            {/* Dados cadastrais */}
+            {sections.dados_cadastrais && (
               <div className="p-[20mm] page-break-after">
                 <h2 className="text-2xl font-black border-b-2 border-slate-900 pb-2 mb-6 uppercase flex items-center gap-2">
                   <User size={24} /> Qualificação do Segurado
                 </h2>
-                {sections.dados_cadastrais && (
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-4 mb-10 text-[10pt]">
-                    <div>
-                      <strong>NOME:</strong> {cliente.nome}
-                    </div>
-                    <div>
-                      <strong>CPF:</strong> {cliente.cpf}
-                    </div>
-                    <div>
-                      <strong>RG:</strong> {cliente.rg || '-'}
-                    </div>
-                    <div>
-                      <strong>NASCIMENTO:</strong> {formatDate(cliente.data_nascimento)}
-                    </div>
-                    <div>
-                      <strong>ESTADO CIVIL:</strong> {cliente.estado_civil}
-                    </div>
-                    <div>
-                      <strong>PROFISSÃO:</strong> {cliente.profissao}
-                    </div>
-                    <div className="col-span-2">
-                      <strong>ENDEREÇO:</strong> {cliente.endereco}, {cliente.bairro}, {cliente.cidade} - CEP: {cliente.cep}
-                    </div>
+                
+                <div className="grid grid-cols-2 gap-x-8 gap-y-4 mb-10 text-[10pt]">
+                  <div><strong>NOME:</strong> {cliente.nome}</div>
+                  <div><strong>CPF:</strong> {cliente.cpf}</div>
+                  <div><strong>RG:</strong> {cliente.rg || '-'}</div>
+                  <div><strong>NASCIMENTO:</strong> {formatDate(cliente.data_nascimento)}</div>
+                  <div><strong>ESTADO CIVIL:</strong> {cliente.estado_civil}</div>
+                  <div><strong>PROFISSÃO:</strong> {cliente.profissao}</div>
+                  <div className="col-span-2">
+                    <strong>ENDEREÇO:</strong> {cliente.endereco}, {cliente.bairro}, {cliente.cidade} - CEP: {cliente.cep}
                   </div>
-                )}
-                {sections.resumo_ia && (
-                  <div className="mb-10 no-break">
-                    <h3 className="font-bold text-lg bg-slate-100 p-2 border-l-4 border-purple-500 mb-4 flex items-center gap-2">
-                      <Brain size={18} className="text-purple-600" /> Resumo Executivo (IA)
-                    </h3>
-                    {aiSummary ? (
-                      <p className="text-justify italic text-slate-800 bg-purple-50/50 p-4 rounded-r-lg border border-purple-100">
-                        {aiSummary}
-                      </p>
-                    ) : (
-                      <p className="text-slate-400 italic">Resumo não gerado. Utilize a barra lateral para acionar a IA.</p>
-                    )}
-                  </div>
-                )}
-                {sections.dados_cadastrais && interview && (
+                </div>
+                
+                {interview && (
                   <div className="no-break">
                     <h3 className="font-bold text-lg bg-slate-100 p-2 border-l-4 border-emerald-500 mb-4">Caracterização Rural (Ficha)</h3>
                     <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-[10pt] bg-slate-50 p-4 border border-slate-200">
-                      <div>
-                        <strong>IMÓVEL:</strong> {interview.dados_rurais?.nome_imovel || '-'}
-                      </div>
-                      <div>
-                        <strong>ÁREA:</strong> {interview.dados_rurais?.area_total || '-'}
-                      </div>
-                      <div>
-                        <strong>CONDIÇÃO:</strong> <span className="uppercase">{interview.dados_rurais?.condicao_posse || '-'}</span>
-                      </div>
-                      <div>
-                        <strong>PRODUÇÃO:</strong> {interview.dados_rurais?.culturas || '-'}
-                      </div>
+                      <div><strong>IMÓVEL:</strong> {interview.dados_rurais?.nome_imovel || '-'}</div>
+                      <div><strong>ÁREA:</strong> {interview.dados_rurais?.area_total || '-'}</div>
+                      <div><strong>CONDIÇÃO:</strong> <span className="uppercase">{interview.dados_rurais?.condicao_posse || '-'}</span></div>
+                      <div><strong>PRODUÇÃO:</strong> {interview.dados_rurais?.culturas || '-'}</div>
                       <div className="col-span-2 mt-2 pt-2 border-t border-slate-200">
                         <strong className="block mb-1">NARRATIVA FÁTICA / HISTÓRICO:</strong>
                         <p className="text-justify text-[9pt] leading-normal">{interview.historico_locais || '-'}</p>
@@ -290,83 +243,20 @@ export function MasterReportPage({ cliente, onBack }: ReportProps) {
                 </div>
               </div>
             )}
-
-            {/* Procuração (opcional) */}
-            {sections.procuracao && (
-              <div className="p-[20mm]">
-                <h2 className="text-center font-bold text-xl mb-12 uppercase tracking-wide border-b-2 border-black pb-2">
-                  Procuração Ad Judicia et Extra
-                </h2>
-                <p className="mb-6 text-justify">
-                  <strong className="uppercase">OUTORGANTE:</strong>{' '}
-                  <strong>{cliente.nome.toUpperCase()}</strong>, nacionalidade brasileira, estado civil {cliente.estado_civil || 'não informado'},{' '}
-                  {cliente.profissao || 'Agricultor(a)'}, inscrito(a) no CPF sob o nº {cliente.cpf}, residente e domiciliado(a) em{' '}
-                  {cliente.endereco || '_________________________________'}.
-                </p>
-                <p className="mb-6 text-justify">
-                  <strong className="uppercase">OUTORGADO(A):</strong>{' '}
-                  <strong>{officeProfile?.nome_advogado?.toUpperCase() || '_________________________________'}</strong>, advogado(a),
-                  inscrito(a) na OAB sob o nº <strong>{officeProfile?.oab || '___________'}</strong>, com escritório profissional em{' '}
-                  {officeProfile?.endereco_profissional || '_________________________________'}.
-                </p>
-                <p className="mb-6 text-justify">
-                  <strong className="uppercase">PODERES:</strong> Pelo presente instrumento, constitui seu procurador o outorgado,
-                  conferindo-lhe os poderes da cláusula <em>ad judicia et extra</em> para o foro em geral, especificamente para propor as
-                  ações cabíveis, acompanhando-as até final decisão, podendo, para tanto, transigir, fazer acordo, firmar compromisso,
-                  substabelecer, renunciar, desistir, receber e dar quitação, requerer administrativamente e praticar todos os atos
-                  necessários à defesa de seus direitos previdenciários.
-                </p>
-                <div className="mt-24 text-center no-break">
-                  <div className="border-t border-black w-2/3 mx-auto pt-2">
-                    <p className="font-bold uppercase">{cliente.nome}</p>
-                    <p className="text-xs text-slate-500">Outorgante</p>
-                  </div>
-                  <p className="mt-8 text-sm">
-                    {officeProfile?.cidade_uf?.split('/')[0] || 'Local'}, {dataHoje}.
-                  </p>
-                </div>
-              </div>
-            )}
           </div>
         </main>
 
         {/* CSS de impressão */}
         <style>{`
           @media print {
-            @page {
-              margin: 1.5cm;
-              size: A4;
-            }
-            body {
-              background: white;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-            }
-            .page-break-after {
-              break-after: page;
-              page-break-after: always;
-            }
-            .page-break-before {
-              break-before: page;
-              page-break-before: always;
-            }
-            .no-break {
-              break-inside: avoid;
-              page-break-inside: avoid;
-            }
-            ::-webkit-scrollbar {
-              display: none;
-            }
-            aside {
-              display: none !important;
-            }
-            main {
-              padding: 0 !important;
-              background: white !important;
-            }
-            div {
-              box-shadow: none !important;
-            }
+            @page { margin: 1.5cm; size: A4; }
+            body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .page-break-after { break-after: page; page-break-after: always; }
+            .no-break { break-inside: avoid; page-break-inside: avoid; }
+            ::-webkit-scrollbar { display: none; }
+            aside { display: none !important; }
+            main { padding: 0 !important; background: white !important; }
+            div { box-shadow: none !important; }
           }
         `}</style>
       </div>

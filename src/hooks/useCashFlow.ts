@@ -1,12 +1,21 @@
 import { useState, useEffect } from 'react';
 import { fetchInstallments, fetchExpenses, createExpense, payExpense } from '../services/financeService';
-import { FinancialExpense, FinancialExpenseInput } from '../types/finance';
+import { FinancialExpense, FinancialExpenseInput, FinancialInstallment } from '../types/finance';
 import { useToast } from './use-toast';
 import { getLocalDateISO } from '../lib/utils';
 
+// Tipagem estendida para suportar o JOIN do Supabase
+export interface InstallmentWithComprovante extends FinancialInstallment {
+  comprovante?: any; 
+  responsibility?: {
+    client_id: number;
+    descricao: string;
+  };
+}
+
 export function useCashFlow(initialMonth: string) {
   const { toast } = useToast();
-  const [installments, setInstallments] = useState<any[]>([]);
+  const [installments, setInstallments] = useState<InstallmentWithComprovante[]>([]);
   const [expenses, setExpenses] = useState<FinancialExpense[]>([]);
   const [loading, setLoading] = useState(true);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
@@ -28,15 +37,19 @@ export function useCashFlow(initialMonth: string) {
     try {
       const [inst, exp] = await Promise.all([fetchInstallments(), fetchExpenses()]);
       const [year, month] = filterMonth.split('-').map(Number);
+      
       const filteredInst = inst.filter(i => {
         const d = new Date(i.data_vencimento);
         return d.getFullYear() === year && d.getMonth() + 1 === month;
       });
+      
       const filteredExp = exp.filter(e => {
         const d = new Date(e.data_vencimento);
         return d.getFullYear() === year && d.getMonth() + 1 === month;
       });
-      setInstallments(filteredInst);
+      
+      // Cast seguro com a nossa tipagem que inclui o 'responsibility'
+      setInstallments(filteredInst as unknown as InstallmentWithComprovante[]);
       setExpenses(filteredExp);
     } catch (error) {
       toast({ title: 'Erro', description: 'Falha ao carregar dados', variant: 'destructive' });

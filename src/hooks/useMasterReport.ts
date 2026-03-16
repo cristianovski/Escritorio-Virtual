@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Client } from '../types';
-import { gerarResumoIA } from '../lib/aiService';
 
 export interface InterviewExtended {
   historico_locais?: string;
@@ -19,7 +18,6 @@ export interface InterviewExtended {
     tipo?: string;
     obs?: string;
   }>;
-  ai_summary?: string;
 }
 
 export interface OfficeProfileExtended {
@@ -35,16 +33,12 @@ export function useMasterReport(cliente: Client) {
   const [periods, setPeriods] = useState<InterviewExtended['analise_periodos']>([]);
   const [officeProfile, setOfficeProfile] = useState<OfficeProfileExtended | null>(null);
   const [stats, setStats] = useState({ rural: 0, carencia: 0 });
-  const [aiSummary, setAiSummary] = useState('');
-  const [generatingSummary, setGeneratingSummary] = useState(false);
 
   const [sections, setSections] = useState({
     capa: true,
-    resumo_ia: true,
     dados_cadastrais: true,
     tabela_periodos: true,
     parecer: true,
-    procuracao: false,
   });
 
   useEffect(() => {
@@ -66,11 +60,9 @@ export function useMasterReport(cliente: Client) {
       if (invRes.data) {
         const invData = invRes.data as InterviewExtended;
         setInterview(invData);
-        if (invData.ai_summary) setAiSummary(invData.ai_summary);
         if (invData.analise_periodos) {
           setPeriods(invData.analise_periodos);
-          let rural = 0,
-            carencia = 0;
+          let rural = 0, carencia = 0;
           invData.analise_periodos.forEach((p) => {
             const startDate = getStart(p);
             const endDate = getEnd(p);
@@ -79,17 +71,9 @@ export function useMasterReport(cliente: Client) {
             const d2 = new Date(endDate);
             const months = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth()) + 1;
             if (months > 0) {
-              if (p.tipo === 'rural') {
-                rural += months;
-                carencia += months;
-              }
-              if (p.tipo === 'beneficio') {
-                carencia += months;
-              }
-              if (p.tipo === 'urbano' && p.is_safra) {
-                rural += months;
-                carencia += months;
-              }
+              if (p.tipo === 'rural') { rural += months; carencia += months; }
+              if (p.tipo === 'beneficio') carencia += months;
+              if (p.tipo === 'urbano' && p.is_safra) { rural += months; carencia += months; }
             }
           });
           setStats({ rural, carencia });
@@ -103,21 +87,6 @@ export function useMasterReport(cliente: Client) {
     }
   };
 
-  const generateAiSummary = async () => {
-    if (!interview) return alert('Ficha de entrevista não encontrada.');
-    setGeneratingSummary(true);
-    try {
-      const text = await gerarResumoIA(cliente, interview);
-      setAiSummary(text);
-      await supabase.from('interviews').update({ ai_summary: text }).eq('client_id', cliente.id);
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : 'Erro desconhecido';
-      alert('Falha ao gerar resumo: ' + msg);
-    } finally {
-      setGeneratingSummary(false);
-    }
-  };
-
   const toggleSection = (key: keyof typeof sections) => {
     setSections((prev) => ({ ...prev, [key]: !prev[key] }));
   };
@@ -127,19 +96,5 @@ export function useMasterReport(cliente: Client) {
     return dateString.split('-').reverse().join('/');
   };
 
-  return {
-    loading,
-    interview,
-    periods,
-    officeProfile,
-    stats,
-    aiSummary,
-    generatingSummary,
-    sections,
-    generateAiSummary,
-    toggleSection,
-    formatDate,
-    getStart,
-    getEnd,
-  };
+  return { loading, interview, periods, officeProfile, stats, sections, toggleSection, formatDate, getStart, getEnd };
 }

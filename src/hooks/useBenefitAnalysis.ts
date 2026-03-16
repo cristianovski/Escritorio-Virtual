@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useToast } from './use-toast';
-import { Client, Period } from '../types';
+import { Client, ClientDocument } from '../types';
 import { analisarViabilidade, AnalysisResult, ClientData } from '../utils/benefitRules';
 import { getLocalDateISO } from '../lib/utils';
 
@@ -75,15 +75,15 @@ export function useBenefitAnalysis(cliente: Client) {
         if (interviewData.analise_params) setExtraParams(interviewData.analise_params);
       }
 
-      const newDocs = newDocsRes.data;
+      const newDocs = newDocsRes.data as ClientDocument[] | null;
       if (newDocs) {
         const docsDb = newDocs
-          .filter((doc: any) => doc.category === 'Provas')
-          .map((doc: any) => ({
+          .filter((doc) => doc.category === 'Provas')
+          .map((doc) => ({
             id: doc.id,
-            type: doc.title || doc.original_name || 'Sem Título',
-            issueDate: doc.reference_date || doc.created_at,
-            displayYear: new Date(doc.reference_date || doc.created_at).getFullYear(),
+            type: doc.title || 'Sem Título',
+            issueDate: doc.reference_date || doc.created_at || new Date().toISOString(),
+            displayYear: new Date(doc.reference_date || doc.created_at || new Date()).getFullYear(),
             fileUrl: doc.file_url || null,
             origem: 'GED (Novo)',
           }));
@@ -158,7 +158,7 @@ export function useBenefitAnalysis(cliente: Client) {
       fim: form.fim!,
       tipo: form.tipo as PeriodoType,
       obs: form.obs,
-      is_safra: isSafra,          // corrigido: is_safra (com underline) recebe isSafra (camelCase)
+      is_safra: isSafra,
       linkedDocId: form.linkedDocId,
       linkedDocTitle: form.linkedDocTitle,
       law: form.law,

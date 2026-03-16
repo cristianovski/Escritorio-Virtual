@@ -1,27 +1,13 @@
+// ARQUIVO: src/pages/analysis/AnalysisPage.tsx
 import { useState } from 'react';
 import {
-  ArrowLeft,
-  Save,
-  Calculator,
-  Plus,
-  Trash2,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Calendar,
-  HelpCircle,
-  Paperclip,
-  Eye,
-  Edit2,
-  X,
-  ChevronDown,
-  Activity,
-  Heart,
-  FileText,
+  ArrowLeft, Save, Calculator, Plus, Trash2, AlertTriangle, 
+  CheckCircle, XCircle, Calendar, HelpCircle, Paperclip, 
+  Eye, Edit2, X, ChevronDown, Activity, Heart, FileText
 } from 'lucide-react';
 import { useBenefitAnalysis, Periodo } from '../../hooks/useBenefitAnalysis';
 import { Client } from '../../types';
-import { getLocalDateISO } from '../../lib/utils';
+import StrategicTimeline from '../../components/StrategicTimeline'; // <--- IMPORT AQUI
 
 const BENEFIT_TYPES = [
   'Aposentadoria por Idade Rural',
@@ -145,7 +131,6 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
 
       <main className="flex-1 overflow-hidden flex flex-col md:flex-row">
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Cards de totais */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center">
               <label className="text-xs font-bold text-slate-500 mb-1">Data do Requerimento (DER)</label>
@@ -184,7 +169,6 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
             </div>
           </div>
 
-          {/* Parâmetros específicos */}
           {(showDII || showPensao) && (
             <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100 shadow-sm animate-in fade-in slide-in-from-top-4">
               <h3 className="font-bold text-blue-800 mb-4 flex items-center gap-2 text-sm">
@@ -250,7 +234,6 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
             </div>
           )}
 
-          {/* Resultado da análise jurídica */}
           {analiseJuridica && (
             <div
               className={`p-5 rounded-2xl border shadow-sm transition-all animate-in zoom-in-95 ${
@@ -308,7 +291,11 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
             </div>
           )}
 
-          {/* Formulário de adicionar/editar período */}
+          {/* INJEÇÃO DO CANVAS VISUAL LAW AQUI */}
+          <div className="my-6">
+            <StrategicTimeline />
+          </div>
+
           <div
             id="form-anchor"
             className={`p-6 rounded-2xl border shadow-sm transition-colors ${
@@ -392,72 +379,37 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
             </div>
           </div>
 
-          {/* Lista de períodos */}
           <div className="space-y-3">
             {periodos.map((p) => {
               const meses = diffMonths(p.inicio, p.fim);
-              let bgColor = 'bg-white',
-                borderColor = 'border-slate-200',
-                icon = <Calendar size={18} className="text-slate-400" />,
-                statusText = '';
+              let bgColor = 'bg-white', borderColor = 'border-slate-200', icon = <Calendar size={18} className="text-slate-400" />, statusText = '';
               if (p.tipo === 'rural') {
-                bgColor = 'bg-emerald-50';
-                borderColor = 'border-emerald-200';
-                icon = <CheckCircle size={18} className="text-emerald-600" />;
-                statusText = 'Conta como Carência';
+                bgColor = 'bg-emerald-50'; borderColor = 'border-emerald-200'; icon = <CheckCircle size={18} className="text-emerald-600" />; statusText = 'Conta como Carência';
               } else if (p.tipo === 'urbano') {
-                bgColor = 'bg-red-50';
-                borderColor = 'border-red-200';
-                icon = <XCircle size={18} className="text-red-600" />;
-                statusText = 'Interrupção (>120 dias)';
+                bgColor = 'bg-red-50'; borderColor = 'border-red-200'; icon = <XCircle size={18} className="text-red-600" />; statusText = 'Interrupção (>120 dias)';
               } else if (p.tipo === 'beneficio') {
-                bgColor = 'bg-blue-50';
-                borderColor = 'border-blue-200';
-                icon = <HelpCircle size={18} className="text-blue-600" />;
-                statusText = 'Benefício Intercalado (Conta Carência)';
+                bgColor = 'bg-blue-50'; borderColor = 'border-blue-200'; icon = <HelpCircle size={18} className="text-blue-600" />; statusText = 'Benefício Intercalado (Conta Carência)';
               } else if (p.tipo === 'prova de retorno') {
-                bgColor = 'bg-purple-50';
-                borderColor = 'border-purple-200';
-                icon = <Paperclip size={18} className="text-purple-600" />;
-                statusText = 'Prova de Retorno';
+                bgColor = 'bg-purple-50'; borderColor = 'border-purple-200'; icon = <Paperclip size={18} className="text-purple-600" />; statusText = 'Prova de Retorno';
               }
               return (
-                <div
-                  key={p.id}
-                  className={`p-4 rounded-xl border ${bgColor} ${borderColor} shadow-sm transition-all hover:shadow-md relative group`}
-                >
+                <div key={p.id} className={`p-4 rounded-xl border ${bgColor} ${borderColor} shadow-sm transition-all hover:shadow-md relative group`}>
                   <div className="flex justify-between items-start">
                     <div className="flex items-start gap-3">
                       <div className="mt-1">{icon}</div>
                       <div>
                         <div className="flex items-center gap-2">
                           <h4 className="font-bold text-slate-800 uppercase text-sm tracking-wide">{p.tipo}</h4>
-                          <span className="text-xs font-mono text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
-                            {meses} meses
-                          </span>
+                          <span className="text-xs font-mono text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">{meses} meses</span>
                         </div>
-                        <p className="text-sm text-slate-700 font-medium mt-1">
-                          {fmtDate(p.inicio)} até {fmtDate(p.fim)}
-                        </p>
+                        <p className="text-sm text-slate-700 font-medium mt-1">{fmtDate(p.inicio)} até {fmtDate(p.fim)}</p>
                         <p className="text-xs text-slate-500 italic mt-1">{p.obs || 'Sem observações'}</p>
                         <div className="mt-2 text-xs font-bold opacity-80">{statusText}</div>
                       </div>
                     </div>
                     <div className="flex gap-1">
-                      <button
-                        onClick={() => handleEditClick(p)}
-                        className="text-slate-400 hover:text-amber-500 p-2 rounded hover:bg-amber-50 transition"
-                        title="Editar"
-                      >
-                        <Edit2 size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleRemovePeriod(p.id)}
-                        className="text-slate-400 hover:text-red-500 p-2 rounded hover:bg-red-50 transition"
-                        title="Remover"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      <button onClick={() => handleEditClick(p)} className="text-slate-400 hover:text-amber-500 p-2 rounded hover:bg-amber-50 transition" title="Editar"><Edit2 size={18} /></button>
+                      <button onClick={() => handleRemovePeriod(p.id)} className="text-slate-400 hover:text-red-500 p-2 rounded hover:bg-red-50 transition" title="Remover"><Trash2 size={18} /></button>
                     </div>
                   </div>
                 </div>
@@ -466,7 +418,6 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
           </div>
         </div>
 
-        {/* Barra lateral de documentos */}
         <div className="w-full md:w-80 bg-slate-100 border-l border-slate-200 p-4 overflow-y-auto hidden md:block">
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
             <Paperclip size={14} /> Documentos de Prova
@@ -484,19 +435,10 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
                   dataFormatada = 'S/D';
                 }
                 return (
-                  <div
-                    key={`${doc.id}-${i}`}
-                    className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm hover:border-blue-300 transition-colors group"
-                  >
+                  <div key={`${doc.id}-${i}`} className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm hover:border-blue-300 transition-colors group">
                     <div className="flex justify-between items-start mb-1">
-                      <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-1.5 py-0.5 rounded">
-                        {dataFormatada}
-                      </span>
-                      {doc.fileUrl && (
-                        <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-blue-600">
-                          <Eye size={14} />
-                        </a>
-                      )}
+                      <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-1.5 py-0.5 rounded">{dataFormatada}</span>
+                      {doc.fileUrl && <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-blue-600"><Eye size={14} /></a>}
                     </div>
                     <p className="text-xs font-bold text-slate-700 leading-tight mb-1">{doc.type}</p>
                     <div className="flex items-center gap-1">

@@ -4,14 +4,15 @@ import {
   Hash, Briefcase, Save, Building
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
-import { Lawyer } from "../../types"; // FIX: Usar a Interface Global
+import { Lawyer } from "../../types";
+import { useToast } from "../../hooks/use-toast";
+import { useConfirm } from "../../hooks/useConfirm";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 
-// FIX: Estender a interface global para suportar o campo nacionalidade apenas neste ecrã
 interface LawyerExtended extends Lawyer {
   nacionalidade?: string;
 }
 
-// FIX: Interface específica para o estado do formulário (onde o ID pode ser nulo antes de criar)
 type LawyerFormData = Partial<LawyerExtended>;
 
 function validarCPF(cpf: string) {
@@ -31,12 +32,16 @@ function validarCPF(cpf: string) {
 }
 
 export function LawyersPage({ onBack }: { onBack: () => void }) {
-  const [lawyers, setLawyers] = useState<LawyerExtended[]>([]); // FIX: Array Tipado
+  const { toast } = useToast();
+  const { confirm, isOpen, message, handleConfirm, handleCancel } = useConfirm();
+
+  const [lawyers, setLawyers] = useState<LawyerExtended[]>([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   
   const [officeAddress, setOfficeAddress] = useState("");
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const [formData, setFormData] = useState<LawyerFormData>({
     nome: "",
@@ -60,8 +65,14 @@ export function LawyersPage({ onBack }: { onBack: () => void }) {
   };
 
   const handleSaveLawyer = async () => {
-    if (!formData.nome || !formData.oab || !formData.cpf) return alert("Nome, OAB e CPF são obrigatórios.");
-    if (!validarCPF(formData.cpf)) return alert("CPF inválido!");
+    if (!formData.nome || !formData.oab || !formData.cpf) {
+      toast({ title: "Atenção", description: "Nome, OAB e CPF são obrigatórios.", variant: "destructive" });
+      return;
+    }
+    if (!validarCPF(formData.cpf)) {
+      toast({ title: "Erro", description: "CPF inválido!", variant: "destructive" });
+      return;
+    }
 
     setSaving(true);
     const payload = {
@@ -81,11 +92,12 @@ export function LawyersPage({ onBack }: { onBack: () => void }) {
     setShowModal(false);
     resetForm();
     fetchLawyers();
+    toast({ title: "Sucesso", description: "Advogado salvo.", variant: "success" });
   };
 
   const handleSaveAddress = () => {
       localStorage.setItem("officeAddress", officeAddress);
-      alert("Endereço do escritório atualizado!");
+      toast({ title: "Sucesso", description: "Endereço do escritório atualizado!", variant: "success" });
   };
 
   const handleEdit = (lawyer: LawyerExtended) => {
@@ -94,17 +106,18 @@ export function LawyersPage({ onBack }: { onBack: () => void }) {
   };
 
   const handleDelete = async (id: number) => {
-      if (confirm("Remover este advogado?")) {
-          await supabase.from('lawyers').delete().eq('id', id);
-          fetchLawyers();
-      }
+    const ok = await confirm("Remover este advogado?");
+    if (ok) {
+      await supabase.from('lawyers').delete().eq('id', id);
+      toast({ title: "Sucesso", description: "Advogado removido.", variant: "success" });
+      fetchLawyers();
+    }
   };
 
   const resetForm = () => {
       setFormData({ nome: "", nacionalidade: "Brasileiro", estado_civil: "Casado", oab: "", cpf: "" });
   };
 
-  // FIX: Tipagem do evento DOM
   const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let v = e.target.value.replace(/\D/g, "");
     if (v.length > 11) v = v.slice(0, 11);
@@ -197,6 +210,14 @@ export function LawyersPage({ onBack }: { onBack: () => void }) {
             </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={isOpen}
+        onOpenChange={(open) => !open && handleCancel()}
+        message={message}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
     </div>
   );
 }

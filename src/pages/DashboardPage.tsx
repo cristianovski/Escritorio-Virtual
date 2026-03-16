@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { 
   Users, UserPlus, Search, Filter, TrendingUp, Clock, Calendar, 
   CheckCircle, AlertCircle, XCircle, ChevronRight, Star, 
-  MessageCircle, FileText, Printer,
+  MessageCircle, FileText, Printer, FolderOpen,
   Trash2, Edit, Eye, MoreHorizontal, PieChart, BarChart,
   UserCog, Calculator, BookCheck, Briefcase, LogOut, LayoutDashboard,
   Tractor, Scale, FileCheck, UploadCloud, Download, Save, X,
@@ -421,8 +421,15 @@ export function DashboardPage() {
 
                       <div className="w-px h-6 bg-slate-200"></div>
 
-                      {/* Grupo 3: Dossiê, Timeline e Financeiro */}
+                      {/* Grupo 3: GED, Dossiê, Timeline e Financeiro */}
                       <div className="flex gap-1">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); navigate(`/documentos/${client.id}`); }}
+                          className="p-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                          title="Documentos (GED)"
+                        >
+                          <FolderOpen size={16} />
+                        </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); navigate(`/dossie/${client.id}`); }}
                           className="p-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-cyan-50 hover:text-cyan-600 transition-colors"

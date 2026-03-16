@@ -11,6 +11,7 @@ import { ClientFormPage } from './pages/clients/ClientFormPage';
 import { AnalysisPage } from './pages/analysis/AnalysisPage';
 import { MasterReportPage } from './pages/analysis/MasterReportPage';
 import { TimelinePage } from './pages/timeline/TimelinePage';
+import { ClientDocumentsManager } from './pages/documents/ClientDocumentsManager';
 import { LawyersPage } from './pages/admin/LawyersPage';
 import { ClientFinancePage } from './pages/finance/ClientFinancePage';
 import { CashFlowPage } from './pages/finance/CashFlowPage';
@@ -65,6 +66,7 @@ function App() {
             <Route path="analise/:id" element={<ClientLoader Component={AnalysisPage} />} />
             <Route path="dossie/:id" element={<ClientLoader Component={MasterReportPage} />} />
             <Route path="linha-tempo/:id" element={<ClientLoader Component={TimelinePage} />} />
+            <Route path="documentos/:id" element={<ClientLoader Component={ClientDocumentsManager} />} />
             <Route path="cliente/:id/financeiro" element={<ClientLoader Component={ClientFinancePage} />} />
 
             {/* Admin e outras rotas sem cliente */}

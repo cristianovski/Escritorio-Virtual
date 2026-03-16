@@ -421,15 +421,8 @@ export function DashboardPage() {
 
                       <div className="w-px h-6 bg-slate-200"></div>
 
-                      {/* Grupo 3: Procuração, Dossiê, Timeline e Financeiro */}
+                      {/* Grupo 3: Dossiê, Timeline e Financeiro */}
                       <div className="flex gap-1">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/procuracao/${client.id}`); }}
-                          className="p-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-teal-50 hover:text-teal-600 transition-colors"
-                          title="Procuração"
-                        >
-                          <FileText size={16} />
-                        </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); navigate(`/dossie/${client.id}`); }}
                           className="p-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-cyan-50 hover:text-cyan-600 transition-colors"

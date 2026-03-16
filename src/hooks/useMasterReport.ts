@@ -39,7 +39,6 @@ export function useMasterReport(cliente: Client) {
     dados_cadastrais: true,
     tabela_periodos: true,
     parecer: true,
-    procuracao: false,
   });
 
   useEffect(() => {

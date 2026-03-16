@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Client } from '../types';
-import { gerarResumoIA } from '../lib/aiService';
 
 export interface InterviewExtended {
   historico_locais?: string;
@@ -19,7 +18,6 @@ export interface InterviewExtended {
     tipo?: string;
     obs?: string;
   }>;
-  ai_summary?: string;
 }
 
 export interface OfficeProfileExtended {
@@ -35,12 +33,9 @@ export function useMasterReport(cliente: Client) {
   const [periods, setPeriods] = useState<InterviewExtended['analise_periodos']>([]);
   const [officeProfile, setOfficeProfile] = useState<OfficeProfileExtended | null>(null);
   const [stats, setStats] = useState({ rural: 0, carencia: 0 });
-  const [aiSummary, setAiSummary] = useState('');
-  const [generatingSummary, setGeneratingSummary] = useState(false);
 
   const [sections, setSections] = useState({
     capa: true,
-    resumo_ia: true,
     dados_cadastrais: true,
     tabela_periodos: true,
     parecer: true,
@@ -66,7 +61,6 @@ export function useMasterReport(cliente: Client) {
       if (invRes.data) {
         const invData = invRes.data as InterviewExtended;
         setInterview(invData);
-        if (invData.ai_summary) setAiSummary(invData.ai_summary);
         if (invData.analise_periodos) {
           setPeriods(invData.analise_periodos);
           let rural = 0,
@@ -103,21 +97,6 @@ export function useMasterReport(cliente: Client) {
     }
   };
 
-  const generateAiSummary = async () => {
-    if (!interview) return alert('Ficha de entrevista não encontrada.');
-    setGeneratingSummary(true);
-    try {
-      const text = await gerarResumoIA(cliente, interview);
-      setAiSummary(text);
-      await supabase.from('interviews').update({ ai_summary: text }).eq('client_id', cliente.id);
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : 'Erro desconhecido';
-      alert('Falha ao gerar resumo: ' + msg);
-    } finally {
-      setGeneratingSummary(false);
-    }
-  };
-
   const toggleSection = (key: keyof typeof sections) => {
     setSections((prev) => ({ ...prev, [key]: !prev[key] }));
   };
@@ -133,10 +112,7 @@ export function useMasterReport(cliente: Client) {
     periods,
     officeProfile,
     stats,
-    aiSummary,
-    generatingSummary,
     sections,
-    generateAiSummary,
     toggleSection,
     formatDate,
     getStart,

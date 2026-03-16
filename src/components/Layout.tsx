@@ -1,7 +1,7 @@
 // src/components/Layout.tsx
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { 
-  LayoutDashboard, Users, BookCopy, Briefcase, LogOut, DollarSign 
+  LayoutDashboard, Users, Briefcase, LogOut, DollarSign
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
@@ -39,10 +39,6 @@ export function Layout() {
             </Link>
 
             <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mt-6 mb-2 px-2">Gestão</div>
-            
-            <Link to="/biblioteca" className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive('/biblioteca') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500 hover:bg-emerald-50 hover:text-emerald-700'}`}>
-                <BookCopy size={18}/> Biblioteca de Teses
-            </Link>
             
             <Link to="/advogados" className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive('/advogados') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500 hover:bg-emerald-50 hover:text-emerald-700'}`}>
                 <Briefcase size={18}/> Equipe & Advogados

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { 
   Users, UserPlus, Search, Filter, TrendingUp, Clock, Calendar, 
   CheckCircle, AlertCircle, XCircle, ChevronRight, Star, 
-  MessageCircle, FileText, Printer, FolderOpen, BrainCircuit,
+  MessageCircle, FileText, Printer,
   Trash2, Edit, Eye, MoreHorizontal, PieChart, BarChart,
   UserCog, Calculator, BookCheck, Briefcase, LogOut, LayoutDashboard,
   Tractor, Scale, FileCheck, UploadCloud, Download, Save, X,
@@ -408,7 +408,7 @@ export function DashboardPage() {
 
                       <div className="w-px h-6 bg-slate-200"></div>
 
-                      {/* Grupo 2: Calculadora e Parecer IA */}
+                      {/* Grupo 2: Calculadora */}
                       <div className="flex gap-1">
                         <button
                           onClick={(e) => { e.stopPropagation(); navigate(`/analise/${client.id}`); }}
@@ -417,26 +417,12 @@ export function DashboardPage() {
                         >
                           <Calculator size={16} />
                         </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/parecer/${client.id}`); }}
-                          className="p-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-purple-50 hover:text-purple-600 transition-colors"
-                          title="Parecer IA"
-                        >
-                          <BrainCircuit size={16} />
-                        </button>
                       </div>
 
                       <div className="w-px h-6 bg-slate-200"></div>
 
-                      {/* Grupo 3: GED, Procuração, Dossiê, Timeline e Financeiro */}
+                      {/* Grupo 3: Procuração, Dossiê, Timeline e Financeiro */}
                       <div className="flex gap-1">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/documentos/${client.id}`); }}
-                          className="p-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                          title="Documentos (GED)"
-                        >
-                          <FolderOpen size={16} />
-                        </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); navigate(`/procuracao/${client.id}`); }}
                           className="p-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-teal-50 hover:text-teal-600 transition-colors"

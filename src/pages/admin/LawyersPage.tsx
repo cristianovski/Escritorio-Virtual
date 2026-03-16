@@ -30,6 +30,97 @@ function validarCPF(cpf: string) {
   return true;
 }
 
+function OfficeAddressCard({
+  officeAddress,
+  setOfficeAddress,
+  handleSaveAddress,
+}: {
+  officeAddress: string;
+  setOfficeAddress: (val: string) => void;
+  handleSaveAddress: () => void;
+}) {
+  return (
+    <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100 shadow-sm flex flex-col md:flex-row gap-4 items-start md:items-end">
+        <div className="flex-1 w-full">
+            <h3 className="font-bold text-blue-800 mb-2 flex items-center gap-2"><Building size={18}/> Endereço do Escritório (Único)</h3>
+            <p className="text-xs text-blue-600 mb-3">Este endereço aparecerá na procuração para todos os advogados.</p>
+            <input
+                className="w-full p-3 bg-white border border-blue-200 rounded-lg outline-none focus:border-blue-500 text-slate-700"
+                placeholder="Ex: Rua das Flores, 123, Centro, Vitória da Conquista - BA"
+                value={officeAddress}
+                onChange={(e) => setOfficeAddress(e.target.value)}
+            />
+        </div>
+        <button onClick={handleSaveAddress} className="px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md transition-all whitespace-nowrap flex items-center gap-2">
+            <Save size={16}/> Salvar Endereço
+        </button>
+    </div>
+  );
+}
+
+function LawyerCard({
+  adv,
+  handleEdit,
+  handleDelete,
+}: {
+  adv: LawyerExtended;
+  handleEdit: (lawyer: LawyerExtended) => void;
+  handleDelete: (id: number) => void;
+}) {
+  return (
+    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all group relative">
+        <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 font-bold text-lg group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">{adv.nome?.charAt(0)}</div>
+            <div><h3 className="font-bold text-slate-800">{adv.nome}</h3><p className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded w-fit mt-1">OAB: {adv.oab}</p></div>
+        </div>
+        <div className="space-y-2 text-xs text-slate-500 mb-4">
+            <div className="flex items-center gap-2"><User size={12}/> {adv.nacionalidade}, {adv.estado_civil}</div>
+            <div className="flex items-center gap-2"><Hash size={12}/> CPF: {adv.cpf}</div>
+        </div>
+        <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100">
+            <button onClick={() => handleEdit(adv)} className="flex-1 py-2 bg-slate-50 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-100">Editar</button>
+            <button onClick={() => handleDelete(adv.id!)} className="px-3 py-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"><Trash2 size={14}/></button>
+        </div>
+    </div>
+  );
+}
+
+function LawyerModal({
+  formData,
+  setFormData,
+  saving,
+  handleSaveLawyer,
+  setShowModal,
+  handleCpfChange,
+}: {
+  formData: LawyerFormData;
+  setFormData: (val: LawyerFormData) => void;
+  saving: boolean;
+  handleSaveLawyer: () => void;
+  setShowModal: (val: boolean) => void;
+  handleCpfChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
+            <div className="bg-slate-50 p-6 border-b border-slate-100 flex justify-between items-center"><h3 className="font-bold text-slate-800 flex items-center gap-2"><FileText size={18} className="text-blue-500"/> Dados do Advogado</h3><button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">✕</button></div>
+            <div className="p-6 space-y-4">
+                <div><label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Nome Completo</label><input className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" value={formData.nome || ""} onChange={e => setFormData({...formData, nome: e.target.value})} placeholder="Dr. Fulano..." /></div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div><label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Nº OAB</label><input className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" value={formData.oab || ""} onChange={e => setFormData({...formData, oab: e.target.value})} placeholder="UF 00.000" /></div>
+                    <div><label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">CPF</label><input className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" value={formData.cpf || ""} onChange={handleCpfChange} placeholder="000.000.000-00" maxLength={14} /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div><label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Nacionalidade</label><input className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" value={formData.nacionalidade || ""} onChange={e => setFormData({...formData, nacionalidade: e.target.value})} /></div>
+                    <div><label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Estado Civil</label><select className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" value={formData.estado_civil || "Casado"} onChange={e => setFormData({...formData, estado_civil: e.target.value})}><option value="Solteiro">Solteiro(a)</option><option value="Casado">Casado(a)</option><option value="Divorciado">Divorciado(a)</option><option value="Viúvo">Viúvo(a)</option></select></div>
+                </div>
+            </div>
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3"><button onClick={() => setShowModal(false)} className="px-4 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-lg">Cancelar</button><button onClick={handleSaveLawyer} disabled={saving} className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-lg">{saving ? "Salvando..." : "Salvar Advogado"}</button></div>
+        </div>
+    </div>
+  );
+}
+
 export function LawyersPage({ onBack }: { onBack: () => void }) {
   const [lawyers, setLawyers] = useState<LawyerExtended[]>([]); // FIX: Array Tipado
   const [loading, setLoading] = useState(false);
@@ -132,21 +223,11 @@ export function LawyersPage({ onBack }: { onBack: () => void }) {
       <main className="flex-1 overflow-y-auto p-8">
         <div className="max-w-5xl mx-auto space-y-8">
             
-            <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100 shadow-sm flex flex-col md:flex-row gap-4 items-start md:items-end">
-                <div className="flex-1 w-full">
-                    <h3 className="font-bold text-blue-800 mb-2 flex items-center gap-2"><Building size={18}/> Endereço do Escritório (Único)</h3>
-                    <p className="text-xs text-blue-600 mb-3">Este endereço aparecerá na procuração para todos os advogados.</p>
-                    <input 
-                        className="w-full p-3 bg-white border border-blue-200 rounded-lg outline-none focus:border-blue-500 text-slate-700" 
-                        placeholder="Ex: Rua das Flores, 123, Centro, Vitória da Conquista - BA"
-                        value={officeAddress}
-                        onChange={(e) => setOfficeAddress(e.target.value)}
-                    />
-                </div>
-                <button onClick={handleSaveAddress} className="px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md transition-all whitespace-nowrap flex items-center gap-2">
-                    <Save size={16}/> Salvar Endereço
-                </button>
-            </div>
+            <OfficeAddressCard
+              officeAddress={officeAddress}
+              setOfficeAddress={setOfficeAddress}
+              handleSaveAddress={handleSaveAddress}
+            />
 
             <div>
                 <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2"><User size={18}/> Advogados Cadastrados</h3>
@@ -157,20 +238,12 @@ export function LawyersPage({ onBack }: { onBack: () => void }) {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {lawyers.map(adv => (
-                            <div key={adv.id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all group relative">
-                                <div className="flex items-center gap-4 mb-4">
-                                    <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 font-bold text-lg group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">{adv.nome?.charAt(0)}</div>
-                                    <div><h3 className="font-bold text-slate-800">{adv.nome}</h3><p className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded w-fit mt-1">OAB: {adv.oab}</p></div>
-                                </div>
-                                <div className="space-y-2 text-xs text-slate-500 mb-4">
-                                    <div className="flex items-center gap-2"><User size={12}/> {adv.nacionalidade}, {adv.estado_civil}</div>
-                                    <div className="flex items-center gap-2"><Hash size={12}/> CPF: {adv.cpf}</div>
-                                </div>
-                                <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100">
-                                    <button onClick={() => handleEdit(adv)} className="flex-1 py-2 bg-slate-50 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-100">Editar</button>
-                                    <button onClick={() => handleDelete(adv.id!)} className="px-3 py-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"><Trash2 size={14}/></button>
-                                </div>
-                            </div>
+                            <LawyerCard
+                              key={adv.id}
+                              adv={adv}
+                              handleEdit={handleEdit}
+                              handleDelete={handleDelete}
+                            />
                         ))}
                     </div>
                 )}
@@ -179,23 +252,14 @@ export function LawyersPage({ onBack }: { onBack: () => void }) {
       </main>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
-                <div className="bg-slate-50 p-6 border-b border-slate-100 flex justify-between items-center"><h3 className="font-bold text-slate-800 flex items-center gap-2"><FileText size={18} className="text-blue-500"/> Dados do Advogado</h3><button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">✕</button></div>
-                <div className="p-6 space-y-4">
-                    <div><label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Nome Completo</label><input className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" value={formData.nome || ""} onChange={e => setFormData({...formData, nome: e.target.value})} placeholder="Dr. Fulano..." /></div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Nº OAB</label><input className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" value={formData.oab || ""} onChange={e => setFormData({...formData, oab: e.target.value})} placeholder="UF 00.000" /></div>
-                        <div><label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">CPF</label><input className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" value={formData.cpf || ""} onChange={handleCpfChange} placeholder="000.000.000-00" maxLength={14} /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Nacionalidade</label><input className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" value={formData.nacionalidade || ""} onChange={e => setFormData({...formData, nacionalidade: e.target.value})} /></div>
-                        <div><label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Estado Civil</label><select className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" value={formData.estado_civil || "Casado"} onChange={e => setFormData({...formData, estado_civil: e.target.value})}><option value="Solteiro">Solteiro(a)</option><option value="Casado">Casado(a)</option><option value="Divorciado">Divorciado(a)</option><option value="Viúvo">Viúvo(a)</option></select></div>
-                    </div>
-                </div>
-                <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3"><button onClick={() => setShowModal(false)} className="px-4 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-lg">Cancelar</button><button onClick={handleSaveLawyer} disabled={saving} className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-lg">{saving ? "Salvando..." : "Salvar Advogado"}</button></div>
-            </div>
-        </div>
+        <LawyerModal
+          formData={formData}
+          setFormData={setFormData}
+          saving={saving}
+          handleSaveLawyer={handleSaveLawyer}
+          setShowModal={setShowModal}
+          handleCpfChange={handleCpfChange}
+        />
       )}
     </div>
   );

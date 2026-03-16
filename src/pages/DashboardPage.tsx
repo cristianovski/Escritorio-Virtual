@@ -61,6 +61,25 @@ export function DashboardPage() {
     e.stopPropagation();
     if (confirm("ATENÇÃO: Apagar este cliente removerá tudo (ficha, documentos, histórico). Continuar?")) {
         try {
+            // First find any financial responsibilities for this client to delete their installments
+            const { data: responsibilities } = await supabase
+                .from('financial_responsibilities')
+                .select('id')
+                .eq('client_id', id);
+
+            if (responsibilities && responsibilities.length > 0) {
+                const respIds = responsibilities.map(r => r.id);
+                // Delete all installments linked to these responsibilities
+                await supabase.from('financial_installments').delete().in('responsibility_id', respIds);
+                // Delete the responsibilities
+                await supabase.from('financial_responsibilities').delete().in('id', respIds);
+            }
+
+            // Delete other related records that might have a foreign key to clients
+            await supabase.from('interviews').delete().eq('client_id', id);
+            await supabase.from('client_documents').delete().eq('client_id', id);
+
+            // Finally delete the client
             const { error } = await supabase.from('clients').delete().eq('id', id);
             if (error) throw error;
             toast({ title: "Sucesso", description: "Cliente removido.", variant: "success" });

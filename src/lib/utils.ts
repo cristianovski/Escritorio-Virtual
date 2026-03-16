@@ -38,3 +38,19 @@ export const maskCEP = (value: string): string => {
     .replace(/^(\d{5})(\d)/, '$1-$2')
     .substring(0, 9);
 };
+
+export const diffMonths = (d1: string, d2: string) => {
+  if (!d1 || !d2) return 0;
+  const date1 = new Date(d1);
+  const date2 = new Date(d2);
+  const months = (date2.getFullYear() - date1.getFullYear()) * 12 + (date2.getMonth() - date1.getMonth()) + 1;
+  return months > 0 ? months : 0;
+};
+
+export const diffDays = (d1: string, d2: string) => {
+  if (!d1 || !d2) return 0;
+  const date1 = new Date(d1);
+  const date2 = new Date(d2);
+  const diffTime = Math.abs(date2.getTime() - date1.getTime());
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+};

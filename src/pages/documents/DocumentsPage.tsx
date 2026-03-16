@@ -12,6 +12,7 @@ import { useOfficeProfile } from '../../hooks/useOfficeProfile';
 import { useDocumentTemplates } from '../../hooks/useDocumentTemplates';
 import { useDocumentAI } from '../../hooks/useDocumentAI';
 import { useChatAI } from '../../hooks/useChatAI';
+import { sanitizeHtml } from '../../utils/sanitize';
 
 interface DocumentsPageProps {
   cliente: Client;
@@ -64,7 +65,7 @@ export function DocumentsPage({ cliente, onBack }: DocumentsPageProps) {
   useEffect(() => {
     if (!generating && editorRef.current && documentHtml) {
       if (editorRef.current.innerHTML !== documentHtml) {
-        editorRef.current.innerHTML = documentHtml;
+        editorRef.current.innerHTML = sanitizeHtml(documentHtml);
       }
     }
   }, [generating, documentHtml]);
@@ -84,8 +85,9 @@ export function DocumentsPage({ cliente, onBack }: DocumentsPageProps) {
     const currentContent = editorRef.current?.innerHTML || documentHtml;
     const newHtml = await sendMessage(currentContent);
     if (newHtml) {
-      setDocumentHtml(newHtml);
-      if (editorRef.current) editorRef.current.innerHTML = newHtml;
+      const sanitizedHtml = sanitizeHtml(newHtml);
+      setDocumentHtml(sanitizedHtml);
+      if (editorRef.current) editorRef.current.innerHTML = sanitizedHtml;
     }
   };
 
@@ -112,12 +114,6 @@ export function DocumentsPage({ cliente, onBack }: DocumentsPageProps) {
     document.execCommand(cmd, false, val);
     editorRef.current?.focus();
   };
-
-  const ToolBtn = ({ cmd, icon: Icon, title }: ToolBtnProps) => (
-    <button onClick={() => execCmd(cmd)} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={title}>
-      <Icon size={16} />
-    </button>
-  );
 
   return (
     <div className="flex flex-col h-full bg-slate-100 font-sans">
@@ -196,22 +192,22 @@ export function DocumentsPage({ cliente, onBack }: DocumentsPageProps) {
         <main className="flex-1 overflow-y-auto bg-slate-200/50 flex flex-col items-center p-6 md:p-10 relative">
           <div className="sticky top-0 mb-4 bg-white p-1.5 rounded-lg shadow-md border border-slate-200 flex flex-wrap gap-1 z-20 max-w-[21cm]">
             <div className="flex gap-0.5 border-r pr-1 mr-1">
-              <ToolBtn cmd="undo" icon={Undo} />
-              <ToolBtn cmd="redo" icon={Redo} />
+              <button onClick={() => execCmd("undo")} className="p-1.5 hover:bg-slate-100 rounded text-slate-600"><Undo size={16} /></button>
+              <button onClick={() => execCmd("redo")} className="p-1.5 hover:bg-slate-100 rounded text-slate-600"><Redo size={16} /></button>
             </div>
             <div className="flex gap-0.5 border-r pr-1 mr-1">
-              <ToolBtn cmd="bold" icon={Bold} />
-              <ToolBtn cmd="italic" icon={Type} />
-              <ToolBtn cmd="underline" icon={Underline} />
+              <button onClick={() => execCmd("bold")} className="p-1.5 hover:bg-slate-100 rounded text-slate-600"><Bold size={16} /></button>
+              <button onClick={() => execCmd("italic")} className="p-1.5 hover:bg-slate-100 rounded text-slate-600"><Type size={16} /></button>
+              <button onClick={() => execCmd("underline")} className="p-1.5 hover:bg-slate-100 rounded text-slate-600"><Underline size={16} /></button>
             </div>
             <div className="flex gap-0.5 border-r pr-1 mr-1">
-              <ToolBtn cmd="justifyLeft" icon={AlignLeft} />
-              <ToolBtn cmd="justifyCenter" icon={AlignCenter} />
-              <ToolBtn cmd="justifyFull" icon={AlignJustify} />
+              <button onClick={() => execCmd("justifyLeft")} className="p-1.5 hover:bg-slate-100 rounded text-slate-600"><AlignLeft size={16} /></button>
+              <button onClick={() => execCmd("justifyCenter")} className="p-1.5 hover:bg-slate-100 rounded text-slate-600"><AlignCenter size={16} /></button>
+              <button onClick={() => execCmd("justifyFull")} className="p-1.5 hover:bg-slate-100 rounded text-slate-600"><AlignJustify size={16} /></button>
             </div>
             <div className="flex gap-0.5">
-              <ToolBtn cmd="outdent" icon={Outdent} />
-              <ToolBtn cmd="indent" icon={Indent} />
+              <button onClick={() => execCmd("outdent")} className="p-1.5 hover:bg-slate-100 rounded text-slate-600"><Outdent size={16} /></button>
+              <button onClick={() => execCmd("indent")} className="p-1.5 hover:bg-slate-100 rounded text-slate-600"><Indent size={16} /></button>
             </div>
           </div>
 
@@ -236,7 +232,7 @@ export function DocumentsPage({ cliente, onBack }: DocumentsPageProps) {
                 contentEditable
                 suppressContentEditableWarning
                 className="outline-none empty:before:content-['...'] cursor-text"
-                onInput={(e) => setDocumentHtml(e.currentTarget.innerHTML)}
+                onInput={(e) => setDocumentHtml(sanitizeHtml(e.currentTarget.innerHTML))}
               />
             </div>
           )}

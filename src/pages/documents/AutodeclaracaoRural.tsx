@@ -1,9 +1,9 @@
 import { Client } from '../../types';
-import { UnifiedTimelineItem } from '../../hooks/useTimeline';
+import { LegacyPeriod } from '../../hooks/useProcuracaoData';
 
 interface AutodeclaracaoRuralProps {
   cliente: Client;
-  timeline: UnifiedTimelineItem[];
+  timeline: LegacyPeriod[];
   dataExtenso: string;
   cidade: string;
 }
@@ -11,7 +11,7 @@ interface AutodeclaracaoRuralProps {
 export function AutodeclaracaoRural({ cliente, timeline, dataExtenso, cidade }: AutodeclaracaoRuralProps) {
   const ruralItems = timeline.filter(item => 
     item.type?.toLowerCase().includes('rural') || 
-    item.customName?.toLowerCase().includes('rural')
+    item.description?.toLowerCase().includes('rural')
   );
 
   return (
@@ -35,12 +35,12 @@ export function AutodeclaracaoRural({ cliente, timeline, dataExtenso, cidade }: 
             ruralItems.map((item, idx) => (
               <tr key={idx}>
                 <td className="border border-black p-2">
-                  {item.issueDate ? new Date(item.issueDate).toLocaleDateString('pt-BR') : '___/___/____'}
+                  {(item.start_date || item.start) ? new Date(item.start_date || item.start as string).toLocaleDateString('pt-BR') : '___/___/____'}
                 </td>
                 <td className="border border-black p-2">
-                  {item.endDate ? new Date(item.endDate).toLocaleDateString('pt-BR') : '___/___/____'}
+                  {(item.end_date || item.end) ? new Date(item.end_date || item.end as string).toLocaleDateString('pt-BR') : '___/___/____'}
                 </td>
-                <td className="border border-black p-2">{item.customName || item.type}</td>
+                <td className="border border-black p-2">{item.description || item.type}</td>
               </tr>
             ))
           ) : (

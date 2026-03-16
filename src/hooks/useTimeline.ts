@@ -7,6 +7,7 @@ export interface UnifiedTimelineItem {
   type: string;
   customName: string;
   issueDate: string;
+  endDate?: string;
   displayYear: string | number;
   fileUrl: string | null;
   fileName: string | null;
@@ -37,10 +38,11 @@ export function useTimeline(cliente: Client) {
       const interviewData = interviewRes.data;
       if (interviewData?.timeline_json && Array.isArray(interviewData.timeline_json)) {
         const docsFicha = interviewData.timeline_json.map((doc: Record<string, any>) => ({
-          id: doc.id || Math.random().toString(),
+          id: doc.id || crypto.randomUUID(),
           type: doc.type || "Registro Ficha",
           customName: doc.description || "",
           issueDate: doc.issueDate || (doc.year ? `${doc.year}-01-01` : 'S/D'),
+          endDate: doc.endDate || undefined,
           displayYear: doc.year || (doc.issueDate ? doc.issueDate.split('-')[0] : "?"),
           fileUrl: doc.fileUrl || null,
           fileName: doc.fileName || null,
@@ -58,6 +60,7 @@ export function useTimeline(cliente: Client) {
           type: doc.category || "Documento Pessoal",
           customName: doc.name || "Upload",
           issueDate: doc.issueDate || new Date().toISOString().split('T')[0],
+          endDate: doc.endDate || undefined,
           displayYear: doc.issueDate ? doc.issueDate.split('-')[0] : new Date().getFullYear(),
           fileUrl: doc.url || null,
           fileName: doc.fileName || "arquivo_anexo",
@@ -75,6 +78,7 @@ export function useTimeline(cliente: Client) {
           type: doc.category || "Geral",
           customName: doc.title || doc.original_name || "Sem Título",
           issueDate: doc.reference_date || doc.created_at,
+          endDate: doc.end_date || undefined,
           displayYear: new Date(doc.reference_date || doc.created_at).getFullYear(),
           fileUrl: doc.file_url || null,
           fileName: doc.title || doc.original_name || "arquivo",

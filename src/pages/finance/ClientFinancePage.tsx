@@ -1,7 +1,10 @@
 import { useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, DollarSign, Calendar, CheckCircle, AlertCircle, Eye, Upload } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useClientFinance } from '../../hooks/useClientFinance';
+import { FinanceSummary } from './components/FinanceSummary';
+import { FinanceForm } from './components/FinanceForm';
+import { FinanceList } from './components/FinanceList';
 
 export function ClientFinancePage() {
   const { id } = useParams<{ id: string }>();
@@ -37,29 +40,7 @@ export function ClientFinancePage() {
       </div>
 
       {/* Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-          <div className="flex items-center gap-2 text-emerald-600 mb-2">
-            <DollarSign size={20} />
-            <span className="font-semibold">Total a Receber</span>
-          </div>
-          <p className="text-2xl font-bold">{formatCurrency(totals.aReceber)}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-          <div className="flex items-center gap-2 text-amber-600 mb-2">
-            <AlertCircle size={20} />
-            <span className="font-semibold">Parcelas em Atraso</span>
-          </div>
-          <p className="text-2xl font-bold">{totals.atrasadas}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-          <div className="flex items-center gap-2 text-blue-600 mb-2">
-            <CheckCircle size={20} />
-            <span className="font-semibold">Parcelas Pagas</span>
-          </div>
-          <p className="text-2xl font-bold">{totals.pagas}</p>
-        </div>
-      </div>
+      <FinanceSummary totals={totals} formatCurrency={formatCurrency} />
 
       {/* Botão nova obrigação */}
       <button
@@ -71,160 +52,22 @@ export function ClientFinancePage() {
 
       {/* Formulário nova obrigação */}
       {showForm && (
-        <div className="bg-white p-6 rounded-xl shadow-md border border-slate-200 mb-8">
-          <h2 className="font-bold text-lg mb-4">Cadastrar Obrigação Financeira</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Descrição*</label>
-              <input
-                type="text"
-                value={formData.descricao}
-                onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                className="w-full border border-slate-300 rounded-lg p-2"
-                placeholder="Ex: Honorários advocatícios"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Valor Total*</label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.valor_total}
-                onChange={(e) => setFormData({ ...formData, valor_total: e.target.value })}
-                className="w-full border border-slate-300 rounded-lg p-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Tipo*</label>
-              <select
-                value={formData.tipo}
-                onChange={(e) => setFormData({ ...formData, tipo: e.target.value as any })}
-                className="w-full border border-slate-300 rounded-lg p-2"
-              >
-                <option value="parcelado_fixo">Parcelado Fixo</option>
-                <option value="exito">Êxito (único)</option>
-                <option value="ambos">Parcelado + Êxito</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Número de Parcelas</label>
-              <input
-                type="number"
-                value={formData.numero_parcelas}
-                onChange={(e) => setFormData({ ...formData, numero_parcelas: e.target.value })}
-                className="w-full border border-slate-300 rounded-lg p-2"
-                disabled={formData.tipo === 'exito'}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Data Início*</label>
-              <input
-                type="date"
-                value={formData.data_inicio}
-                onChange={(e) => setFormData({ ...formData, data_inicio: e.target.value })}
-                className="w-full border border-slate-300 rounded-lg p-2"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Observações</label>
-              <textarea
-                value={formData.observacoes}
-                onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                rows={3}
-                className="w-full border border-slate-300 rounded-lg p-2"
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 mt-4">
-            <button onClick={() => setShowForm(false)} className="px-4 py-2 border border-slate-300 rounded-lg">
-              Cancelar
-            </button>
-            <button onClick={handleCreateResponsibility} className="px-4 py-2 bg-emerald-600 text-white rounded-lg">
-              Salvar
-            </button>
-          </div>
-        </div>
+        <FinanceForm
+          formData={formData}
+          setFormData={setFormData}
+          setShowForm={setShowForm}
+          handleCreateResponsibility={handleCreateResponsibility}
+        />
       )}
 
       {/* Lista de obrigações e parcelas */}
-      {responsibilities.length === 0 ? (
-        <p className="text-center text-slate-500 py-8">Nenhuma obrigação financeira cadastrada.</p>
-      ) : (
-        <div className="space-y-6">
-          {responsibilities.map((resp) => (
-            <div key={resp.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="bg-slate-50 p-4 border-b">
-                <h3 className="font-bold text-slate-800">{resp.descricao}</h3>
-                <p className="text-sm text-slate-600">
-                  Total: {formatCurrency(resp.valor_total)} | Início: {formatDate(resp.data_inicio)}
-                </p>
-                {resp.observacoes && <p className="text-xs text-slate-500 mt-1">{resp.observacoes}</p>}
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-100">
-                    <tr>
-                      <th className="p-3 text-left">Parcela</th>
-                      <th className="p-3 text-left">Vencimento</th>
-                      <th className="p-3 text-left">Valor</th>
-                      <th className="p-3 text-left">Status</th>
-                      <th className="p-3 text-left">Pagamento</th>
-                      <th className="p-3 text-left">Comprovante</th>
-                      <th className="p-3 text-left">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {installments
-                      .filter((i) => i.responsibility_id === resp.id)
-                      .map((inst) => (
-                        <tr key={inst.id} className="border-t border-slate-100">
-                          <td className="p-3">{inst.numero_parcela || '-'}</td>
-                          <td className="p-3">{formatDate(inst.data_vencimento)}</td>
-                          <td className="p-3 font-medium">{formatCurrency(inst.valor_previsto)}</td>
-                          <td className="p-3">
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                inst.status === 'pago'
-                                  ? 'bg-emerald-100 text-emerald-700'
-                                  : inst.status === 'atrasado'
-                                  ? 'bg-red-100 text-red-700'
-                                  : 'bg-amber-100 text-amber-700'
-                              }`}
-                            >
-                              {inst.status === 'pago' ? 'Pago' : inst.status === 'atrasado' ? 'Atrasado' : 'Pendente'}
-                            </span>
-                          </td>
-                          <td className="p-3">{inst.data_pagamento ? formatDate(inst.data_pagamento) : '-'}</td>
-                          <td className="p-3">
-                            {inst.comprovante_id ? (
-                              <button className="text-blue-600 hover:text-blue-800">
-                                <Eye size={16} />
-                              </button>
-                            ) : (
-                              <button className="text-slate-400 hover:text-slate-600" title="Anexar comprovante">
-                                <Upload size={16} />
-                              </button>
-                            )}
-                          </td>
-                          <td className="p-3">
-                            {inst.status !== 'pago' && (
-                              <button
-                                onClick={() => handlePayInstallment(inst)}
-                                className="text-emerald-600 hover:text-emerald-800 font-medium text-xs"
-                              >
-                                Marcar pago
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <FinanceList
+        responsibilities={responsibilities}
+        installments={installments}
+        formatCurrency={formatCurrency}
+        formatDate={formatDate}
+        handlePayInstallment={handlePayInstallment}
+      />
     </div>
   );
 }

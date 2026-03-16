@@ -22,7 +22,7 @@ export function ModeloSelector({ modelos, onSelect, onBack }: ModeloSelectorProp
           <ArrowLeft size={20} />
         </button>
         <h1 className="text-lg font-bold flex items-center gap-2">
-          <FileText size={20} className="text-blue-400" /> Central de Documentos
+          <FileText size={20} className="text-blue-400" /> Modelos de Procuração e Termos
         </h1>
       </header>
       <main className="flex-1 p-8 max-w-5xl mx-auto w-full">

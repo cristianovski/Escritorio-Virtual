@@ -6,7 +6,6 @@ import {
   FileText,
   Calendar,
   Scale,
-  Brain,
   TrendingUp,
   User,
   CheckCircle,
@@ -27,10 +26,7 @@ export function MasterReportPage({ cliente, onBack }: ReportProps) {
     periods,
     officeProfile,
     stats,
-    aiSummary,
-    generatingSummary,
     sections,
-    generateAiSummary,
     toggleSection,
     formatDate,
     getStart,
@@ -72,25 +68,16 @@ export function MasterReportPage({ cliente, onBack }: ReportProps) {
         <aside className="w-64 bg-white border-r border-slate-300 p-4 overflow-y-auto hidden md:block print:hidden shadow-lg z-10">
           <h3 className="font-bold text-slate-800 mb-4 uppercase text-xs tracking-wider border-b pb-2">Seções do Relatório</h3>
           <div className="space-y-2">
-            {Object.entries(sections).map(([key, isVisible]) => (
+            {(Object.entries(sections) as Array<[keyof typeof sections, boolean]>).map(([key, isVisible]) => (
               <button
                 key={key}
-                onClick={() => toggleSection(key as keyof typeof sections)}
+                onClick={() => toggleSection(key)}
                 className="w-full flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg text-sm text-slate-700 transition"
               >
                 {isVisible ? <CheckSquare size={18} className="text-blue-600" /> : <Square size={18} className="text-slate-300" />}
                 <span className="capitalize">{key.replace(/_/g, ' ')}</span>
               </button>
             ))}
-          </div>
-          <div className="mt-8 pt-4 border-t border-slate-200">
-            <button
-              onClick={generateAiSummary}
-              disabled={generatingSummary}
-              className="w-full bg-purple-100 hover:bg-purple-200 text-purple-800 p-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition disabled:opacity-50"
-            >
-              <Brain size={14} /> {generatingSummary ? 'Gerando...' : 'Gerar Resumo IA'}
-            </button>
           </div>
         </aside>
 
@@ -124,7 +111,7 @@ export function MasterReportPage({ cliente, onBack }: ReportProps) {
             )}
 
             {/* Dados cadastrais e resumo */}
-            {(sections.dados_cadastrais || sections.resumo_ia) && (
+            {sections.dados_cadastrais && (
               <div className="p-[20mm] page-break-after">
                 <h2 className="text-2xl font-black border-b-2 border-slate-900 pb-2 mb-6 uppercase flex items-center gap-2">
                   <User size={24} /> Qualificação do Segurado
@@ -152,20 +139,6 @@ export function MasterReportPage({ cliente, onBack }: ReportProps) {
                     <div className="col-span-2">
                       <strong>ENDEREÇO:</strong> {cliente.endereco}, {cliente.bairro}, {cliente.cidade} - CEP: {cliente.cep}
                     </div>
-                  </div>
-                )}
-                {sections.resumo_ia && (
-                  <div className="mb-10 no-break">
-                    <h3 className="font-bold text-lg bg-slate-100 p-2 border-l-4 border-purple-500 mb-4 flex items-center gap-2">
-                      <Brain size={18} className="text-purple-600" /> Resumo Executivo (IA)
-                    </h3>
-                    {aiSummary ? (
-                      <p className="text-justify italic text-slate-800 bg-purple-50/50 p-4 rounded-r-lg border border-purple-100">
-                        {aiSummary}
-                      </p>
-                    ) : (
-                      <p className="text-slate-400 italic">Resumo não gerado. Utilize a barra lateral para acionar a IA.</p>
-                    )}
                   </div>
                 )}
                 {sections.dados_cadastrais && interview && (

@@ -22,6 +22,7 @@ import {
 import { useBenefitAnalysis, Periodo } from '../../hooks/useBenefitAnalysis';
 import { Client } from '../../types';
 import { getLocalDateISO } from '../../lib/utils';
+import { StrategicTimeline } from './components/StrategicTimeline';
 
 const BENEFIT_TYPES = [
   'Aposentadoria por Idade Rural',
@@ -464,6 +465,10 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
               );
             })}
           </div>
+
+          {/* Canvas de Provas */}
+          <StrategicTimeline der={der} />
+
         </div>
 
         {/* Barra lateral de documentos */}

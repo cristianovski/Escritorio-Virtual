@@ -7,6 +7,7 @@ export interface UnifiedTimelineItem {
   type: string;
   customName: string;
   issueDate: string;
+  endDate?: string;
   displayYear: string | number;
   fileUrl: string | null;
   fileName: string | null;
@@ -40,7 +41,8 @@ export function useTimeline(cliente: Client) {
           id: doc.id || Math.random().toString(),
           type: doc.type || "Registro Ficha",
           customName: doc.description || "",
-          issueDate: doc.issueDate || (doc.year ? `${doc.year}-01-01` : 'S/D'),
+          issueDate: doc.issueDate || doc.start_date || (doc.year ? `${doc.year}-01-01` : 'S/D'),
+          endDate: doc.endDate || doc.end_date || undefined,
           displayYear: doc.year || (doc.issueDate ? doc.issueDate.split('-')[0] : "?"),
           fileUrl: doc.fileUrl || null,
           fileName: doc.fileName || null,

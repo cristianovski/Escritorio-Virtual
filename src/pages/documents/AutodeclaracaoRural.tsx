@@ -38,7 +38,7 @@ export function AutodeclaracaoRural({ cliente, timeline, dataExtenso, cidade }: 
                   {item.issueDate ? new Date(item.issueDate).toLocaleDateString('pt-BR') : '___/___/____'}
                 </td>
                 <td className="border border-black p-2">
-                  {item.endDate ? new Date(item.endDate).toLocaleDateString('pt-BR') : '___/___/____'}
+                  {item.endDate || "" ? new Date(item.endDate || "").toLocaleDateString('pt-BR') : '___/___/____'}
                 </td>
                 <td className="border border-black p-2">{item.customName || item.type}</td>
               </tr>

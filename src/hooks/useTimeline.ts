@@ -12,6 +12,7 @@ export interface UnifiedTimelineItem {
   fileName: string | null;
   source: string;
   law: string;
+  endDate?: string;
 }
 
 export function useTimeline(cliente: Client) {

@@ -64,7 +64,6 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
       if (clientRes.error) throw clientRes.error;
       
       if (clientRes.data) {
-        // Mapeia os dados do cliente para CivilFormValues
         const mapped: CivilFormValues = {
           nome: clientRes.data.nome || "",
           cpf: clientRes.data.cpf || "",
@@ -127,7 +126,6 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
 
   const handleCivilSubmit = (data: CivilFormValues) => {
     setCivilData(data);
-    // Opcional: Salvar automaticamente ou apenas atualizar estado
     toast({ title: "Dados civis atualizados", description: "Clique em 'Salvar Tudo' para persistir." });
   };
 
@@ -143,7 +141,6 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Sessão expirada.");
 
-      // Prepara payload do cliente
       const clientPayload = {
         ...civilData,
         user_id: user.id,
@@ -151,7 +148,6 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
         data_expedicao: civilData.data_expedicao || null,
       };
 
-      // Se capacidade civil for plena, limpa representante
       if (clientPayload.capacidade_civil === "Plena") {
         clientPayload.rep_nome = "";
         clientPayload.rep_cpf = "";
@@ -210,9 +206,9 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
           </div>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {cliente && (
-            <button onClick={() => navigate(`/analise/${cliente.id}`)} className="hidden md:flex bg-orange-100 text-orange-700 hover:bg-orange-200 px-4 py-2 rounded-lg font-bold text-sm items-center gap-2 transition">
+            <button onClick={() => navigate(`/analise/${cliente.id}`)} className="hidden md:flex bg-orange-100 text-orange-700 hover:bg-orange-200 px-4 py-2 rounded-lg font-bold text-sm items-center gap-2 transition shadow-sm">
               <Calculator size={16}/> Calculadora
             </button>
           )}

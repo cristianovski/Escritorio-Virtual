@@ -278,16 +278,17 @@ export function DashboardPage() {
                         <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between pl-3">
                            <div className="flex gap-1.5">
                               {[
-                                { icon: UserCog, route: `/cliente/${client.id}`, color: 'hover:text-blue-600 hover:bg-blue-50' },
-                                { icon: Calculator, route: `/analise/${client.id}`, color: 'hover:text-amber-600 hover:bg-amber-50' },
-                                { icon: FolderOpen, route: `/documentos/${client.id}`, color: 'hover:text-indigo-600 hover:bg-indigo-50' },
-                                { icon: History, route: `/linha-tempo/${client.id}`, color: 'hover:text-orange-600 hover:bg-orange-50' },
-                                { icon: DollarSign, route: `/cliente/${client.id}/financeiro`, color: 'hover:text-emerald-600 hover:bg-emerald-50' },
+                                { icon: UserCog, route: `/cliente/${client.id}`, color: 'hover:text-blue-600 hover:bg-blue-50', title: 'Ficha Cadastral' },
+                                { icon: Calculator, route: `/analise/${client.id}`, color: 'hover:text-amber-600 hover:bg-amber-50', title: 'Calculadora' },
+                                { icon: FolderOpen, route: `/documentos/${client.id}`, color: 'hover:text-indigo-600 hover:bg-indigo-50', title: 'Inventário GED' },
+                                { icon: History, route: `/linha-tempo/${client.id}`, color: 'hover:text-orange-600 hover:bg-orange-50', title: 'Linha do Tempo' },
+                                { icon: DollarSign, route: `/cliente/${client.id}/financeiro`, color: 'hover:text-emerald-600 hover:bg-emerald-50', title: 'Financeiro' },
                               ].map((btn, i) => (
                                 <button 
                                   key={i}
                                   onClick={(e) => { e.stopPropagation(); navigate(btn.route); }} 
                                   className={`p-2 rounded-lg text-slate-400 transition-colors ${btn.color}`}
+                                  title={btn.title}
                                 >
                                   <btn.icon size={16} strokeWidth={2.5}/>
                                 </button>
@@ -296,6 +297,7 @@ export function DashboardPage() {
                            <button 
                              onClick={(e) => handleDeleteClient(client.id, e)} 
                              className="p-2 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                             title="Excluir Cliente"
                            >
                              <Trash2 size={16} />
                            </button>

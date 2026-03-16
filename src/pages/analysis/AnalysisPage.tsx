@@ -1,4 +1,3 @@
-// ARQUIVO: src/pages/analysis/AnalysisPage.tsx
 import { useState } from 'react';
 import {
   ArrowLeft, Save, Calculator, Plus, Trash2, AlertTriangle, 
@@ -7,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useBenefitAnalysis, Periodo } from '../../hooks/useBenefitAnalysis';
 import { Client } from '../../types';
-import StrategicTimeline from '../../components/StrategicTimeline'; // <--- IMPORT AQUI
+import StrategicTimeline from '../../components/StrategicTimeline'; // Importamos o Canvas
 
 const BENEFIT_TYPES = [
   'Aposentadoria por Idade Rural',
@@ -291,10 +290,8 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
             </div>
           )}
 
-          {/* INJEÇÃO DO CANVAS VISUAL LAW AQUI */}
-          <div className="my-6">
-            <StrategicTimeline />
-          </div>
+          {/* INJEÇÃO DO CANVAS AQUI: Passando os dados reais da calculadora! */}
+          <StrategicTimeline der={der} periodos={periodos} documentos={documentos} />
 
           <div
             id="form-anchor"

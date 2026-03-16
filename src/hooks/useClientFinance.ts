@@ -5,11 +5,20 @@ import { Client } from '../types';
 import {
   fetchResponsibilities,
   fetchInstallments,
-  createResponsibility,
+  createResponsibilityWithInstallments,
   payInstallment
 } from '../services/financeService';
 import { FinancialResponsibility, FinancialInstallment } from '../types/finance';
 import { getLocalDateISO } from '../lib/utils';
+
+export const formatCurrency = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+export const formatDate = (date: string) => new Date(date).toLocaleDateString('pt-BR');
+
+export const calculateTotals = (installments: FinancialInstallment[]) => ({
+  aReceber: installments.filter(i => i.status !== 'pago').reduce((acc, i) => acc + i.valor_previsto, 0),
+  atrasadas: installments.filter(i => i.status === 'atrasado').length,
+  pagas: installments.filter(i => i.status === 'pago').length,
+});
 
 export function useClientFinance(clientId: number) {
   const { toast } = useToast();
@@ -57,7 +66,7 @@ export function useClientFinance(clientId: number) {
     }
 
     try {
-      const novaResp = await createResponsibility({
+      await createResponsibilityWithInstallments({
         client_id: clientId,
         descricao: formData.descricao,
         valor_total: Number(formData.valor_total),
@@ -66,24 +75,6 @@ export function useClientFinance(clientId: number) {
         data_inicio: formData.data_inicio,
         observacoes: formData.observacoes
       });
-
-      if (formData.tipo === 'parcelado_fixo' && formData.numero_parcelas) {
-        const numParcelas = Number(formData.numero_parcelas);
-        const valorParcela = novaResp.valor_total / numParcelas;
-        const dataInicio = new Date(novaResp.data_inicio);
-
-        for (let i = 1; i <= numParcelas; i++) {
-          const vencimento = new Date(dataInicio);
-          vencimento.setMonth(vencimento.getMonth() + i - 1);
-          await supabase.from('financial_installments').insert({
-            responsibility_id: novaResp.id,
-            numero_parcela: i,
-            valor_previsto: valorParcela,
-            data_vencimento: vencimento.toISOString().split('T')[0],
-            status: 'pendente'
-          });
-        }
-      }
 
       toast({ title: 'Sucesso', description: 'Obrigação cadastrada', variant: 'success' });
       setShowForm(false);
@@ -105,14 +96,7 @@ export function useClientFinance(clientId: number) {
     }
   };
 
-  const formatCurrency = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  const formatDate = (date: string) => new Date(date).toLocaleDateString('pt-BR');
-
-  const totals = {
-    aReceber: installments.filter(i => i.status !== 'pago').reduce((acc, i) => acc + i.valor_previsto, 0),
-    atrasadas: installments.filter(i => i.status === 'atrasado').length,
-    pagas: installments.filter(i => i.status === 'pago').length,
-  };
+  const totals = calculateTotals(installments);
 
   return {
     client,

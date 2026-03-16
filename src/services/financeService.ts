@@ -18,6 +18,50 @@ export async function fetchResponsibilities(clientId?: number) {
   return data as FinancialResponsibility[];
 }
 
+
+export async function createResponsibilityWithInstallments(input: FinancialResponsibilityInput) {
+  // Create responsibility first
+  const { data: novaResp, error } = await supabase
+    .from('financial_responsibilities')
+    .insert([input])
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  // If it's parcelado_fixo and has numero_parcelas, create installments
+  if (input.tipo === 'parcelado_fixo' && input.numero_parcelas) {
+    const numParcelas = Number(input.numero_parcelas);
+    const valorParcela = novaResp.valor_total / numParcelas;
+    const dataInicio = new Date(novaResp.data_inicio);
+
+    const installmentsToInsert = [];
+
+    for (let i = 1; i <= numParcelas; i++) {
+      const vencimento = new Date(dataInicio);
+      vencimento.setMonth(vencimento.getMonth() + i - 1);
+
+      installmentsToInsert.push({
+        responsibility_id: novaResp.id,
+        numero_parcela: i,
+        valor_previsto: valorParcela,
+        data_vencimento: vencimento.toISOString().split('T')[0],
+        status: 'pendente'
+      });
+    }
+
+    if (installmentsToInsert.length > 0) {
+      const { error: instError } = await supabase
+        .from('financial_installments')
+        .insert(installmentsToInsert);
+
+      if (instError) throw instError;
+    }
+  }
+
+  return novaResp as FinancialResponsibility;
+}
+
 export async function createResponsibility(input: FinancialResponsibilityInput) {
   const { data, error } = await supabase
     .from('financial_responsibilities')

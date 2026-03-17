@@ -107,7 +107,8 @@ export function DashboardPage() {
 
   const clientesFiltrados = clients.filter(c => {
       const s = searchTerm.toLowerCase();
-      const matchText = c.nome?.toLowerCase().includes(s) || c.cpf?.includes(s);
+      // CORREÇÃO: Se a busca estiver vazia ou o cliente não tiver nome, não oculta mais!
+      const matchText = s === "" || (c.nome?.toLowerCase()?.includes(s) || c.cpf?.includes(s));
       const matchStatus = statusFilter === "Todos" || (c.status_processo || "A Iniciar") === statusFilter;
       return matchText && matchStatus;
   });
@@ -138,7 +139,6 @@ export function DashboardPage() {
     <div className="flex-1 overflow-y-auto bg-slate-50/50 p-4 md:p-8 font-sans text-slate-800">
       <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* HEADER */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-black text-slate-900 tracking-tight">Painel de Controle</h1>
@@ -152,7 +152,6 @@ export function DashboardPage() {
           </button>
         </div>
 
-        {/* ESTATÍSTICAS (4 CARDS) */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[
             { label: 'Total na Carteira', value: stats.total, icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
@@ -172,13 +171,9 @@ export function DashboardPage() {
           ))}
         </div>
 
-        {/* LAYOUT PRINCIPAL (2 COLUNAS: ESQUERDA LISTA, DIREITA WIDGETS) */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          
-          {/* COLUNA ESQUERDA (Filtros e Clientes) */}
           <div className="xl:col-span-2 space-y-6">
             
-            {/* Filtros */}
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 items-center">
               <div className="flex-1 relative w-full">
                 <Search className="absolute left-4 top-3 text-slate-400" size={20} />
@@ -207,7 +202,6 @@ export function DashboardPage() {
               </div>
             </div>
 
-            {/* Lista de Clientes */}
             <div>
               <div className="flex items-center justify-between mb-4 px-1">
                 <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -237,7 +231,6 @@ export function DashboardPage() {
                         onClick={() => navigate(`/cliente/${client.id}`)} 
                         className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all cursor-pointer group relative flex flex-col"
                       >
-                        {/* Linha colorida de status lateral */}
                         <div 
                           className={`absolute left-0 top-6 bottom-6 w-1 rounded-r-md transition-all ${styles.bg}`}
                           title="Status do Processo"
@@ -246,13 +239,14 @@ export function DashboardPage() {
                         <div className="flex justify-between items-start mb-4 pl-3">
                           <div className="flex items-center gap-3">
                             <div className="w-12 h-12 bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center text-slate-600 font-black text-lg group-hover:bg-emerald-50 group-hover:text-emerald-700 group-hover:border-emerald-200 transition-colors">
-                              {client.nome?.charAt(0).toUpperCase()}
+                              {/* CORREÇÃO: Trata a falta de nome sem quebrar */}
+                              {client.nome ? client.nome.charAt(0).toUpperCase() : '?'}
                             </div>
                             <div>
                               <h3 className="font-bold text-slate-800 text-base leading-tight group-hover:text-emerald-700 transition-colors line-clamp-1">
-                                {client.nome}
+                                {client.nome || 'Cliente Sem Nome (Incompleto)'}
                               </h3>
-                              <p className="text-xs text-slate-400 font-mono mt-1">{client.cpf}</p>
+                              <p className="text-xs text-slate-400 font-mono mt-1">{client.cpf || 'Sem CPF'}</p>
                             </div>
                           </div>
                           <button 
@@ -263,7 +257,6 @@ export function DashboardPage() {
                           </button>
                         </div>
 
-                        {/* Dados de Contato */}
                         <div className="space-y-1.5 mb-5 pl-3">
                           <div className="flex items-center gap-2 text-xs text-slate-500">
                             <MapPin size={13} className="text-slate-400" />
@@ -310,10 +303,7 @@ export function DashboardPage() {
             </div>
           </div>
 
-          {/* COLUNA DIREITA (Widgets: Gráfico, Aniversários, Lembretes) */}
           <div className="space-y-6">
-            
-            {/* Gráfico de Distribuição */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
               <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2 text-sm uppercase tracking-wide">
                 <PieChart size={16} className="text-slate-400" /> Distribuição
@@ -347,7 +337,6 @@ export function DashboardPage() {
               </div>
             </div>
 
-            {/* Aniversariantes */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wide">
@@ -384,7 +373,6 @@ export function DashboardPage() {
               )}
             </div>
 
-            {/* Lembretes */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col h-80">
               <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wide mb-4">
                 <Star size={16} className="text-amber-500" /> Lembretes Rápidos

@@ -15,8 +15,9 @@ interface CivilDataFormProps {
 }
 
 export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormProps) {
-  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<CivilFormValues>({
+  const { register, watch, reset, formState: { errors } } = useForm<CivilFormValues>({
     resolver: zodResolver(civilSchema),
+    mode: "onChange",
     defaultValues: {
       nome: initialData?.nome || "",
       cpf: initialData?.cpf || "",
@@ -58,13 +59,19 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
     }
   });
 
-  // 🚨 AQUI ESTÁ O EXORCISMO DO FANTASMA 🚨
-  // Toda vez que o initialData mudar (quando chegar do banco de dados), ele "reseta" o formulário com os dados novos.
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
       reset(initialData as CivilFormValues);
     }
   }, [initialData, reset]);
+
+  // CORREÇÃO: Autosave liberal. O que você digitar, ele manda pro botão Salvar Tudo imediatamente.
+  useEffect(() => {
+    const subscription = watch((value) => {
+      onSubmit(value as CivilFormValues);
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, onSubmit]);
 
   const isIncapaz = watch("capacidade_civil") !== "Plena";
 
@@ -81,8 +88,7 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-300">
-      {/* SEÇÃO 1: IDENTIFICAÇÃO */}
+    <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-300">
       <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <h2 className="text-lg font-bold text-slate-700 mb-6 flex items-center gap-2 border-b pb-2">
           <User className="text-emerald-500"/> 1. Identificação Civil
@@ -211,7 +217,6 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
         </div>
       </section>
 
-      {/* SEÇÃO REPRESENTANTE LEGAL (Condicional) */}
       {isIncapaz && (
         <section className="bg-amber-50 p-6 rounded-2xl shadow-sm border border-amber-200">
           <h2 className="text-lg font-bold text-amber-800 mb-6 flex items-center gap-2 border-b border-amber-200 pb-2">
@@ -252,7 +257,6 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
         </section>
       )}
 
-      {/* SEÇÃO CONTATO E LOCALIZAÇÃO */}
       <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <h2 className="text-lg font-bold text-slate-700 mb-6 flex items-center gap-2 border-b pb-2">Contato & Localização</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -283,7 +287,6 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
         </div>
       </section>
 
-      {/* SEÇÃO ANÁLISE & CHECK */}
       <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <h2 className="text-lg font-bold text-slate-700 mb-6 flex items-center gap-2 border-b pb-2">Análise & Check</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -326,12 +329,6 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
           </div>
         </div>
       </section>
-
-      <div className="flex justify-end">
-        <button type="submit" disabled={loading} className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg font-bold shadow transition-all disabled:opacity-50">
-          {loading ? "Salvando..." : "Salvar Dados Civis"}
-        </button>
-      </div>
-    </form>
+    </div>
   );
 }

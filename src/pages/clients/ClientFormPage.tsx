@@ -4,7 +4,7 @@ import {
   ArrowLeft, Save, User, MapPin, Phone, 
   AlertTriangle, Shield, PenTool,
   Tractor, LayoutList, ChevronRight, ShoppingBag,
-  Calculator, TrendingUp
+  TrendingUp
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useToast } from "../../hooks/use-toast";
@@ -126,16 +126,25 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
 
   const handleCivilSubmit = (data: CivilFormValues) => {
     setCivilData(data);
-    toast({ title: "Dados civis atualizados", description: "Clique em 'Salvar Tudo' para persistir." });
   };
 
   const handleRuralSave = (data: RuralFormValues, hist: string) => {
     setRuralData(data);
     setHistorico(hist);
-    toast({ title: "Dados rurais atualizados", description: "Clique em 'Salvar Tudo' para persistir." });
+    toast({ title: "Dados processados", description: "Clique em 'Salvar Tudo' no topo para finalizar o cadastro." });
   };
 
   const handleSave = async () => {
+    // CORREÇÃO: O aviso agora reflete a realidade (apenas exige que o nome seja preenchido)
+    if (!civilData.nome || civilData.nome.trim() === "") {
+      toast({ 
+        title: "Atenção!", 
+        description: "O campo 'Nome Completo' é obrigatório para salvar a ficha do cliente.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -179,7 +188,7 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
         if (interviewError) throw interviewError;
       }
 
-      toast({ title: "Sucesso!", description: "Dados salvos.", variant: "success" });
+      toast({ title: "Sucesso!", description: "Ficha salva com sucesso.", variant: "success" });
       
       if (!cliente && currentClientId) {
         navigate(`/cliente/${currentClientId}`);
@@ -202,16 +211,11 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
           </button>
           <div>
             <h1 className="text-xl font-bold text-slate-800">{cliente ? "Editar Cadastro" : "Novo Cliente"}</h1>
-            <p className="text-xs text-slate-500 font-medium">Dossiê Completo</p>
+            <p className="text-xs text-slate-500 font-medium">Ficha Cadastral</p>
           </div>
         </div>
         
         <div className="flex flex-wrap items-center gap-2">
-          {cliente && (
-            <button onClick={() => navigate(`/analise/${cliente.id}`)} className="hidden md:flex bg-orange-100 text-orange-700 hover:bg-orange-200 px-4 py-2 rounded-lg font-bold text-sm items-center gap-2 transition shadow-sm">
-              <Calculator size={16}/> Calculadora
-            </button>
-          )}
           <button onClick={handleSave} disabled={loading} className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg font-bold shadow flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50">
             <Save size={18}/> {loading ? "Salvando..." : "Salvar Tudo"}
           </button>

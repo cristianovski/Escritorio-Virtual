@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import {
   ArrowLeft, Save, Calculator, Plus, Trash2, CheckCircle, 
-  XCircle, Calendar, HelpCircle, Paperclip, Eye, Edit2, 
-  X, FileText, FileDown, Search
+  XCircle, Calendar, HelpCircle, Paperclip, Edit2, 
+  X, FileDown, Search
 } from 'lucide-react';
 import { useBenefitAnalysis, Periodo } from '../../hooks/useBenefitAnalysis';
 import { Client } from '../../types';
@@ -62,6 +62,7 @@ interface AnalysisPageProps {
 const parseLocal = (d: string) => new Date(`${d.split('T')[0]}T12:00:00`);
 
 export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
+  // 1. TODOS OS HOOKS NO TOPO (Segurança contra o erro do Sentry)
   const {
     loading, der, setDer, periodos, documentos,
     handleSavePeriod, handleRemovePeriod, handleSave,
@@ -75,6 +76,7 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
   const [docSearch, setDocSearch] = useState('');
   const [showDocList, setShowDocList] = useState(false);
 
+  // 2. LÓGICA E PROCESSAMENTO
   let docCounter = 1;
   const periodosTratados = [...periodos]
     .sort((a, b) => parseLocal(a.inicio).getTime() - parseLocal(b.inicio).getTime())
@@ -126,6 +128,7 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
     }, 1000);
   };
 
+  // 3. RENDERIZAÇÃO
   return (
     <div className="flex flex-col h-full bg-slate-50">
       <header className="bg-white border-b p-4 flex flex-col md:flex-row justify-between items-start md:items-center sticky top-0 z-10 shadow-sm gap-4 print:hidden">

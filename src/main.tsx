@@ -12,6 +12,15 @@ import { browserTracingIntegration, replayIntegration } from "@sentry/react"
 if (import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({
     dsn: import.meta.env.VITE_SENTRY_DSN,
+    
+    // 👇 FILTRO DE RUÍDOS: Ignora falsos positivos de rede e navegação
+    ignoreErrors: [
+      "AbortError",
+      "signal is aborted without reason",
+      "Failed to fetch",
+      "Network request failed"
+    ],
+
     integrations: [
       browserTracingIntegration(),
       replayIntegration(),

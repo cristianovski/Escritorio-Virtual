@@ -8,6 +8,7 @@ interface StrategicTimelineProps {
   clienteNome?: string; 
 }
 
+// Helpers Utilitários
 const parseDate = (d: string) => new Date(`${d.split('T')[0]}T12:00:00`);
 
 const diffMonths = (start: string, end: string) => {
@@ -17,6 +18,7 @@ const diffMonths = (start: string, end: string) => {
   return (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
 };
 
+// FIX: Adicionada a função diffDays para resolver o erro do Sentry
 const diffDays = (start: string, end: string) => {
   if (!start || !end) return 0;
   const diffTime = Math.abs(parseDate(end).getTime() - parseDate(start).getTime());

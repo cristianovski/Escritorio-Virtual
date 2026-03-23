@@ -16,7 +16,7 @@ export interface Periodo {
   linkedDocId?: string;
   linkedDocTitle?: string;
   law?: string;
-  dataExpedicao?: string; // NOVO CAMPO: Data do Documento
+  dataExpedicao?: string; 
 }
 
 interface DocumentTimelineItem {
@@ -27,6 +27,9 @@ interface DocumentTimelineItem {
   fileUrl: string | null;
   origem: string;
 }
+
+// Helper interno para fuso horário correto no cálculo de dias
+const parseLocal = (d: string) => new Date(`${d.split('T')[0]}T12:00:00`);
 
 export function useBenefitAnalysis(cliente: Client) {
   const { toast } = useToast();
@@ -40,6 +43,9 @@ export function useBenefitAnalysis(cliente: Client) {
   }, [cliente]);
 
   const loadAllData = async () => {
+    // 🛡️ TRAVA DE SEGURANÇA EXTRA: Previne crash se o cliente sumir da memória
+    if (!cliente?.id) return; 
+    
     setLoading(true);
     try {
       const [interviewRes, newDocsRes] = await Promise.all([
@@ -82,8 +88,9 @@ export function useBenefitAnalysis(cliente: Client) {
 
   const diffDays = (d1: string, d2: string) => {
     if (!d1 || !d2) return 0;
-    const date1 = new Date(d1);
-    const date2 = new Date(d2);
+    // 🛡️ CORREÇÃO: Utilizando o parseLocal para evitar bugs de fuso horário
+    const date1 = parseLocal(d1);
+    const date2 = parseLocal(d2);
     const diffTime = Math.abs(date2.getTime() - date1.getTime());
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
   };
@@ -107,7 +114,7 @@ export function useBenefitAnalysis(cliente: Client) {
       is_safra: isSafra,
       linkedDocTitle: form.linkedDocTitle,
       law: form.law,
-      dataExpedicao: form.dataExpedicao, // Salvando a data de expedição
+      dataExpedicao: form.dataExpedicao,
     };
     if (editingId) {
       setPeriodos((prev) =>

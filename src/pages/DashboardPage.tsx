@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  Users, UserPlus, Search, Filter, Clock, Calendar, 
-  CheckCircle, AlertCircle, ChevronRight, Star, 
-  MessageCircle, FolderOpen, Trash2, PieChart, 
-  UserCog, Calculator, BookCheck, DollarSign, History,
-  MapPin, Phone, Cake, Plus
+  Users, UserPlus, Search, AlertCircle, Clock, Calendar, 
+  CheckCircle, ChevronRight, Star, MessageCircle, 
+  FolderOpen, Trash2, UserCog, Calculator, 
+  DollarSign, History, MapPin, Phone, Cake, Plus
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useToast } from "../hooks/use-toast";
@@ -107,7 +106,6 @@ export function DashboardPage() {
 
   const clientesFiltrados = clients.filter(c => {
       const s = searchTerm.toLowerCase();
-      // CORREÇÃO: Se a busca estiver vazia ou o cliente não tiver nome, não oculta mais!
       const matchText = s === "" || (c.nome?.toLowerCase()?.includes(s) || c.cpf?.includes(s));
       const matchStatus = statusFilter === "Todos" || (c.status_processo || "A Iniciar") === statusFilter;
       return matchText && matchStatus;
@@ -129,16 +127,11 @@ export function DashboardPage() {
       return mesNasc === mesAtual;
   }).sort((a, b) => parseInt(a.data_nascimento!.split('-')[2], 10) - parseInt(b.data_nascimento!.split('-')[2], 10));
 
-  const pieData = [
-    { name: 'A Iniciar', value: stats.iniciar, color: '#f59e0b' },
-    { name: 'Em Andamento', value: stats.andamento, color: '#3b82f6' },
-    { name: 'Finalizado', value: stats.finalizado, color: '#10b981' },
-  ];
-
   return (
     <div className="flex-1 overflow-y-auto bg-slate-50/50 p-4 md:p-8 font-sans text-slate-800">
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-[1600px] mx-auto space-y-8">
         
+        {/* Título e Botão Novo Cliente */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-black text-slate-900 tracking-tight">Painel de Controle</h1>
@@ -146,13 +139,14 @@ export function DashboardPage() {
           </div>
           <button 
             onClick={() => navigate('/cliente/novo')}
-            className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-slate-200 transition-all active:scale-95"
+            className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-slate-200 transition-all active:scale-95 shrink-0"
           >
             <UserPlus size={20} /> Novo Cliente
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Cards de Resumo */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {[
             { label: 'Total na Carteira', value: stats.total, icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
             { label: 'A Iniciar', value: stats.iniciar, icon: AlertCircle, color: 'text-amber-600', bg: 'bg-amber-50' },
@@ -171,10 +165,14 @@ export function DashboardPage() {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          <div className="xl:col-span-2 space-y-6">
+        {/* Layout Principal: Clientes e Widgets da Direita */}
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          
+          {/* LADO ESQUERDO: LISTA DE CLIENTES (3 COLUNAS) */}
+          <div className="xl:col-span-3 space-y-6">
             
-            <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 items-center">
+            {/* Filtros e Busca */}
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col lg:flex-row gap-4 items-center">
               <div className="flex-1 relative w-full">
                 <Search className="absolute left-4 top-3 text-slate-400" size={20} />
                 <input
@@ -185,12 +183,12 @@ export function DashboardPage() {
                   className="w-full pl-12 pr-4 py-2.5 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-emerald-500/20 outline-none text-slate-700 font-medium"
                 />
               </div>
-              <div className="flex gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0">
+              <div className="flex gap-2 overflow-x-auto w-full lg:w-auto pb-2 lg:pb-0 hide-scrollbar">
                 {["Todos", "A Iniciar", "Em Andamento", "Finalizado"].map(st => (
                   <button
                     key={st}
                     onClick={() => setStatusFilter(st)}
-                    className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
+                    className={`px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
                       statusFilter === st 
                         ? 'bg-slate-900 text-white shadow-md' 
                         : 'bg-white text-slate-500 hover:bg-slate-100'
@@ -202,6 +200,7 @@ export function DashboardPage() {
               </div>
             </div>
 
+            {/* Clientes Recentes */}
             <div>
               <div className="flex items-center justify-between mb-4 px-1">
                 <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -210,9 +209,9 @@ export function DashboardPage() {
               </div>
 
               {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-4">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="bg-white rounded-2xl h-48 border border-slate-200 animate-pulse"></div>
+                    <div key={i} className="bg-white rounded-2xl h-24 border border-slate-200 animate-pulse"></div>
                   ))}
                 </div>
               ) : clientesFiltrados.length === 0 ? (
@@ -222,54 +221,68 @@ export function DashboardPage() {
                   <p className="text-slate-500 text-sm mb-6">Ajuste os filtros ou cadastre um novo cliente.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                /* MUDANÇA: Lista vertical (uma linha completa por cliente) */
+                <div className="flex flex-col gap-4">
                   {clientesFiltrados.map((client) => {
                     const styles = getStatusStyle(client.status_processo);
                     return (
                       <div 
                         key={client.id} 
                         onClick={() => navigate(`/cliente/${client.id}`)} 
-                        className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all cursor-pointer group relative flex flex-col"
+                        className="bg-white rounded-2xl p-4 md:p-5 border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all cursor-pointer group relative flex flex-col md:flex-row md:items-center gap-4 md:gap-8"
                       >
                         <div 
                           className={`absolute left-0 top-6 bottom-6 w-1 rounded-r-md transition-all ${styles.bg}`}
                           title="Status do Processo"
                         ></div>
 
-                        <div className="flex justify-between items-start mb-4 pl-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center text-slate-600 font-black text-lg group-hover:bg-emerald-50 group-hover:text-emerald-700 group-hover:border-emerald-200 transition-colors">
-                              {/* CORREÇÃO: Trata a falta de nome sem quebrar */}
+                        {/* Bloco 1: Avatar, Nome e CPF */}
+                        <div className="flex justify-between items-start md:items-center pl-3 md:w-[35%] shrink-0">
+                          <div className="flex items-center gap-3 w-full">
+                            <div className="w-12 h-12 bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center text-slate-600 font-black text-lg group-hover:bg-emerald-50 group-hover:text-emerald-700 group-hover:border-emerald-200 transition-colors shrink-0">
                               {client.nome ? client.nome.charAt(0).toUpperCase() : '?'}
                             </div>
-                            <div>
-                              <h3 className="font-bold text-slate-800 text-base leading-tight group-hover:text-emerald-700 transition-colors line-clamp-1">
-                                {client.nome || 'Cliente Sem Nome (Incompleto)'}
+                            <div className="min-w-0 pr-2">
+                              <h3 className="font-bold text-slate-800 text-base leading-tight group-hover:text-emerald-700 transition-colors truncate">
+                                {client.nome || 'Sem Nome'}
                               </h3>
-                              <p className="text-xs text-slate-400 font-mono mt-1">{client.cpf || 'Sem CPF'}</p>
+                              <p className="text-xs text-slate-400 font-mono mt-1 truncate">{client.cpf || 'Sem CPF'}</p>
                             </div>
                           </div>
+                          
+                          {/* Status Mobile */}
                           <button 
                             onClick={(e) => toggleStatus(client, e)}
-                            className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ring-1 transition-colors ${styles.light} hover:opacity-80`}
+                            className={`md:hidden text-[10px] font-bold px-2.5 py-1 rounded-lg ring-1 transition-colors whitespace-nowrap shrink-0 ${styles.light} hover:opacity-80`}
                           >
                             {client.status_processo || 'A Iniciar'}
                           </button>
                         </div>
 
-                        <div className="space-y-1.5 mb-5 pl-3">
+                        {/* Bloco 2: Contatos e Endereço */}
+                        <div className="space-y-1.5 pl-3 md:pl-0 md:flex-1 md:flex md:flex-col md:justify-center min-w-0">
                           <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <MapPin size={13} className="text-slate-400" />
+                            <MapPin size={13} className="text-slate-400 shrink-0" />
                             <span className="truncate font-medium">{client.cidade || client.endereco || 'Endereço não informado'}</span>
                           </div>
                           <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <Phone size={13} className="text-slate-400" />
-                            <span className="font-medium">{client.telefone || 'Sem telefone'}</span>
+                            <Phone size={13} className="text-slate-400 shrink-0" />
+                            <span className="font-medium truncate">{client.telefone || 'Sem telefone'}</span>
                           </div>
                         </div>
 
-                        <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between pl-3">
-                           <div className="flex gap-1.5">
+                        {/* Bloco 3: Status PC e Ações Rápidas */}
+                        <div className="pt-4 md:pt-0 border-t border-slate-100 md:border-none flex items-center justify-between md:justify-end gap-6 pl-3 md:pl-0 shrink-0">
+                           
+                           {/* Status Desktop */}
+                           <button 
+                             onClick={(e) => toggleStatus(client, e)}
+                             className={`hidden md:block text-[10px] font-bold px-3 py-1.5 rounded-lg ring-1 transition-colors whitespace-nowrap shrink-0 ${styles.light} hover:opacity-80`}
+                           >
+                             {client.status_processo || 'A Iniciar'}
+                           </button>
+
+                           <div className="flex gap-1 overflow-x-auto hide-scrollbar">
                               {[
                                 { icon: UserCog, route: `/cliente/${client.id}`, color: 'hover:text-blue-600 hover:bg-blue-50', title: 'Ficha Cadastral' },
                                 { icon: Calculator, route: `/analise/${client.id}`, color: 'hover:text-amber-600 hover:bg-amber-50', title: 'Calculadora' },
@@ -289,7 +302,7 @@ export function DashboardPage() {
                            </div>
                            <button 
                              onClick={(e) => handleDeleteClient(client.id, e)} 
-                             className="p-2 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                             className="p-2 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
                              title="Excluir Cliente"
                            >
                              <Trash2 size={16} />
@@ -303,41 +316,11 @@ export function DashboardPage() {
             </div>
           </div>
 
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-              <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2 text-sm uppercase tracking-wide">
-                <PieChart size={16} className="text-slate-400" /> Distribuição
-              </h3>
-              <div className="flex flex-col items-center">
-                <div className="relative w-32 h-32 mb-6">
-                  <div className="absolute inset-0 rounded-full shadow-inner"
-                       style={{ 
-                         background: `conic-gradient(
-                           #f59e0b 0deg ${(stats.iniciar / stats.total) * 360}deg,
-                           #3b82f6 ${(stats.iniciar / stats.total) * 360}deg ${((stats.iniciar + stats.andamento) / stats.total) * 360}deg,
-                           #10b981 ${((stats.iniciar + stats.andamento) / stats.total) * 360}deg 360deg
-                         )`
-                       }}>
-                  </div>
-                  <div className="absolute inset-3 bg-white rounded-full flex flex-col items-center justify-center shadow-sm">
-                    <span className="text-2xl font-black text-slate-800 leading-none">{stats.total}</span>
-                  </div>
-                </div>
-                <div className="w-full space-y-3">
-                  {pieData.map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between text-xs font-bold">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded" style={{ backgroundColor: item.color }}></div>
-                        <span className="text-slate-600">{item.name}</span>
-                      </div>
-                      <span className="text-slate-800 bg-slate-100 px-2 py-0.5 rounded">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+          {/* LADO DIREITO: WIDGETS (1 COLUNA) */}
+          <div className="space-y-6 xl:col-span-1 flex flex-col">
+            
+            {/* Widget: Aniversariantes (Expandido) */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col flex-1 min-h-[350px]">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wide">
                   <Cake size={16} className="text-rose-500" /> Aniversariantes
@@ -347,14 +330,14 @@ export function DashboardPage() {
                 </span>
               </div>
               {aniversariantes.length === 0 ? (
-                <div className="text-center py-6 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="text-center py-6 bg-slate-50 rounded-xl border border-slate-100 flex-1 flex items-center justify-center">
                   <p className="text-xs font-medium text-slate-400">Nenhum cliente faz aniversário este mês.</p>
                 </div>
               ) : (
-                <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                <div className="space-y-3 overflow-y-auto pr-1 flex-1">
                   {aniversariantes.map((c) => (
                     <div key={c.id} className="flex items-center gap-3 p-3 bg-rose-50/50 hover:bg-rose-50 transition-colors rounded-xl border border-rose-100/50 group">
-                      <div className="w-12 h-12 bg-white border border-rose-100 rounded-xl flex flex-col items-center justify-center text-rose-600 shadow-sm">
+                      <div className="w-12 h-12 bg-white border border-rose-100 rounded-xl flex flex-col items-center justify-center text-rose-600 shadow-sm shrink-0">
                         <span className="text-[9px] font-bold uppercase leading-none mb-0.5 opacity-60">Dia</span>
                         <span className="text-lg font-black leading-none">{c.data_nascimento?.split('-')[2]}</span>
                       </div>
@@ -373,7 +356,8 @@ export function DashboardPage() {
               )}
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col h-80">
+            {/* Widget: Lembretes (Parte Inferior) */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col h-[400px]">
               <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wide mb-4">
                 <Star size={16} className="text-amber-500" /> Lembretes Rápidos
               </h3>
@@ -388,7 +372,7 @@ export function DashboardPage() {
                 />
                 <button
                   onClick={addNote}
-                  className="bg-amber-100 hover:bg-amber-200 text-amber-700 px-3 py-2 rounded-xl font-bold transition-colors"
+                  className="bg-amber-100 hover:bg-amber-200 text-amber-700 px-3 py-2 rounded-xl font-bold transition-colors shrink-0"
                 >
                   <Plus size={18}/>
                 </button>
@@ -404,7 +388,7 @@ export function DashboardPage() {
                       <span className="text-sm font-medium text-slate-700 leading-snug break-words pr-2">{note}</span>
                       <button
                         onClick={() => removeNote(i)}
-                        className="text-slate-300 hover:text-red-500 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="text-slate-300 hover:text-red-500 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                       >
                         <Trash2 size={14} />
                       </button>

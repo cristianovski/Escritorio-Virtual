@@ -85,6 +85,30 @@ export function DashboardPage() {
     }
   };
 
+  // NOVA FUNÇÃO: Alternar Fase do Processo
+  const toggleFase = async (client: Client, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const ciclo = ["Administrativo", "Judicial", "Execução"];
+    // Usando 'any' temporariamente caso a tipagem Client ainda não tenha 'fase_processo'
+    const atual = (client as any).fase_processo ?? "Administrativo";
+    const indexAtual = ciclo.indexOf(atual);
+    const novoIndex = (indexAtual + 1) % ciclo.length;
+    const novaFase = ciclo[novoIndex];
+
+    setClients(prev => prev.map(c => 
+      c.id === client.id ? { ...c, fase_processo: novaFase } : c
+    ) as Client[]);
+
+    try {
+      const { error } = await supabase.from('clients').update({ fase_processo: novaFase }).eq('id', client.id);
+      if (error) throw error;
+      toast({ title: "Fase Atualizada", description: `Nova fase: ${novaFase}`, variant: "default" });
+    } catch (err) {
+      toast({ title: "Erro", description: "Verifique se a coluna 'fase_processo' existe no Supabase.", variant: "destructive" });
+      fetchClients();
+    }
+  };
+
   const addNote = () => {
       if (!newNote.trim()) return;
       const updated = [...notes, newNote];
@@ -116,6 +140,15 @@ export function DashboardPage() {
           case 'Finalizado': return { bg: 'bg-emerald-500', light: 'bg-emerald-50 text-emerald-700 ring-emerald-200' };
           case 'Em Andamento': return { bg: 'bg-blue-500', light: 'bg-blue-50 text-blue-700 ring-blue-200' };
           default: return { bg: 'bg-amber-500', light: 'bg-amber-50 text-amber-700 ring-amber-200' };
+      }
+  };
+
+  // NOVO: Estilo para o botão de Fase
+  const getFaseStyle = (fase?: string) => {
+      switch(fase) {
+          case 'Judicial': return 'bg-purple-50 text-purple-700 ring-purple-200';
+          case 'Execução': return 'bg-rose-50 text-rose-700 ring-rose-200';
+          default: return 'bg-slate-100 text-slate-600 ring-slate-200'; // Administrativo
       }
   };
 
@@ -257,15 +290,24 @@ export function DashboardPage() {
                             </div>
                           </div>
                           
-                          <button 
-                            onClick={(e) => toggleStatus(client, e)}
-                            className={`md:hidden text-[10px] font-bold px-2.5 py-1 rounded-lg ring-1 transition-colors whitespace-nowrap shrink-0 ${styles.light} hover:opacity-80`}
-                          >
-                            {client.status_processo || 'A Iniciar'}
-                          </button>
+                          {/* STATUS MOBILE: Agora com Fase e Status empilhados */}
+                          <div className="md:hidden flex flex-col gap-1.5 shrink-0">
+                            <button 
+                              onClick={(e) => toggleFase(client, e)}
+                              className={`text-[9px] font-bold px-2 py-1 rounded-md ring-1 transition-colors whitespace-nowrap text-center ${getFaseStyle((client as any).fase_processo)} hover:opacity-80`}
+                            >
+                              {(client as any).fase_processo || 'Administrativo'}
+                            </button>
+                            <button 
+                              onClick={(e) => toggleStatus(client, e)}
+                              className={`text-[9px] font-bold px-2 py-1 rounded-md ring-1 transition-colors whitespace-nowrap text-center ${styles.light} hover:opacity-80`}
+                            >
+                              {client.status_processo || 'A Iniciar'}
+                            </button>
+                          </div>
                         </div>
 
-                        <div className="space-y-1.5 pl-3 md:pl-0 md:flex-1 md:flex md:flex-col md:justify-center min-w-0">
+                        <div className="space-y-1.5 pl-3 md:pl-0 md:flex-1 md:flex md:flex-col md:justify-center min-w-0 hidden md:flex">
                           <div className="flex items-center gap-2 text-xs text-slate-500">
                             <MapPin size={13} className="text-slate-400 shrink-0" />
                             <span className="truncate font-medium">{client.cidade || client.endereco || 'Endereço não informado'}</span>
@@ -278,15 +320,23 @@ export function DashboardPage() {
 
                         <div className="pt-4 md:pt-0 border-t border-slate-100 md:border-none flex items-center justify-between md:justify-end gap-6 pl-3 md:pl-0 shrink-0">
                            
-                           <button 
-                             onClick={(e) => toggleStatus(client, e)}
-                             className={`hidden md:block text-[10px] font-bold px-3 py-1.5 rounded-lg ring-1 transition-colors whitespace-nowrap shrink-0 ${styles.light} hover:opacity-80`}
-                           >
-                             {client.status_processo || 'A Iniciar'}
-                           </button>
+                           {/* STATUS DESKTOP: Fase e Status lado a lado */}
+                           <div className="hidden md:flex items-center gap-2 shrink-0">
+                             <button 
+                               onClick={(e) => toggleFase(client, e)}
+                               className={`text-[10px] font-bold px-3 py-1.5 rounded-lg ring-1 transition-colors whitespace-nowrap ${getFaseStyle((client as any).fase_processo)} hover:opacity-80`}
+                             >
+                               {(client as any).fase_processo || 'Administrativo'}
+                             </button>
+                             <button 
+                               onClick={(e) => toggleStatus(client, e)}
+                               className={`text-[10px] font-bold px-3 py-1.5 rounded-lg ring-1 transition-colors whitespace-nowrap ${styles.light} hover:opacity-80`}
+                             >
+                               {client.status_processo || 'A Iniciar'}
+                             </button>
+                           </div>
 
                            <div className="flex gap-1 overflow-x-auto hide-scrollbar">
-                              {/* ORDEM ATUALIZADA: Ficha -> GED -> Financeiro -> Calculadora -> Linha do Tempo */}
                               {[
                                 { icon: UserCog, route: `/cliente/${client.id}`, color: 'hover:text-blue-600 hover:bg-blue-50', title: 'Ficha Cadastral' },
                                 { icon: FolderOpen, route: `/documentos/${client.id}`, color: 'hover:text-indigo-600 hover:bg-indigo-50', title: 'Inventário GED' },
@@ -304,7 +354,6 @@ export function DashboardPage() {
                                 </button>
                               ))}
                            </div>
-                           {/* LIXEIRA NO FINAL */}
                            <button 
                              onClick={(e) => handleDeleteClient(client.id, e)} 
                              className="p-2 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"

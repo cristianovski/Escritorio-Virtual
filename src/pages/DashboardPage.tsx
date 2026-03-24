@@ -4,7 +4,8 @@ import {
   Users, UserPlus, Search, AlertCircle, Clock, Calendar, 
   CheckCircle, ChevronRight, Star, MessageCircle, 
   FolderOpen, Trash2, UserCog, Calculator, 
-  DollarSign, History, MapPin, Phone, Cake, Plus
+  DollarSign, History, MapPin, Phone, Cake, Plus,
+  ChevronDown, ChevronUp
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useToast } from "../hooks/use-toast";
@@ -20,6 +21,8 @@ export function DashboardPage() {
   const [statusFilter, setStatusFilter] = useState("Todos");
   const [notes, setNotes] = useState<string[]>([]);
   const [newNote, setNewNote] = useState("");
+
+  const [expandedNotes, setExpandedNotes] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     fetchClients();
@@ -94,6 +97,18 @@ export function DashboardPage() {
       const updated = notes.filter((_, i) => i !== idx);
       setNotes(updated);
       localStorage.setItem("dashboardNotes", JSON.stringify(updated));
+      setExpandedNotes(prev => {
+        const next = { ...prev };
+        delete next[idx];
+        return next;
+      });
+  };
+
+  const toggleNoteExpansion = (idx: number) => {
+    setExpandedNotes(prev => ({
+      ...prev,
+      [idx]: !prev[idx]
+    }));
   };
 
   const getStatusStyle = (status?: BenefitStatus) => {
@@ -131,7 +146,6 @@ export function DashboardPage() {
     <div className="flex-1 overflow-y-auto bg-slate-50/50 p-4 md:p-8 font-sans text-slate-800">
       <div className="max-w-[1600px] mx-auto space-y-8">
         
-        {/* Título e Botão Novo Cliente */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-black text-slate-900 tracking-tight">Painel de Controle</h1>
@@ -145,13 +159,12 @@ export function DashboardPage() {
           </button>
         </div>
 
-        {/* Cards de Resumo */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {[
             { label: 'Total na Carteira', value: stats.total, icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-            { label: 'A Iniciar', value: stats.iniciar, icon: AlertCircle, color: 'text-amber-600', bg: 'bg-amber-50' },
-            { label: 'Em Andamento', value: stats.andamento, icon: Clock, color: 'text-blue-600', bg: 'bg-blue-50' },
-            { label: 'Finalizados', value: stats.finalizado, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+            { label: 'A Iniciar', value: stats.iniciar, icon: AlertCircle, color: 'text-amber-600', bg: 'bg-indigo-50' },
+            { label: 'Em Andamento', value: stats.andamento, icon: Clock, color: 'text-blue-600', bg: 'bg-indigo-50' },
+            { label: 'Finalizados', value: stats.finalizado, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-indigo-50' },
           ].map((stat, i) => (
             <div key={i} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow flex items-center gap-4">
               <div className={`p-4 rounded-2xl ${stat.bg} ${stat.color}`}>
@@ -165,13 +178,10 @@ export function DashboardPage() {
           ))}
         </div>
 
-        {/* Layout Principal: Clientes e Widgets da Direita */}
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           
-          {/* LADO ESQUERDO: LISTA DE CLIENTES (3 COLUNAS) */}
           <div className="xl:col-span-3 space-y-6">
             
-            {/* Filtros e Busca */}
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col lg:flex-row gap-4 items-center">
               <div className="flex-1 relative w-full">
                 <Search className="absolute left-4 top-3 text-slate-400" size={20} />
@@ -200,7 +210,6 @@ export function DashboardPage() {
               </div>
             </div>
 
-            {/* Clientes Recentes */}
             <div>
               <div className="flex items-center justify-between mb-4 px-1">
                 <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -221,7 +230,6 @@ export function DashboardPage() {
                   <p className="text-slate-500 text-sm mb-6">Ajuste os filtros ou cadastre um novo cliente.</p>
                 </div>
               ) : (
-                /* MUDANÇA: Lista vertical (uma linha completa por cliente) */
                 <div className="flex flex-col gap-4">
                   {clientesFiltrados.map((client) => {
                     const styles = getStatusStyle(client.status_processo);
@@ -236,7 +244,6 @@ export function DashboardPage() {
                           title="Status do Processo"
                         ></div>
 
-                        {/* Bloco 1: Avatar, Nome e CPF */}
                         <div className="flex justify-between items-start md:items-center pl-3 md:w-[35%] shrink-0">
                           <div className="flex items-center gap-3 w-full">
                             <div className="w-12 h-12 bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center text-slate-600 font-black text-lg group-hover:bg-emerald-50 group-hover:text-emerald-700 group-hover:border-emerald-200 transition-colors shrink-0">
@@ -250,7 +257,6 @@ export function DashboardPage() {
                             </div>
                           </div>
                           
-                          {/* Status Mobile */}
                           <button 
                             onClick={(e) => toggleStatus(client, e)}
                             className={`md:hidden text-[10px] font-bold px-2.5 py-1 rounded-lg ring-1 transition-colors whitespace-nowrap shrink-0 ${styles.light} hover:opacity-80`}
@@ -259,7 +265,6 @@ export function DashboardPage() {
                           </button>
                         </div>
 
-                        {/* Bloco 2: Contatos e Endereço */}
                         <div className="space-y-1.5 pl-3 md:pl-0 md:flex-1 md:flex md:flex-col md:justify-center min-w-0">
                           <div className="flex items-center gap-2 text-xs text-slate-500">
                             <MapPin size={13} className="text-slate-400 shrink-0" />
@@ -271,10 +276,8 @@ export function DashboardPage() {
                           </div>
                         </div>
 
-                        {/* Bloco 3: Status PC e Ações Rápidas */}
                         <div className="pt-4 md:pt-0 border-t border-slate-100 md:border-none flex items-center justify-between md:justify-end gap-6 pl-3 md:pl-0 shrink-0">
                            
-                           {/* Status Desktop */}
                            <button 
                              onClick={(e) => toggleStatus(client, e)}
                              className={`hidden md:block text-[10px] font-bold px-3 py-1.5 rounded-lg ring-1 transition-colors whitespace-nowrap shrink-0 ${styles.light} hover:opacity-80`}
@@ -283,12 +286,13 @@ export function DashboardPage() {
                            </button>
 
                            <div className="flex gap-1 overflow-x-auto hide-scrollbar">
+                              {/* ORDEM ATUALIZADA: Ficha -> GED -> Financeiro -> Calculadora -> Linha do Tempo */}
                               {[
                                 { icon: UserCog, route: `/cliente/${client.id}`, color: 'hover:text-blue-600 hover:bg-blue-50', title: 'Ficha Cadastral' },
-                                { icon: Calculator, route: `/analise/${client.id}`, color: 'hover:text-amber-600 hover:bg-amber-50', title: 'Calculadora' },
                                 { icon: FolderOpen, route: `/documentos/${client.id}`, color: 'hover:text-indigo-600 hover:bg-indigo-50', title: 'Inventário GED' },
-                                { icon: History, route: `/linha-tempo/${client.id}`, color: 'hover:text-orange-600 hover:bg-orange-50', title: 'Linha do Tempo' },
                                 { icon: DollarSign, route: `/cliente/${client.id}/financeiro`, color: 'hover:text-emerald-600 hover:bg-emerald-50', title: 'Financeiro' },
+                                { icon: Calculator, route: `/analise/${client.id}`, color: 'hover:text-amber-600 hover:bg-amber-50', title: 'Calculadora' },
+                                { icon: History, route: `/linha-tempo/${client.id}`, color: 'hover:text-orange-600 hover:bg-orange-50', title: 'Linha do Tempo' },
                               ].map((btn, i) => (
                                 <button 
                                   key={i}
@@ -300,6 +304,7 @@ export function DashboardPage() {
                                 </button>
                               ))}
                            </div>
+                           {/* LIXEIRA NO FINAL */}
                            <button 
                              onClick={(e) => handleDeleteClient(client.id, e)} 
                              className="p-2 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
@@ -316,11 +321,72 @@ export function DashboardPage() {
             </div>
           </div>
 
-          {/* LADO DIREITO: WIDGETS (1 COLUNA) */}
           <div className="space-y-6 xl:col-span-1 flex flex-col">
             
-            {/* Widget: Aniversariantes (Expandido) */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col flex-1 min-h-[350px]">
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col flex-1 min-h-[400px]">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wide mb-4">
+                <Star size={16} className="text-amber-500" /> Lembretes Rápidos
+              </h3>
+              <div className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addNote()}
+                  placeholder="Escreva um lembrete..."
+                  className="flex-1 bg-amber-50/50 border border-amber-200/50 rounded-xl px-3 py-2 text-sm focus:border-amber-400 focus:bg-white focus:ring-2 focus:ring-amber-500/20 outline-none text-slate-700 placeholder:text-amber-700/40 transition-all"
+                />
+                <button
+                  onClick={addNote}
+                  className="bg-amber-100 hover:bg-amber-200 text-amber-700 px-3 py-2 rounded-xl font-bold transition-colors shrink-0"
+                >
+                  <Plus size={18}/>
+                </button>
+              </div>
+              <div className="flex-1 space-y-2 overflow-y-auto pr-1">
+                {notes.length === 0 ? (
+                  <div className="h-full flex items-center justify-center">
+                    <p className="text-xs font-medium text-slate-400">Caixa de lembretes vazia.</p>
+                  </div>
+                ) : (
+                  notes.map((note, i) => {
+                    const isExpanded = expandedNotes[i] || false;
+                    const isLongText = note.length > 150;
+
+                    return (
+                      <div key={i} className="flex flex-col p-3 bg-amber-50/30 rounded-xl border border-amber-100/50 group hover:border-amber-200 transition-colors">
+                        <div className="flex items-start justify-between">
+                          <span className={`text-sm font-medium text-slate-700 leading-snug break-words pr-2 ${isExpanded ? '' : 'line-clamp-3'}`}>
+                            {note}
+                          </span>
+                          <button
+                            onClick={() => removeNote(i)}
+                            className="text-slate-300 hover:text-red-500 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                        
+                        {isLongText && (
+                          <button 
+                            onClick={() => toggleNoteExpansion(i)}
+                            className="text-amber-700 text-xs font-bold mt-2 flex items-center gap-1 hover:text-amber-900 w-fit"
+                          >
+                            {isExpanded ? (
+                              <><ChevronUp size={14} /> Ver menos</>
+                            ) : (
+                              <><ChevronDown size={14} /> Ver mais</>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col h-[280px] shrink-0">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wide">
                   <Cake size={16} className="text-rose-500" /> Aniversariantes
@@ -354,48 +420,6 @@ export function DashboardPage() {
                   ))}
                 </div>
               )}
-            </div>
-
-            {/* Widget: Lembretes (Parte Inferior) */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col h-[400px]">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wide mb-4">
-                <Star size={16} className="text-amber-500" /> Lembretes Rápidos
-              </h3>
-              <div className="flex gap-2 mb-4">
-                <input
-                  type="text"
-                  value={newNote}
-                  onChange={(e) => setNewNote(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && addNote()}
-                  placeholder="Escreva um lembrete..."
-                  className="flex-1 bg-amber-50/50 border border-amber-200/50 rounded-xl px-3 py-2 text-sm focus:border-amber-400 focus:bg-white focus:ring-2 focus:ring-amber-500/20 outline-none text-slate-700 placeholder:text-amber-700/40 transition-all"
-                />
-                <button
-                  onClick={addNote}
-                  className="bg-amber-100 hover:bg-amber-200 text-amber-700 px-3 py-2 rounded-xl font-bold transition-colors shrink-0"
-                >
-                  <Plus size={18}/>
-                </button>
-              </div>
-              <div className="flex-1 space-y-2 overflow-y-auto pr-1">
-                {notes.length === 0 ? (
-                  <div className="h-full flex items-center justify-center">
-                    <p className="text-xs font-medium text-slate-400">Caixa de lembretes vazia.</p>
-                  </div>
-                ) : (
-                  notes.map((note, i) => (
-                    <div key={i} className="flex items-start justify-between p-3 bg-amber-50/30 rounded-xl border border-amber-100/50 group hover:border-amber-200 transition-colors">
-                      <span className="text-sm font-medium text-slate-700 leading-snug break-words pr-2">{note}</span>
-                      <button
-                        onClick={() => removeNote(i)}
-                        className="text-slate-300 hover:text-red-500 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
             </div>
 
           </div>

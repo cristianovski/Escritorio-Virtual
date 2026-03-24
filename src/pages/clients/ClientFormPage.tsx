@@ -1,10 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  ArrowLeft, Save, User, MapPin, Phone, 
-  AlertTriangle, Shield, PenTool,
-  Tractor, LayoutList, ChevronRight, ShoppingBag,
-  TrendingUp
+  ArrowLeft, Save, User, PenTool, Tractor
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useToast } from "../../hooks/use-toast";
@@ -24,16 +21,14 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
   const { toast } = useToast();
   
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'civil' | 'rural'>('civil');
+  const [activeTab, setActiveTab] = useState<'civil' | 'rural' | 'anamnese'>('civil');
   const [idade, setIdade] = useState<number | null>(null);
   
-  // Estados separados para dados civis e rurais
   const [civilData, setCivilData] = useState<Partial<CivilFormValues>>({});
   const [ruralData, setRuralData] = useState<Partial<RuralFormValues>>({});
-  const [historico, setHistorico] = useState("");
+  const [historico, setHistorico] = useState(""); 
   const [timeline, setTimeline] = useState<Period[]>([]);
 
-  // Carregar dados se for edição
   useEffect(() => {
     if (cliente?.id) loadFullData();
   }, [cliente]);
@@ -128,14 +123,11 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
     setCivilData(data);
   };
 
-  const handleRuralSave = (data: RuralFormValues, hist: string) => {
+  const handleRuralSave = (data: RuralFormValues) => {
     setRuralData(data);
-    setHistorico(hist);
-    toast({ title: "Dados processados", description: "Clique em 'Salvar Tudo' no topo para finalizar o cadastro." });
   };
 
   const handleSave = async () => {
-    // CORREÇÃO: O aviso agora reflete a realidade (apenas exige que o nome seja preenchido)
     if (!civilData.nome || civilData.nome.trim() === "") {
       toast({ 
         title: "Atenção!", 
@@ -180,7 +172,7 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
       if (currentClientId) {
         const { error: interviewError } = await supabase.from('interviews').upsert({
           client_id: currentClientId,
-          historico_locais: historico,
+          historico_locais: historico, 
           timeline_json: timeline,
           dados_rurais: ruralData,
           updated_at: getLocalDateISO()
@@ -204,7 +196,8 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      <header className="bg-white border-b p-4 sticky top-0 z-20 shadow-sm flex justify-between items-center">
+      {/* EFEITO VIDRO NO HEADER */}
+      <header className="bg-white/90 backdrop-blur-md border-b p-4 sticky top-0 z-20 shadow-sm flex justify-between items-center">
         <div className="flex items-center gap-4">
           <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition">
             <ArrowLeft className="text-slate-600"/>
@@ -222,17 +215,21 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
         </div>
       </header>
 
-      {/* TABS */}
-      <div className="bg-white border-b px-4 flex gap-6 sticky top-[73px] z-10">
-        <button onClick={() => setActiveTab('civil')} className={`py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'civil' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+      {/* TABS COM EFEITO VIDRO (backdrop-blur) */}
+      <div className="bg-white/80 backdrop-blur-md border-b px-4 flex gap-6 sticky top-[73px] z-10 overflow-x-auto hide-scrollbar">
+        <button onClick={() => setActiveTab('civil')} className={`py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'civil' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
           <User size={18}/> Dados Civis
         </button>
-        <button onClick={() => setActiveTab('rural')} className={`py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'rural' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+        <button onClick={() => setActiveTab('rural')} className={`py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'rural' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
           <Tractor size={18}/> Ficha Rural
+        </button>
+        <button onClick={() => setActiveTab('anamnese')} className={`py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'anamnese' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+          <PenTool size={18}/> Anamnese
         </button>
       </div>
 
-      <main className="flex-1 overflow-y-auto p-4 md:p-8 max-w-5xl mx-auto w-full space-y-8 pb-32">
+      {/* RESPIRO GIGANTE NO FINAL (pb-64) */}
+      <main className="flex-1 overflow-y-auto p-4 md:p-8 max-w-5xl mx-auto w-full space-y-8 pb-64">
         {activeTab === 'civil' && (
           <CivilDataForm
             initialData={civilData}
@@ -240,13 +237,29 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
             loading={loading}
           />
         )}
+        
         {activeTab === 'rural' && (
           <RuralDataForm
             initialData={ruralData}
-            historico={historico}
             onSave={handleRuralSave}
             loading={loading}
           />
+        )}
+
+        {/* ANAMNESE INTELIGENTE (min-h-[60vh] e efeito glow) */}
+        {activeTab === 'anamnese' && (
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
+            <h2 className="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2 border-b pb-2 shrink-0">
+              <PenTool className="text-emerald-500"/> Anamnese / Entrevista
+            </h2>
+            <textarea
+              value={historico}
+              onChange={(e) => setHistorico(e.target.value)}
+              disabled={loading}
+              className="w-full flex-1 p-5 border border-slate-300 rounded-2xl outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 resize-none text-base leading-relaxed bg-slate-50 focus:bg-white transition-all min-h-[60vh]"
+              placeholder="Digite aqui todas as anotações, histórico do cliente e pontos importantes da entrevista..."
+            />
+          </div>
         )}
       </main>
     </div>

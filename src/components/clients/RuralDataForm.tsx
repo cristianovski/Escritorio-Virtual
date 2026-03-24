@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LayoutList, ChevronRight, ShoppingBag, PenTool } from "lucide-react";
+import { LayoutList, ChevronRight, ShoppingBag } from "lucide-react";
 import { ruralSchema } from "../../schemas/clientSchemas";
 import { z } from "zod";
 import { maskCPF } from "../../lib/utils";
@@ -10,14 +10,14 @@ type RuralFormValues = z.infer<typeof ruralSchema>;
 
 interface RuralDataFormProps {
   initialData?: Partial<RuralFormValues>;
-  historico?: string;
-  onSave: (data: RuralFormValues, historico: string) => void;
+  onSave: (data: RuralFormValues) => void;
   loading?: boolean;
 }
 
-export function RuralDataForm({ initialData, historico: initialHistorico, onSave, loading }: RuralDataFormProps) {
-  const { register, handleSubmit, formState: { errors } } = useForm<RuralFormValues>({
+export function RuralDataForm({ initialData, onSave, loading }: RuralDataFormProps) {
+  const { register, watch, formState: { errors } } = useForm<RuralFormValues>({
     resolver: zodResolver(ruralSchema),
+    mode: "onChange",
     defaultValues: {
       nome_imovel: initialData?.nome_imovel || "",
       municipio_uf: initialData?.municipio_uf || "",
@@ -37,44 +37,45 @@ export function RuralDataForm({ initialData, historico: initialHistorico, onSave
     }
   });
 
-  const [historico, setHistorico] = useState(initialHistorico || "");
+  useEffect(() => {
+    const subscription = watch((value) => {
+      onSave(value as RuralFormValues);
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, onSave]);
 
   const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.target.value = maskCPF(e.target.value);
   };
 
-  const onSubmit = (data: RuralFormValues) => {
-    onSave(data, historico);
-  };
-
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+    <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <h3 className="font-bold text-slate-700 mb-6 flex items-center gap-2 border-b pb-2">
           <LayoutList size={20} className="text-emerald-500"/> Caracterização do Imóvel
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="text-xs font-bold text-slate-500 mb-1 block">Nome do Imóvel</label>
-            <input {...register("nome_imovel")} className="w-full p-3 border rounded-lg text-sm bg-slate-50 focus:bg-white transition"/>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block ml-1">Nome do Imóvel</label>
+            <input {...register("nome_imovel")} disabled={loading} className="w-full p-3 border border-slate-300 rounded-xl text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"/>
           </div>
           <div>
-            <label className="text-xs font-bold text-slate-500 mb-1 block">Município / UF</label>
-            <input {...register("municipio_uf")} className="w-full p-3 border rounded-lg text-sm bg-slate-50 focus:bg-white transition"/>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block ml-1">Município / UF</label>
+            <input {...register("municipio_uf")} disabled={loading} className="w-full p-3 border border-slate-300 rounded-xl text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"/>
           </div>
           <div>
-            <label className="text-xs font-bold text-slate-500 mb-1 block">ITR / NIRF / CCIR</label>
-            <input {...register("itr_nirf")} className="w-full p-3 border rounded-lg text-sm bg-slate-50 focus:bg-white transition"/>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block ml-1">ITR / NIRF / CCIR</label>
+            <input {...register("itr_nirf")} disabled={loading} className="w-full p-3 border border-slate-300 rounded-xl text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"/>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-bold text-slate-500 mb-1 block">Área Total (Ha)</label>
-              <input {...register("area_total")} className="w-full p-3 border rounded-lg text-sm"/>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block ml-1">Área Total (Ha)</label>
+              <input {...register("area_total")} disabled={loading} className="w-full p-3 border border-slate-300 rounded-xl text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"/>
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 mb-1 block">Condição de Posse</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block ml-1">Condição de Posse</label>
               <div className="relative">
-                <select {...register("condicao_posse")} className="w-full p-3 border rounded-lg text-sm appearance-none bg-white">
+                <select {...register("condicao_posse")} disabled={loading} className="w-full p-3 border border-slate-300 rounded-xl text-sm appearance-none outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all">
                   <option value="proprietario">Proprietário</option>
                   <option value="posseiro">Posseiro</option>
                   <option value="arrendatario">Arrendatário</option>
@@ -88,14 +89,14 @@ export function RuralDataForm({ initialData, historico: initialHistorico, onSave
           </div>
 
           {/* DADOS DO PROPRIETÁRIO */}
-          <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
+          <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-5 rounded-2xl border border-slate-200">
             <div>
-              <label className="text-xs font-bold text-slate-500 mb-1 block">Nome do Proprietário (Se não for)</label>
-              <input {...register("outorgante_nome")} className="w-full p-3 border rounded-lg text-sm bg-white"/>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block ml-1">Nome do Proprietário (Se não for)</label>
+              <input {...register("outorgante_nome")} disabled={loading} className="w-full p-3 border border-slate-300 rounded-xl text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-white transition-all"/>
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 mb-1 block">CPF do Proprietário</label>
-              <input {...register("outorgante_cpf")} onChange={handleCpfChange} maxLength={14} className="w-full p-3 border rounded-lg text-sm bg-white"/>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block ml-1">CPF do Proprietário</label>
+              <input {...register("outorgante_cpf")} disabled={loading} onChange={handleCpfChange} maxLength={14} className="w-full p-3 border border-slate-300 rounded-xl text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-white transition-all"/>
             </div>
           </div>
         </div>
@@ -105,57 +106,34 @@ export function RuralDataForm({ initialData, historico: initialHistorico, onSave
         <h3 className="font-bold text-slate-700 mb-6 flex items-center gap-2 border-b pb-2">
           <ShoppingBag size={20} className="text-emerald-500"/> Produção & Família
         </h3>
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div>
-            <label className="text-xs font-bold text-slate-500 mb-1 block">O que produz/cria?</label>
-            <textarea {...register("culturas")} rows={2} className="w-full p-3 border rounded-lg text-sm"/>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block ml-1">O que produz/cria?</label>
+            <textarea {...register("culturas")} disabled={loading} rows={2} className="w-full p-3 border border-slate-300 rounded-xl text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"/>
           </div>
           <div>
-            <label className="text-xs font-bold text-slate-500 mb-1 block">Locais de Venda</label>
-            <input {...register("locais_venda")} className="w-full p-3 border rounded-lg text-sm"/>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block ml-1">Locais de Venda</label>
+            <input {...register("locais_venda")} disabled={loading} className="w-full p-3 border border-slate-300 rounded-xl text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"/>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="text-xs font-bold text-slate-500 mb-1 block">Tem Empregados?</label>
-              <select {...register("tem_empregados")} className="w-full p-3 border rounded-lg text-sm">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block ml-1">Tem Empregados?</label>
+              <select {...register("tem_empregados")} disabled={loading} className="w-full p-3 border border-slate-300 rounded-xl text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all">
                 <option value="nao">Não</option>
                 <option value="sim">Sim</option>
               </select>
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 mb-1 block">Tempo com Empregados?</label>
-              <input {...register("tempo_empregados")} className="w-full p-3 border rounded-lg text-sm"/>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block ml-1">Tempo com Empregados?</label>
+              <input {...register("tempo_empregados")} disabled={loading} className="w-full p-3 border border-slate-300 rounded-xl text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"/>
             </div>
           </div>
           <div>
-            <label className="text-xs font-bold text-slate-500 mb-1 block">Grupo Familiar (Quem ajuda?)</label>
-            <textarea {...register("grupo_familiar")} rows={2} className="w-full p-3 border rounded-lg text-sm"/>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block ml-1">Grupo Familiar (Quem ajuda?)</label>
+            <textarea {...register("grupo_familiar")} disabled={loading} rows={2} className="w-full p-3 border border-slate-300 rounded-xl text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"/>
           </div>
         </div>
       </div>
-
-      {/* NARRATIVA */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-        <h3 className="font-bold text-slate-700 mb-6 flex items-center gap-2 border-b pb-2">
-          <PenTool size={20} className="text-emerald-500"/> Narrativa Rural
-        </h3>
-        <div>
-          <label className="text-xs font-bold text-slate-500 mb-1 block">Histórico de Locais / Narrativa</label>
-          <textarea
-            rows={6}
-            value={historico}
-            onChange={(e) => setHistorico(e.target.value)}
-            className="w-full p-3 border rounded-lg text-sm outline-none focus:border-emerald-500 min-h-[150px]"
-            placeholder="Descreva a história rural do cliente detalhadamente..."
-          />
-        </div>
-      </div>
-
-      <div className="flex justify-end">
-        <button type="submit" disabled={loading} className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg font-bold shadow transition-all disabled:opacity-50">
-          {loading ? "Salvando..." : "Salvar Ficha Rural"}
-        </button>
-      </div>
-    </form>
+    </div>
   );
 }

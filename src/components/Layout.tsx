@@ -27,24 +27,21 @@ export function Layout() {
             <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md shadow-emerald-200">
               <LayoutDashboard size={18}/>
             </div>
-            {/* Texto de marca removido */}
           </div>
 
-          {/* Navegação Desktop - Apenas Ícones */}
-          <nav className="hidden md:flex items-center gap-1">
+          {/* Navegação Desktop - APENAS TEXTO */}
+          <nav className="hidden md:flex items-center gap-2">
             <Link 
               to="/" 
-              className={`px-4 py-2 rounded-lg text-sm transition-all ${isActive('/') ? 'bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-100' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}
-              title="Início"
+              className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${isActive('/') ? 'bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-100' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}
             >
-               <LayoutDashboard size={20}/>
+               Início
             </Link>
             <Link 
               to="/fluxo-caixa" 
-              className={`px-4 py-2 rounded-lg text-sm transition-all ${isActive('/fluxo-caixa') ? 'bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-100' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}
-              title="Fluxo de Caixa"
+              className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${isActive('/fluxo-caixa') ? 'bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-100' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}
             >
-               <DollarSign size={20}/>
+               Financeiro
             </Link>
           </nav>
         </div>
@@ -53,10 +50,9 @@ export function Layout() {
         <div className="flex items-center gap-2">
            <button 
              onClick={handleLogout} 
-             className="hidden md:flex text-slate-400 hover:text-red-600 items-center gap-2 px-4 py-2 text-sm hover:bg-red-50 rounded-lg transition-colors"
-             title="Sair"
+             className="hidden md:flex text-slate-400 hover:text-red-600 items-center gap-2 px-4 py-2 text-sm font-bold hover:bg-red-50 rounded-lg transition-colors"
            >
-              <LogOut size={20}/>
+              Sair <LogOut size={18}/>
            </button>
 
            {/* Botão Hambúrguer (Apenas Celular) */}
@@ -75,21 +71,21 @@ export function Layout() {
           <Link 
             onClick={() => setIsMobileMenuOpen(false)} 
             to="/" 
-            className={`px-4 py-3 rounded-xl text-sm flex items-center gap-3 ${isActive('/') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}
+            className={`px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-3 ${isActive('/') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}
           >
              <LayoutDashboard size={18}/> Início
           </Link>
           <Link 
             onClick={() => setIsMobileMenuOpen(false)} 
             to="/fluxo-caixa" 
-            className={`px-4 py-3 rounded-xl text-sm flex items-center gap-3 ${isActive('/fluxo-caixa') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}
+            className={`px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-3 ${isActive('/fluxo-caixa') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}
           >
-             <DollarSign size={18}/> Fluxo de Caixa
+             <DollarSign size={18}/> Financeiro
           </Link>
           <div className="border-t border-slate-100 my-2"></div>
           <button 
             onClick={handleLogout} 
-            className="w-full text-left text-red-500 flex items-center gap-3 px-4 py-3 text-sm hover:bg-red-50 rounded-xl transition-colors"
+            className="w-full text-left text-red-500 flex items-center gap-3 px-4 py-3 text-sm font-bold hover:bg-red-50 rounded-xl transition-colors"
           >
              <LogOut size={18}/> Encerrar Sessão
           </button>

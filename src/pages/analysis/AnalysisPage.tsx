@@ -62,7 +62,6 @@ interface AnalysisPageProps {
 const parseLocal = (d: string) => new Date(`${d.split('T')[0]}T12:00:00`);
 
 export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
-  // 1. TODOS OS HOOKS NO TOPO (Segurança contra o erro do Sentry)
   const {
     loading, der, setDer, periodos, documentos,
     handleSavePeriod, handleRemovePeriod, handleSave,
@@ -76,7 +75,6 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
   const [docSearch, setDocSearch] = useState('');
   const [showDocList, setShowDocList] = useState(false);
 
-  // 2. LÓGICA E PROCESSAMENTO
   let docCounter = 1;
   const periodosTratados = [...periodos]
     .sort((a, b) => parseLocal(a.inicio).getTime() - parseLocal(b.inicio).getTime())
@@ -99,10 +97,36 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
   };
 
   const onSavePeriod = () => {
-    handleSavePeriod(form, editingId);
-    setEditingId(null);
-    setForm({ tipo: 'rural', inicio: '', fim: '', obs: '', linkedDocTitle: '', law: '', dataExpedicao: '' });
-    setDocSearch('');
+    // 1. TRUQUE DA PROVA DE RETORNO: Se for prova, pega a data de expedição e copia para início/fim
+    // Assim o validador rigoroso do Zod não reclama da falta de datas!
+    let payloadToSave = { ...form };
+    
+    if (payloadToSave.tipo === 'prova de retorno') {
+      if (!payloadToSave.dataExpedicao) {
+        alert("Para Provas de Retorno, a Data do Documento é obrigatória.");
+        return; // Não salva, e não apaga o form!
+      }
+      payloadToSave.inicio = payloadToSave.dataExpedicao;
+      payloadToSave.fim = payloadToSave.dataExpedicao;
+    } else {
+      // Regra normal: exige início e fim
+      if (!payloadToSave.inicio || !payloadToSave.fim) {
+        alert("Preencha o início e o fim do período.");
+        return; // Não salva, e não apaga o form!
+      }
+    }
+
+    try {
+      handleSavePeriod(payloadToSave as Periodo, editingId);
+      // Só limpa o form se o salvamento foi bem sucedido
+      setEditingId(null);
+      setForm({ tipo: 'rural', inicio: '', fim: '', obs: '', linkedDocTitle: '', law: '', dataExpedicao: '' });
+      setDocSearch('');
+    } catch (err) {
+      console.error("Erro ao salvar período:", err);
+      // Se der erro lá dentro do hook, o form CONTINUA PREENCHIDO aqui fora!
+      alert("Houve um erro ao registrar. Verifique os dados.");
+    }
   };
 
   const fmtDate = (d: string) => {
@@ -128,7 +152,9 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
     }, 1000);
   };
 
-  // 3. RENDERIZAÇÃO
+  // Flag para esconder Inicio/Fim
+  const isProvaDeRetorno = form.tipo === 'prova de retorno';
+
   return (
     <div className="flex flex-col h-full bg-slate-50">
       <header className="bg-white border-b p-4 flex flex-col md:flex-row justify-between items-start md:items-center sticky top-0 z-10 shadow-sm gap-4 print:hidden">
@@ -190,34 +216,56 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
                 </button>
               )}
             </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-              <div className="md:col-span-3">
-                <label className="text-xs font-bold text-slate-500 block mb-1">Tipo de Período</label>
-                <select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value as any })} className="w-full p-2.5 border rounded-lg bg-white outline-none focus:border-amber-500 text-sm">
-                  <option value="rural">🌾 Atividade Rural</option>
+              
+              <div className={isProvaDeRetorno ? "md:col-span-4" : "md:col-span-3"}>
+                <label className="text-xs font-bold text-slate-500 block mb-1">Tipo do Registro</label>
+                <select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value as any })} className="w-full p-2.5 border rounded-lg bg-white outline-none focus:border-amber-500 text-sm font-bold">
+                  <option value="rural">🌾 Atividade Rural (Período)</option>
                   <option value="urbano">🏭 Urbano / CNIS</option>
                   <option value="beneficio">🏥 Benefício INSS</option>
                   <option value="lacuna">🕊️ Sem Atividade</option>
-                  <option value="prova de retorno">📄 Prova de Retorno</option>
+                  <option value="prova de retorno" className="text-blue-600">📄 Prova de Retorno (Doc Único)</option>
                 </select>
               </div>
-              <div className="md:col-span-2">
-                <label className="text-xs font-bold text-slate-500 block mb-1">Início (Vínculo)</label>
-                <input type="date" value={form.inicio} onChange={(e) => setForm({ ...form, inicio: e.target.value })} className="w-full p-2.5 border rounded-lg outline-none focus:border-amber-500 text-sm" />
-              </div>
-              <div className="md:col-span-2">
-                <label className="text-xs font-bold text-slate-500 block mb-1">Fim (Vínculo)</label>
-                <input type="date" value={form.fim} onChange={(e) => setForm({ ...form, fim: e.target.value })} className="w-full p-2.5 border rounded-lg outline-none focus:border-amber-500 text-sm" />
-              </div>
-              <div className="md:col-span-5">
+
+              {/* Se NÃO for prova de retorno, mostra Inicio e Fim */}
+              {!isProvaDeRetorno && (
+                <>
+                  <div className="md:col-span-2">
+                    <label className="text-xs font-bold text-slate-500 block mb-1">Início</label>
+                    <input type="date" value={form.inicio} onChange={(e) => setForm({ ...form, inicio: e.target.value })} className="w-full p-2.5 border rounded-lg outline-none focus:border-amber-500 text-sm" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="text-xs font-bold text-slate-500 block mb-1">Fim</label>
+                    <input type="date" value={form.fim} onChange={(e) => setForm({ ...form, fim: e.target.value })} className="w-full p-2.5 border rounded-lg outline-none focus:border-amber-500 text-sm" />
+                  </div>
+                </>
+              )}
+
+              {/* Se FOR prova de retorno, a Data de Expedição é a única data visível na mesma linha */}
+              {isProvaDeRetorno && (
+                <div className="md:col-span-3">
+                  <label className="text-xs font-bold text-blue-600 block mb-1">Data do Documento</label>
+                  <input 
+                    type="date" 
+                    value={form.dataExpedicao || ''} 
+                    onChange={(e) => setForm({ ...form, dataExpedicao: e.target.value })} 
+                    className="w-full p-2.5 border border-blue-300 rounded-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm bg-blue-50 font-bold" 
+                  />
+                </div>
+              )}
+
+              <div className={isProvaDeRetorno ? "md:col-span-5" : "md:col-span-5"}>
                 <label className="text-xs font-bold text-slate-500 block mb-1">Observação / Referência</label>
                 <input type="text" placeholder="Ex: Sítio São Judas, Safra de Café..." value={form.obs} onChange={(e) => setForm({ ...form, obs: e.target.value })} className="w-full p-2.5 border rounded-lg outline-none focus:border-amber-500 text-sm" />
               </div>
 
-              {/* SELEÇÃO DO DOCUMENTO + DATA DE EXPEDIÇÃO */}
-              <div className="md:col-span-6 relative">
+              {/* SELEÇÃO DO DOCUMENTO */}
+              <div className="md:col-span-6 relative mt-4">
                 <label className="text-xs font-bold text-slate-500 block mb-1 flex items-center gap-1">
-                  <Search size={12}/> Documento de Prova Anexado
+                  <Search size={12}/> Documento / Fundamento Legal
                 </label>
                 <input
                   type="text"
@@ -254,25 +302,28 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
                 )}
               </div>
 
-              {/* DATA DE EXPEDIÇÃO */}
-              <div className="md:col-span-3">
-                <label className="text-xs font-bold text-emerald-600 block mb-1">Data de Expedição (Doc)</label>
-                <input 
-                  type="date" 
-                  value={form.dataExpedicao || ''} 
-                  onChange={(e) => setForm({ ...form, dataExpedicao: e.target.value })} 
-                  className="w-full p-2.5 border border-emerald-300 rounded-lg outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-sm bg-emerald-50" 
-                />
-              </div>
+              {/* Se NÃO for prova de retorno, mostra a Data de Expedição como Opcional em baixo */}
+              {!isProvaDeRetorno && (
+                <div className="md:col-span-3 mt-4">
+                  <label className="text-xs font-bold text-emerald-600 block mb-1">Data Doc (Opcional)</label>
+                  <input 
+                    type="date" 
+                    value={form.dataExpedicao || ''} 
+                    onChange={(e) => setForm({ ...form, dataExpedicao: e.target.value })} 
+                    className="w-full p-2.5 border border-emerald-300 rounded-lg outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-sm bg-emerald-50" 
+                  />
+                </div>
+              )}
 
-              <div className="md:col-span-3">
+              <div className="md:col-span-3 mt-4">
                 <button onClick={onSavePeriod} className={`w-full text-white p-2.5 rounded-lg font-bold text-sm transition flex justify-center gap-2 ${editingId ? 'bg-amber-600 hover:bg-amber-500' : 'bg-slate-800 hover:bg-slate-700'}`}>
-                  {editingId ? <><Save size={16} /> Salvar</> : <><Plus size={16} /> Inserir</>}
+                  {editingId ? <><Save size={16} /> Salvar Edição</> : <><Plus size={16} /> Inserir</>}
                 </button>
               </div>
             </div>
           </div>
 
+          {/* LISTA DE PERÍODOS */}
           <div className="space-y-3 print:hidden">
             {periodosTratados.map((p) => {
               const meses = diffMonths(p.inicio, p.fim);
@@ -287,7 +338,7 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
               } else if (p.tipo === 'lacuna') {
                 bgColor = 'bg-slate-50'; borderColor = 'border-slate-200'; icon = <Calendar size={18} className="text-slate-400" />; statusText = 'Sem Atividade';
               } else if (p.tipo === 'prova de retorno') {
-                bgColor = 'bg-blue-50'; borderColor = 'border-blue-200'; icon = <Paperclip size={18} className="text-blue-600" />; statusText = 'Prova de Retorno';
+                bgColor = 'bg-blue-50'; borderColor = 'border-blue-200'; icon = <Paperclip size={18} className="text-blue-600" />; statusText = 'Documento Pontual';
               }
 
               return (
@@ -307,9 +358,12 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
                         <div className="flex items-center gap-2">
                           <h4 className="font-bold text-slate-800 uppercase text-sm tracking-wide">{p.tipo}</h4>
                         </div>
-                        {meses > 0 && <p className="text-xs font-mono text-slate-500 mt-0.5">{meses} meses</p>}
+                        {p.tipo !== 'prova de retorno' && meses > 0 && <p className="text-xs font-mono text-slate-500 mt-0.5">{meses} meses</p>}
+                        
                         <p className="text-sm text-slate-700 font-medium mt-1">
-                          {fmtDate(p.inicio)} {p.fim ? `até ${fmtDate(p.fim)}` : ''}
+                          {p.tipo === 'prova de retorno' 
+                            ? `Data do Documento: ${fmtDate(p.dataExpedicao || p.inicio)}` 
+                            : `${fmtDate(p.inicio)} ${p.fim ? `até ${fmtDate(p.fim)}` : ''}`}
                         </p>
                         
                         {p.obs && <p className="text-sm text-slate-800 font-bold mt-1.5">{p.obs}</p>}
@@ -320,7 +374,6 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
                           <div className="mt-3 bg-white/60 p-3 rounded-lg border border-blue-200/50 shadow-inner">
                             <p className="text-xs font-bold text-blue-800">
                               {p.linkedDocTitle}
-                              {p.dataExpedicao && <span className="text-slate-500 font-normal ml-1">(Expedido em: {fmtDate(p.dataExpedicao)})</span>}
                             </p>
                             <p className="text-[10px] text-blue-600 mt-1 italic">{p.law}</p>
                           </div>

@@ -33,7 +33,7 @@ export function useTimeline(cliente: Client) {
         supabase.from('client_documents').select('*').eq('client_id', cliente.id)
       ]);
 
-      // 1. Da entrevista
+      // 1. Da entrevista (Calculadora) - Geralmente são provas
       const interviewData = interviewRes.data;
       if (interviewData?.timeline_json && Array.isArray(interviewData.timeline_json)) {
         const docsFicha = interviewData.timeline_json.map((doc: Record<string, any>) => ({
@@ -50,36 +50,40 @@ export function useTimeline(cliente: Client) {
         combinedDocs = [...combinedDocs, ...docsFicha];
       }
 
-      // 2. Do cadastro legado
+      // 2. Do cadastro legado - FILTRANDO SÓ PROVAS
       const clientData = clientRes.data;
       if (clientData?.personal_docs && Array.isArray(clientData.personal_docs)) {
-        const docsCadastro = clientData.personal_docs.map((doc: Record<string, any>, idx: number) => ({
-          id: `ged-${idx}`,
-          type: doc.category || "Documento Pessoal",
-          customName: doc.name || "Upload",
-          issueDate: doc.issueDate || new Date().toISOString().split('T')[0],
-          displayYear: doc.issueDate ? doc.issueDate.split('-')[0] : new Date().getFullYear(),
-          fileUrl: doc.url || null,
-          fileName: doc.fileName || "arquivo_anexo",
-          source: 'GED / Cadastro',
-          law: ""
+        const docsCadastro = clientData.personal_docs
+          .filter((doc: Record<string, any>) => (doc.category || "").toLowerCase().includes("prova"))
+          .map((doc: Record<string, any>, idx: number) => ({
+            id: `ged-${idx}`,
+            type: doc.category || "Documento Pessoal",
+            customName: doc.name || "Upload",
+            issueDate: doc.issueDate || new Date().toISOString().split('T')[0],
+            displayYear: doc.issueDate ? doc.issueDate.split('-')[0] : new Date().getFullYear(),
+            fileUrl: doc.url || null,
+            fileName: doc.fileName || "arquivo_anexo",
+            source: 'GED / Cadastro',
+            law: ""
         }));
         combinedDocs = [...combinedDocs, ...docsCadastro];
       }
 
-      // 3. Da nova tabela client_documents
+      // 3. Da nova tabela client_documents - FILTRANDO SÓ PROVAS
       const newDocs = newDocsRes.data;
       if (newDocs) {
-        const docsDb = newDocs.map((doc: Record<string, any>) => ({
-          id: doc.id,
-          type: doc.category || "Geral",
-          customName: doc.title || doc.original_name || "Sem Título",
-          issueDate: doc.reference_date || doc.created_at,
-          displayYear: new Date(doc.reference_date || doc.created_at).getFullYear(),
-          fileUrl: doc.file_url || null,
-          fileName: doc.title || doc.original_name || "arquivo",
-          source: 'GED (Novo)',
-          law: ""
+        const docsDb = newDocs
+          .filter((doc: Record<string, any>) => (doc.category || "").toLowerCase().includes("prova"))
+          .map((doc: Record<string, any>) => ({
+            id: doc.id,
+            type: doc.category || "Geral",
+            customName: doc.title || doc.original_name || "Sem Título",
+            issueDate: doc.reference_date || doc.created_at,
+            displayYear: new Date(doc.reference_date || doc.created_at).getFullYear(),
+            fileUrl: doc.file_url || null,
+            fileName: doc.title || doc.original_name || "arquivo",
+            source: 'GED (Novo)',
+            law: ""
         }));
         combinedDocs = [...combinedDocs, ...docsDb];
       }

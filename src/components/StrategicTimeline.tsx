@@ -17,6 +17,12 @@ const diffMonths = (start: string, end: string) => {
   return (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
 };
 
+const diffDays = (start: string, end: string) => {
+  if (!start || !end) return 0;
+  const diffTime = Math.abs(parseDate(end).getTime() - parseDate(start).getTime());
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+};
+
 const addYears = (date: string, years: number) => {
   if (!date) return '';
   const d = parseDate(date);
@@ -55,8 +61,6 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
     return Math.max(0, right - left);
   };
 
-  // MUDANÇA: Retornar CORES HEX ou RGB diretas para evitar que o Tailwind "pode" a classe dinâmica.
-  // className dinâmico no Tailwind às vezes falha porque o compilador não acha a classe inteira.
   const getBlockColorCode = (tipo: string) => {
     if (tipo === 'rural') return '#10b981'; // bg-emerald-500
     if (tipo === 'beneficio') return '#f59e0b'; // bg-amber-500
@@ -71,18 +75,30 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
       .sort((a, b) => parseDate(a.dataExpedicao || a.inicio).getTime() - parseDate(b.dataExpedicao || b.inicio).getTime());
   }, [periodos]);
 
+  // CÁLCULO DE SOMA DO TEMPO RURAL
+  const totalRuralMonths = useMemo(() => {
+    return (periodos || [])
+      .filter(p => p.tipo === 'rural')
+      .reduce((acc, p) => acc + diffMonths(p.inicio, p.fim), 0);
+  }, [periodos]);
+
+  const ruralYears = Math.floor(totalRuralMonths / 12);
+  const ruralRemainingMonths = totalRuralMonths % 12;
+  const totalRuralText = `${ruralYears} anos e ${ruralRemainingMonths} meses (${totalRuralMonths} meses)`;
+
   const printStyle = { WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' } as any;
 
-  // Lógica matemática para criar marcas a cada 90 meses, não importando o tamanho da régua
   const getNinetyMonthMarks = () => {
     if (currentMonths <= 0) return [];
     const numMarks = Math.floor(currentMonths / 90);
     const marks = [];
     for (let i = 1; i <= numMarks; i++) {
-        // Se a marca cair exatamente no final (100%), não desenhamos para não sobrepor o fim.
         const positionPercent = ((90 * i) / currentMonths) * 100;
         if (positionPercent < 100) {
-            marks.push({ label: `${90 * i} Meses`, percent: positionPercent });
+            // MUDANÇA: Agora calcula o ANO exato ao invés de exibir "X Meses"
+            const d = parseDate(rulerStart);
+            d.setMonth(d.getMonth() + 90 * i);
+            marks.push({ label: String(d.getFullYear()), percent: positionPercent });
         }
     }
     return marks;
@@ -104,7 +120,7 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
       <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div>
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            <Ruler className="text-emerald-600" /> Régua de Provas ({currentMonths} Meses)
+            <Ruler className="text-emerald-600" /> Régua de Provas
           </h2>
           <p className="text-slate-500 text-xs mt-1">
             Visualização progressiva baseada na Súmula 14 da TNU (frações de 90 meses).
@@ -137,6 +153,14 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
         </div>
       )}
 
+      {/* NOVA CAIXA: TOTAL DO PERÍODO RURAL DESTAQUE */}
+      <div className="mx-4 md:mx-8 mb-2 mt-8 print:mx-0 print:mt-0 print:mb-6 flex justify-center">
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-8 py-3 rounded-2xl shadow-sm text-center print:bg-white print:border-2 print:border-emerald-800">
+              <span className="block text-[10px] uppercase font-black tracking-widest opacity-80 mb-0.5">Total de Atividade Rural Provada</span>
+              <span className="text-xl font-black">{totalRuralText}</span>
+          </div>
+      </div>
+
       <div className="p-8 overflow-x-auto print:overflow-visible print:px-6 print:py-4">
         <div className="min-w-[700px] relative pt-10 pb-12">
           
@@ -144,7 +168,6 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
           <div className="absolute top-1/2 left-0 w-1 h-6 bg-slate-400 -translate-y-1/2 rounded-full"></div>
           <div className="absolute top-1/2 right-0 w-1 h-6 bg-slate-400 -translate-y-1/2 rounded-full"></div>
 
-          {/* MUDANÇA: Laço para desenhar marcas a cada 90 meses */}
           {ninetyMonthMarks.map((mark, i) => (
              <div key={i}>
                  <div className="absolute top-1/2 w-1 h-6 bg-emerald-600 -translate-y-1/2 -translate-x-1/2 rounded-full z-10 shadow-sm" style={{ left: `${mark.percent}%` }}></div>
@@ -167,6 +190,7 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
             
             const docDate = p.dataExpedicao || p.inicio;
             const leftDoc = getLeftPercent(docDate);
+            const isProvaRetorno = p.tipo === 'prova de retorno';
 
             return (
               <div key={p.id}>
@@ -182,12 +206,17 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
                   </div>
                 )}
                 
-                {/* MUDANÇA: Usando backgroundColor direto no style para evitar bug de carregamento do Tailwind */}
-                {p.tipo !== 'prova de retorno' && left <= 100 && (left + width) >= 0 && (
+                {/* MUDANÇA: Agora renderiza todos os tipos, incluindo Prova de Retorno e Lacuna Cinza */}
+                {left <= 100 && (left + width) >= 0 && (
                   <div 
-                    className="absolute top-1/2 h-4 rounded-sm opacity-90 hover:opacity-100 hover:scale-y-125 transition-all shadow-sm z-10 cursor-help border border-black/10"
-                    style={{ left: `${left}%`, width: `${width}%`, transform: 'translateY(-50%)', backgroundColor: getBlockColorCode(p.tipo) }}
-                    title={`${p.tipo.toUpperCase()}: ${p.obs}\n(${p.inicio} a ${p.fim})`}
+                    className={`absolute top-1/2 rounded-sm opacity-90 hover:opacity-100 transition-all shadow-sm z-10 cursor-help border border-black/10 ${isProvaRetorno ? 'h-6 z-20' : 'h-4 hover:scale-y-125'}`}
+                    style={{ 
+                      left: `${left}%`, 
+                      width: isProvaRetorno ? '3px' : `${Math.max(width, 0.3)}%`, 
+                      transform: 'translateY(-50%)', 
+                      backgroundColor: getBlockColorCode(p.tipo) 
+                    }}
+                    title={`${p.tipo.toUpperCase()}: ${p.obs}\n(${p.inicio} a ${p.fim || p.inicio})`}
                   ></div>
                 )}
               </div>

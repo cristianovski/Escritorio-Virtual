@@ -34,12 +34,27 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
   const [rulerStart, setRulerStart] = useState('');
   const [rulerEnd, setRulerEnd] = useState('');
 
+  // 1. MEMÓRIA LOCAL: Recupera a régua salva do cliente ou define o padrão
   useEffect(() => {
-    if (der) {
+    const savedStart = localStorage.getItem(`ruler_start_${clienteNome}`);
+    const savedEnd = localStorage.getItem(`ruler_end_${clienteNome}`);
+    
+    if (savedStart && savedEnd) {
+      setRulerStart(savedStart);
+      setRulerEnd(savedEnd);
+    } else if (der) {
       setRulerEnd(der);
       setRulerStart(addYears(der, -15));
     }
-  }, [der]);
+  }, [der, clienteNome]);
+
+  // 2. MEMÓRIA LOCAL: Salva a régua automaticamente ao alterar
+  useEffect(() => {
+    if (rulerStart && rulerEnd) {
+      localStorage.setItem(`ruler_start_${clienteNome}`, rulerStart);
+      localStorage.setItem(`ruler_end_${clienteNome}`, rulerEnd);
+    }
+  }, [rulerStart, rulerEnd, clienteNome]);
 
   const currentMonths = diffMonths(rulerStart, rulerEnd);
   const isDiff180 = currentMonths === 180;
@@ -61,12 +76,14 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
     return Math.max(0, right - left);
   };
 
+  // CORES BLINDADAS (HEX) para garantir que o CSS não corte na impressão
   const getBlockColorCode = (tipo: string) => {
-    if (tipo === 'rural') return '#10b981'; // bg-emerald-500
-    if (tipo === 'beneficio') return '#f59e0b'; // bg-amber-500
-    if (tipo === 'urbano') return '#ef4444'; // bg-red-500
-    if (tipo === 'lacuna') return '#cbd5e1'; // bg-slate-300
-    return '#2563eb'; // bg-blue-600
+    const t = (tipo || '').toLowerCase();
+    if (t === 'rural') return '#10b981'; // Verde
+    if (t === 'beneficio') return '#f59e0b'; // Amarelo
+    if (t === 'urbano') return '#ef4444'; // Vermelho
+    if (t === 'lacuna') return '#cbd5e1'; // Cinza (Sem Atividade)
+    return '#2563eb'; // Azul (Prova)
   };
 
   const provasNumeradas = useMemo(() => {
@@ -75,10 +92,10 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
       .sort((a, b) => parseDate(a.dataExpedicao || a.inicio).getTime() - parseDate(b.dataExpedicao || b.inicio).getTime());
   }, [periodos]);
 
-  // CÁLCULO DE SOMA DO TEMPO RURAL
+  // SOMA TOTAL RURAL
   const totalRuralMonths = useMemo(() => {
     return (periodos || [])
-      .filter(p => p.tipo === 'rural')
+      .filter(p => (p.tipo || '').toLowerCase() === 'rural')
       .reduce((acc, p) => acc + diffMonths(p.inicio, p.fim), 0);
   }, [periodos]);
 
@@ -88,16 +105,16 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
 
   const printStyle = { WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' } as any;
 
+  // CÁLCULO DE ANO PARA MARCAÇÕES
   const getNinetyMonthMarks = () => {
     if (currentMonths <= 0) return [];
     const numMarks = Math.floor(currentMonths / 90);
     const marks = [];
     for (let i = 1; i <= numMarks; i++) {
         const positionPercent = ((90 * i) / currentMonths) * 100;
-        if (positionPercent < 100) {
-            // MUDANÇA: Agora calcula o ANO exato ao invés de exibir "X Meses"
+        if (positionPercent < 98) { // Evita sobrepor a etiqueta final
             const d = parseDate(rulerStart);
-            d.setMonth(d.getMonth() + 90 * i);
+            d.setMonth(d.getMonth() + (90 * i));
             marks.push({ label: String(d.getFullYear()), percent: positionPercent });
         }
     }
@@ -119,6 +136,7 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
 
       <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div>
+          {/* TÍTULO LIMPO */}
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
             <Ruler className="text-emerald-600" /> Régua de Provas
           </h2>
@@ -153,7 +171,7 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
         </div>
       )}
 
-      {/* NOVA CAIXA: TOTAL DO PERÍODO RURAL DESTAQUE */}
+      {/* CAIXA DE SOMA TOTAL DE TEMPO RURAL */}
       <div className="mx-4 md:mx-8 mb-2 mt-8 print:mx-0 print:mt-0 print:mb-6 flex justify-center">
           <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-8 py-3 rounded-2xl shadow-sm text-center print:bg-white print:border-2 print:border-emerald-800">
               <span className="block text-[10px] uppercase font-black tracking-widest opacity-80 mb-0.5">Total de Atividade Rural Provada</span>
@@ -168,6 +186,7 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
           <div className="absolute top-1/2 left-0 w-1 h-6 bg-slate-400 -translate-y-1/2 rounded-full"></div>
           <div className="absolute top-1/2 right-0 w-1 h-6 bg-slate-400 -translate-y-1/2 rounded-full"></div>
 
+          {/* MARCAÇÕES COM ANO */}
           {ninetyMonthMarks.map((mark, i) => (
              <div key={i}>
                  <div className="absolute top-1/2 w-1 h-6 bg-emerald-600 -translate-y-1/2 -translate-x-1/2 rounded-full z-10 shadow-sm" style={{ left: `${mark.percent}%` }}></div>
@@ -190,7 +209,9 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
             
             const docDate = p.dataExpedicao || p.inicio;
             const leftDoc = getLeftPercent(docDate);
-            const isProvaRetorno = p.tipo === 'prova de retorno';
+            
+            const isProvaRetorno = (p.tipo || '').toLowerCase() === 'prova de retorno';
+            const leftPos = isProvaRetorno ? leftDoc : left;
 
             return (
               <div key={p.id}>
@@ -206,17 +227,17 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
                   </div>
                 )}
                 
-                {/* MUDANÇA: Agora renderiza todos os tipos, incluindo Prova de Retorno e Lacuna Cinza */}
-                {left <= 100 && (left + width) >= 0 && (
+                {/* RENDERIZAÇÃO GARANTIDA DE TODOS OS BLOCOS (INCLUSIVE CINZAS E TRAÇO AZUL FINO) */}
+                {leftPos <= 100 && (leftPos + width) >= 0 && (
                   <div 
-                    className={`absolute top-1/2 rounded-sm opacity-90 hover:opacity-100 transition-all shadow-sm z-10 cursor-help border border-black/10 ${isProvaRetorno ? 'h-6 z-20' : 'h-4 hover:scale-y-125'}`}
+                    className={`absolute top-1/2 opacity-90 hover:opacity-100 transition-all shadow-sm cursor-help border border-black/10 ${isProvaRetorno ? 'h-8 z-20 rounded-none' : 'h-4 rounded-sm hover:scale-y-125 z-10'}`}
                     style={{ 
-                      left: `${left}%`, 
-                      width: isProvaRetorno ? '3px' : `${Math.max(width, 0.3)}%`, 
-                      transform: 'translateY(-50%)', 
+                      left: `${leftPos}%`, 
+                      width: isProvaRetorno ? '3px' : `${Math.max(width, 0.5)}%`, 
+                      transform: isProvaRetorno ? 'translateY(-50%) translateX(-50%)' : 'translateY(-50%)', 
                       backgroundColor: getBlockColorCode(p.tipo) 
                     }}
-                    title={`${p.tipo.toUpperCase()}: ${p.obs}\n(${p.inicio} a ${p.fim || p.inicio})`}
+                    title={`${(p.tipo || '').toUpperCase()}: ${p.obs}\n(${p.inicio} a ${p.fim || p.inicio})`}
                   ></div>
                 )}
               </div>
@@ -230,7 +251,7 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
         <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-slate-300 rounded print:border print:border-black"></div> Sem Atividade</div>
         <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-red-500 rounded print:border print:border-black"></div> Urbano</div>
         <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-amber-500 rounded print:border print:border-black"></div> Benefício</div>
-        <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-blue-600 rounded print:border print:border-black"></div> Prova de Retorno</div>
+        <div className="flex items-center gap-1.5"><div className="w-3 h-8 bg-blue-600 rounded-sm print:border print:border-black" style={{ width: '3px' }}></div> Prova de Retorno</div>
       </div>
 
       {provasNumeradas.length > 0 && (

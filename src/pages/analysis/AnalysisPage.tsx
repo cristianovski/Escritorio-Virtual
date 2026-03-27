@@ -97,34 +97,33 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
   };
 
   const onSavePeriod = () => {
-    // 1. TRUQUE DA PROVA DE RETORNO: Se for prova, pega a data de expedição e copia para início/fim
-    // Assim o validador rigoroso do Zod não reclama da falta de datas!
     let payloadToSave = { ...form };
     
     if (payloadToSave.tipo === 'prova de retorno') {
       if (!payloadToSave.dataExpedicao) {
         alert("Para Provas de Retorno, a Data do Documento é obrigatória.");
-        return; // Não salva, e não apaga o form!
+        return; 
       }
       payloadToSave.inicio = payloadToSave.dataExpedicao;
       payloadToSave.fim = payloadToSave.dataExpedicao;
+      
+      if (!payloadToSave.law) {
+        payloadToSave.law = "art. 116, § 2º, V, da IN 128/2022";
+      }
     } else {
-      // Regra normal: exige início e fim
       if (!payloadToSave.inicio || !payloadToSave.fim) {
         alert("Preencha o início e o fim do período.");
-        return; // Não salva, e não apaga o form!
+        return; 
       }
     }
 
     try {
       handleSavePeriod(payloadToSave as Periodo, editingId);
-      // Só limpa o form se o salvamento foi bem sucedido
       setEditingId(null);
       setForm({ tipo: 'rural', inicio: '', fim: '', obs: '', linkedDocTitle: '', law: '', dataExpedicao: '' });
       setDocSearch('');
     } catch (err) {
       console.error("Erro ao salvar período:", err);
-      // Se der erro lá dentro do hook, o form CONTINUA PREENCHIDO aqui fora!
       alert("Houve um erro ao registrar. Verifique os dados.");
     }
   };
@@ -152,11 +151,32 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
     }, 1000);
   };
 
-  // Flag para esconder Inicio/Fim
   const isProvaDeRetorno = form.tipo === 'prova de retorno';
 
   return (
-    <div className="flex flex-col h-full bg-slate-50">
+    <div className="flex flex-col h-full bg-slate-50 print:h-auto print:block">
+      
+      {/* INJEÇÃO DE CSS REVISADA E PODEROSA: 
+          Remove travas de altura globalmente sem quebrar o flex/position do gráfico! */}
+      <style type="text/css" media="print">
+        {`
+          @page { size: portrait; margin: 15mm; }
+          
+          /* Libera a altura do sistema principal */
+          html, body, #root {
+            height: auto !important;
+            overflow: visible !important;
+          }
+
+          /* Remove as travas das classes do Tailwind sem remover o Flexbox */
+          .h-screen, .h-full, .overflow-hidden, .overflow-y-auto, .overflow-auto {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+          }
+        `}
+      </style>
+
       <header className="bg-white border-b p-4 flex flex-col md:flex-row justify-between items-start md:items-center sticky top-0 z-10 shadow-sm gap-4 print:hidden">
         <div className="flex items-center gap-4 w-full md:w-auto">
           <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition">
@@ -188,8 +208,8 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
         </div>
       </header>
 
-      <main className="flex-1 overflow-hidden flex flex-col md:flex-row print:overflow-visible">
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 print:p-0 print:space-y-0 print:overflow-visible">
+      <main className="flex-1 overflow-hidden flex flex-col md:flex-row print:overflow-visible print:block print:h-auto">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 print:p-0 print:space-y-0 print:overflow-visible print:block print:h-auto">
           
           <div className="grid grid-cols-1 gap-4 print:hidden">
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center">
@@ -230,7 +250,6 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
                 </select>
               </div>
 
-              {/* Se NÃO for prova de retorno, mostra Inicio e Fim */}
               {!isProvaDeRetorno && (
                 <>
                   <div className="md:col-span-2">
@@ -244,7 +263,6 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
                 </>
               )}
 
-              {/* Se FOR prova de retorno, a Data de Expedição é a única data visível na mesma linha */}
               {isProvaDeRetorno && (
                 <div className="md:col-span-3">
                   <label className="text-xs font-bold text-blue-600 block mb-1">Data do Documento</label>
@@ -262,7 +280,6 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
                 <input type="text" placeholder="Ex: Sítio São Judas, Safra de Café..." value={form.obs} onChange={(e) => setForm({ ...form, obs: e.target.value })} className="w-full p-2.5 border rounded-lg outline-none focus:border-amber-500 text-sm" />
               </div>
 
-              {/* SELEÇÃO DO DOCUMENTO */}
               <div className="md:col-span-6 relative mt-4">
                 <label className="text-xs font-bold text-slate-500 block mb-1 flex items-center gap-1">
                   <Search size={12}/> Documento / Fundamento Legal
@@ -302,7 +319,6 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
                 )}
               </div>
 
-              {/* Se NÃO for prova de retorno, mostra a Data de Expedição como Opcional em baixo */}
               {!isProvaDeRetorno && (
                 <div className="md:col-span-3 mt-4">
                   <label className="text-xs font-bold text-emerald-600 block mb-1">Data Doc (Opcional)</label>
@@ -323,7 +339,6 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
             </div>
           </div>
 
-          {/* LISTA DE PERÍODOS */}
           <div className="space-y-3 print:hidden">
             {periodosTratados.map((p) => {
               const meses = diffMonths(p.inicio, p.fim);
@@ -347,7 +362,7 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
                     
                     <div className="flex items-start gap-4 w-full">
                       {p.num ? (
-                        <div className="w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-black shrink-0 mt-0.5 shadow-sm">
+                        <div className="w-7 h-7 bg-indigo-600 text-white rounded-full flex items-center justify-center text-sm font-black shrink-0 mt-0.5 shadow-sm">
                           {p.num}
                         </div>
                       ) : (
@@ -370,12 +385,14 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
                         
                         <div className="mt-2 text-xs font-bold text-slate-600 opacity-80">{statusText}</div>
                         
-                        {p.linkedDocTitle && (
+                        {(p.linkedDocTitle || p.tipo === 'prova de retorno') && (
                           <div className="mt-3 bg-white/60 p-3 rounded-lg border border-blue-200/50 shadow-inner">
                             <p className="text-xs font-bold text-blue-800">
-                              {p.linkedDocTitle}
+                              {p.tipo === 'prova de retorno' ? 'Prova de Retorno' : p.linkedDocTitle}
                             </p>
-                            <p className="text-[10px] text-blue-600 mt-1 italic">{p.law}</p>
+                            <p className="text-[10px] text-blue-600 mt-1 italic">
+                              {p.tipo === 'prova de retorno' && !p.law ? 'art. 116, § 2º, V, da IN 128/2022' : p.law}
+                            </p>
                           </div>
                         )}
                       </div>

@@ -11,6 +11,12 @@ import { supabase } from "../lib/supabase";
 import { useToast } from "../hooks/use-toast";
 import { Client, BenefitStatus } from "../types";
 
+// Nova interface para o Lembrete na Nuvem
+interface Note {
+  id: string;
+  texto: string;
+}
+
 export function DashboardPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -19,19 +25,15 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
-  const [notes, setNotes] = useState<string[]>([]);
+  
+  // Estado dos lembretes atualizado
+  const [notes, setNotes] = useState<Note[]>([]);
   const [newNote, setNewNote] = useState("");
-
-  const [expandedNotes, setExpandedNotes] = useState<Record<number, boolean>>({});
+  const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchClients();
-    try {
-        const savedNotes = localStorage.getItem("dashboardNotes");
-        if (savedNotes) setNotes(JSON.parse(savedNotes));
-    } catch (error) {
-        localStorage.removeItem("dashboardNotes");
-    }
+    fetchNotes(); // Busca os lembretes da nuvem ao carregar a página
   }, []);
 
   const fetchClients = async () => {
@@ -46,6 +48,59 @@ export function DashboardPage() {
     } finally {
         setLoading(false);
     }
+  };
+
+  // BUSCA OS LEMBRETES NO SUPABASE
+  const fetchNotes = async () => {
+    try {
+      const { data, error } = await supabase.from('dashboard_notes').select('*').order('created_at', { ascending: true });
+      if (!error && data) {
+        setNotes(data as Note[]);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar lembretes:", err);
+    }
+  };
+
+  // ADICIONA O LEMBRETE NO SUPABASE
+  const addNote = async () => {
+      if (!newNote.trim()) return;
+      const texto = newNote;
+      setNewNote(""); // Limpa o input imediatamente para dar fluidez
+
+      try {
+        const { data, error } = await supabase.from('dashboard_notes').insert([{ texto }]).select();
+        if (!error && data) {
+          setNotes(prev => [...prev, data[0] as Note]);
+        }
+      } catch (err) {
+        console.error("Erro ao salvar lembrete:", err);
+        toast({ title: "Erro", description: "Não foi possível salvar o lembrete.", variant: "destructive" });
+      }
+  };
+
+  // REMOVE O LEMBRETE DO SUPABASE
+  const removeNote = async (id: string) => {
+      // Remove da tela imediatamente (Optimistic UI)
+      setNotes(prev => prev.filter(n => n.id !== id));
+      setExpandedNotes(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+
+      try {
+        await supabase.from('dashboard_notes').delete().eq('id', id);
+      } catch (err) {
+        console.error("Erro ao apagar lembrete:", err);
+      }
+  };
+
+  const toggleNoteExpansion = (id: string) => {
+    setExpandedNotes(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
   };
 
   const handleDeleteClient = async (id: number, e: React.MouseEvent) => {
@@ -85,11 +140,9 @@ export function DashboardPage() {
     }
   };
 
-  // NOVA FUNÇÃO: Alternar Fase do Processo
   const toggleFase = async (client: Client, e: React.MouseEvent) => {
     e.stopPropagation();
     const ciclo = ["Administrativo", "Judicial", "Execução"];
-    // Usando 'any' temporariamente caso a tipagem Client ainda não tenha 'fase_processo'
     const atual = (client as any).fase_processo ?? "Administrativo";
     const indexAtual = ciclo.indexOf(atual);
     const novoIndex = (indexAtual + 1) % ciclo.length;
@@ -109,32 +162,6 @@ export function DashboardPage() {
     }
   };
 
-  const addNote = () => {
-      if (!newNote.trim()) return;
-      const updated = [...notes, newNote];
-      setNotes(updated);
-      setNewNote("");
-      localStorage.setItem("dashboardNotes", JSON.stringify(updated));
-  };
-
-  const removeNote = (idx: number) => {
-      const updated = notes.filter((_, i) => i !== idx);
-      setNotes(updated);
-      localStorage.setItem("dashboardNotes", JSON.stringify(updated));
-      setExpandedNotes(prev => {
-        const next = { ...prev };
-        delete next[idx];
-        return next;
-      });
-  };
-
-  const toggleNoteExpansion = (idx: number) => {
-    setExpandedNotes(prev => ({
-      ...prev,
-      [idx]: !prev[idx]
-    }));
-  };
-
   const getStatusStyle = (status?: BenefitStatus) => {
       switch(status) {
           case 'Finalizado': return { bg: 'bg-emerald-500', light: 'bg-emerald-50 text-emerald-700 ring-emerald-200' };
@@ -143,7 +170,6 @@ export function DashboardPage() {
       }
   };
 
-  // NOVO: Estilo para o botão de Fase
   const getFaseStyle = (fase?: string) => {
       switch(fase) {
           case 'Judicial': return 'bg-purple-50 text-purple-700 ring-purple-200';
@@ -290,7 +316,6 @@ export function DashboardPage() {
                             </div>
                           </div>
                           
-                          {/* STATUS MOBILE: Agora com Fase e Status empilhados */}
                           <div className="md:hidden flex flex-col gap-1.5 shrink-0">
                             <button 
                               onClick={(e) => toggleFase(client, e)}
@@ -320,7 +345,6 @@ export function DashboardPage() {
 
                         <div className="pt-4 md:pt-0 border-t border-slate-100 md:border-none flex items-center justify-between md:justify-end gap-6 pl-3 md:pl-0 shrink-0">
                            
-                           {/* STATUS DESKTOP: Fase e Status lado a lado */}
                            <div className="hidden md:flex items-center gap-2 shrink-0">
                              <button 
                                onClick={(e) => toggleFase(client, e)}
@@ -374,7 +398,7 @@ export function DashboardPage() {
             
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col flex-1 min-h-[400px]">
               <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wide mb-4">
-                <Star size={16} className="text-amber-500" /> Lembretes Rápidos
+                <Star size={16} className="text-amber-500" /> Lembretes na Nuvem
               </h3>
               <div className="flex gap-2 mb-4">
                 <input
@@ -398,18 +422,18 @@ export function DashboardPage() {
                     <p className="text-xs font-medium text-slate-400">Caixa de lembretes vazia.</p>
                   </div>
                 ) : (
-                  notes.map((note, i) => {
-                    const isExpanded = expandedNotes[i] || false;
-                    const isLongText = note.length > 150;
+                  notes.map((note) => {
+                    const isExpanded = expandedNotes[note.id] || false;
+                    const isLongText = note.texto.length > 150;
 
                     return (
-                      <div key={i} className="flex flex-col p-3 bg-amber-50/30 rounded-xl border border-amber-100/50 group hover:border-amber-200 transition-colors">
+                      <div key={note.id} className="flex flex-col p-3 bg-amber-50/30 rounded-xl border border-amber-100/50 group hover:border-amber-200 transition-colors">
                         <div className="flex items-start justify-between">
                           <span className={`text-sm font-medium text-slate-700 leading-snug break-words pr-2 ${isExpanded ? '' : 'line-clamp-3'}`}>
-                            {note}
+                            {note.texto}
                           </span>
                           <button
-                            onClick={() => removeNote(i)}
+                            onClick={() => removeNote(note.id)}
                             className="text-slate-300 hover:text-red-500 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                           >
                             <Trash2 size={14} />
@@ -418,7 +442,7 @@ export function DashboardPage() {
                         
                         {isLongText && (
                           <button 
-                            onClick={() => toggleNoteExpansion(i)}
+                            onClick={() => toggleNoteExpansion(note.id)}
                             className="text-amber-700 text-xs font-bold mt-2 flex items-center gap-1 hover:text-amber-900 w-fit"
                           >
                             {isExpanded ? (

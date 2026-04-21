@@ -32,12 +32,12 @@ export const civilSchema = z.object({
   nome_conjuge: z.string().optional(),
   cpf_conjuge: z.string().optional(),
 
-  // Endereço e contato
-  cep: z.string().min(9, "CEP incompleto"),
-  endereco: z.string().min(5, "Endereço incompleto"),
+  // Endereço e contato (REMOVIDAS AS TRAVAS DE CARACTERES MÍNIMOS)
+  cep: z.string().optional(),
+  endereco: z.string().optional(),
   bairro: z.string().optional(),
-  cidade: z.string().min(2, "Cidade obrigatória"),
-  telefone: z.string().min(14, "Telefone inválido"),
+  cidade: z.string().optional(),
+  telefone: z.string().optional(),
   telefone_recado: z.string().optional(),
 
   // Análise

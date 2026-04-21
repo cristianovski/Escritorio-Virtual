@@ -5,13 +5,12 @@ import {
   CheckCircle, ChevronRight, Star, MessageCircle, 
   FolderOpen, Trash2, UserCog, Calculator, 
   DollarSign, History, MapPin, Phone, Cake, Plus,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, Edit2
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useToast } from "../hooks/use-toast";
 import { Client, BenefitStatus } from "../types";
 
-// Nova interface para o Lembrete na Nuvem
 interface Note {
   id: string;
   texto: string;
@@ -26,14 +25,17 @@ export function DashboardPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
   
-  // Estado dos lembretes atualizado
   const [notes, setNotes] = useState<Note[]>([]);
   const [newNote, setNewNote] = useState("");
   const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
+  
+  // Novos estados para a edição de lembretes
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editNoteText, setEditNoteText] = useState("");
 
   useEffect(() => {
     fetchClients();
-    fetchNotes(); // Busca os lembretes da nuvem ao carregar a página
+    fetchNotes(); 
   }, []);
 
   const fetchClients = async () => {
@@ -50,7 +52,6 @@ export function DashboardPage() {
     }
   };
 
-  // BUSCA OS LEMBRETES NO SUPABASE
   const fetchNotes = async () => {
     try {
       const { data, error } = await supabase.from('dashboard_notes').select('*').order('created_at', { ascending: true });
@@ -62,11 +63,10 @@ export function DashboardPage() {
     }
   };
 
-  // ADICIONA O LEMBRETE NO SUPABASE
   const addNote = async () => {
       if (!newNote.trim()) return;
       const texto = newNote;
-      setNewNote(""); // Limpa o input imediatamente para dar fluidez
+      setNewNote(""); 
 
       try {
         const { data, error } = await supabase.from('dashboard_notes').insert([{ texto }]).select();
@@ -79,9 +79,23 @@ export function DashboardPage() {
       }
   };
 
-  // REMOVE O LEMBRETE DO SUPABASE
+  const updateNote = async (id: string) => {
+    if (!editNoteText.trim()) return;
+
+    setNotes(prev => prev.map(n => n.id === id ? { ...n, texto: editNoteText } : n));
+    setEditingNoteId(null);
+
+    try {
+      const { error } = await supabase.from('dashboard_notes').update({ texto: editNoteText }).eq('id', id);
+      if (error) throw error;
+    } catch (err) {
+      console.error("Erro ao atualizar lembrete:", err);
+      toast({ title: "Erro", description: "Falha ao atualizar na nuvem.", variant: "destructive" });
+      fetchNotes(); 
+    }
+  };
+
   const removeNote = async (id: string) => {
-      // Remove da tela imediatamente (Optimistic UI)
       setNotes(prev => prev.filter(n => n.id !== id));
       setExpandedNotes(prev => {
         const next = { ...prev };
@@ -174,7 +188,7 @@ export function DashboardPage() {
       switch(fase) {
           case 'Judicial': return 'bg-purple-50 text-purple-700 ring-purple-200';
           case 'Execução': return 'bg-rose-50 text-rose-700 ring-rose-200';
-          default: return 'bg-slate-100 text-slate-600 ring-slate-200'; // Administrativo
+          default: return 'bg-slate-100 text-slate-600 ring-slate-200'; 
       }
   };
 
@@ -425,32 +439,64 @@ export function DashboardPage() {
                   notes.map((note) => {
                     const isExpanded = expandedNotes[note.id] || false;
                     const isLongText = note.texto.length > 150;
+                    const isEditing = editingNoteId === note.id;
 
                     return (
                       <div key={note.id} className="flex flex-col p-3 bg-amber-50/30 rounded-xl border border-amber-100/50 group hover:border-amber-200 transition-colors">
-                        <div className="flex items-start justify-between">
-                          <span className={`text-sm font-medium text-slate-700 leading-snug break-words pr-2 ${isExpanded ? '' : 'line-clamp-3'}`}>
-                            {note.texto}
-                          </span>
-                          <button
-                            onClick={() => removeNote(note.id)}
-                            className="text-slate-300 hover:text-red-500 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
                         
-                        {isLongText && (
-                          <button 
-                            onClick={() => toggleNoteExpansion(note.id)}
-                            className="text-amber-700 text-xs font-bold mt-2 flex items-center gap-1 hover:text-amber-900 w-fit"
-                          >
-                            {isExpanded ? (
-                              <><ChevronUp size={14} /> Ver menos</>
-                            ) : (
-                              <><ChevronDown size={14} /> Ver mais</>
+                        {isEditing ? (
+                          <div className="flex flex-col gap-2 w-full">
+                            <textarea
+                              value={editNoteText}
+                              onChange={(e) => setEditNoteText(e.target.value)}
+                              className="w-full text-sm p-2 rounded border border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white resize-none"
+                              rows={3}
+                            />
+                            <div className="flex justify-end gap-2">
+                              <button onClick={() => setEditingNoteId(null)} className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1">Cancelar</button>
+                              <button onClick={() => updateNote(note.id)} className="text-xs bg-amber-500 text-white font-bold px-3 py-1 rounded hover:bg-amber-600 transition-colors">Salvar</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-start justify-between">
+                              <span className={`text-sm font-medium text-slate-700 leading-snug break-words pr-2 ${isExpanded ? '' : 'line-clamp-3'}`}>
+                                {note.texto}
+                              </span>
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                <button
+                                  onClick={() => {
+                                    setEditingNoteId(note.id);
+                                    setEditNoteText(note.texto);
+                                  }}
+                                  className="text-slate-300 hover:text-blue-500 mt-0.5 transition-colors"
+                                  title="Editar"
+                                >
+                                  <Edit2 size={14} />
+                                </button>
+                                <button
+                                  onClick={() => removeNote(note.id)}
+                                  className="text-slate-300 hover:text-red-500 mt-0.5 transition-colors"
+                                  title="Excluir"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </div>
+                            
+                            {isLongText && (
+                              <button 
+                                onClick={() => toggleNoteExpansion(note.id)}
+                                className="text-amber-700 text-xs font-bold mt-2 flex items-center gap-1 hover:text-amber-900 w-fit"
+                              >
+                                {isExpanded ? (
+                                  <><ChevronUp size={14} /> Ver menos</>
+                                ) : (
+                                  <><ChevronDown size={14} /> Ver mais</>
+                                )}
+                              </button>
                             )}
-                          </button>
+                          </>
                         )}
                       </div>
                     );

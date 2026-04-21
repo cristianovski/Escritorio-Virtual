@@ -17,7 +17,6 @@ interface CivilDataFormProps {
 export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormProps) {
   const { register, watch, reset, formState: { errors } } = useForm<CivilFormValues>({
     resolver: zodResolver(civilSchema),
-    mode: "onChange",
     defaultValues: {
       nome: initialData?.nome || "",
       cpf: initialData?.cpf || "",
@@ -65,18 +64,6 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
 
   const isIncapaz = watch("capacidade_civil") !== "Plena";
 
-  const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.target.value = maskCPF(e.target.value);
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.target.value = maskPhone(e.target.value);
-  };
-
-  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.target.value = maskCEP(e.target.value);
-  };
-
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-300">
       <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
@@ -97,9 +84,11 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
 
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">CPF</label>
+            {/* MUDANÇA: A máscara agora atua JUNTO com o registro oficial */}
             <input
-              {...register("cpf")}
-              onChange={handleCpfChange}
+              {...register("cpf", {
+                onChange: (e) => { e.target.value = maskCPF(e.target.value); }
+              })}
               maxLength={14}
               className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"
               placeholder="000.000.000-00"
@@ -121,7 +110,6 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Data de Nascimento</label>
             <input type="date" {...register("data_nascimento")} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all" />
-            {errors.data_nascimento && <span className="text-red-500 text-xs">{errors.data_nascimento.message}</span>}
           </div>
 
           <div>
@@ -200,7 +188,13 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">CPF do Cônjuge</label>
-                <input {...register("cpf_conjuge")} onChange={handleCpfChange} maxLength={14} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all" />
+                <input
+                  {...register("cpf_conjuge", {
+                    onChange: (e) => { e.target.value = maskCPF(e.target.value); }
+                  })}
+                  maxLength={14}
+                  className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"
+                />
               </div>
             </>
           ) : null}
@@ -229,7 +223,13 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
             </div>
             <div>
               <label className="text-xs font-bold text-amber-700/70 uppercase tracking-wider ml-1">CPF Rep.</label>
-              <input {...register("rep_cpf")} onChange={handleCpfChange} maxLength={14} className="w-full border border-amber-300 rounded-xl p-3 text-sm outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 bg-white transition-all"/>
+              <input
+                {...register("rep_cpf", {
+                  onChange: (e) => { e.target.value = maskCPF(e.target.value); }
+                })}
+                maxLength={14}
+                className="w-full border border-amber-300 rounded-xl p-3 text-sm outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 bg-white transition-all"
+              />
             </div>
             <div>
               <label className="text-xs font-bold text-amber-700/70 uppercase tracking-wider ml-1">RG Rep.</label>
@@ -237,7 +237,13 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
             </div>
             <div>
               <label className="text-xs font-bold text-amber-700/70 uppercase tracking-wider ml-1">Telefone Rep.</label>
-              <input {...register("rep_telefone")} onChange={handlePhoneChange} maxLength={15} className="w-full border border-amber-300 rounded-xl p-3 text-sm outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 bg-white transition-all"/>
+              <input
+                {...register("rep_telefone", {
+                  onChange: (e) => { e.target.value = maskPhone(e.target.value); }
+                })}
+                maxLength={15}
+                className="w-full border border-amber-300 rounded-xl p-3 text-sm outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 bg-white transition-all"
+              />
             </div>
             <div className="col-span-1 md:col-span-3">
               <label className="text-xs font-bold text-amber-700/70 uppercase tracking-wider ml-1">Endereço Rep.</label>
@@ -252,13 +258,17 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">CEP</label>
-            <input {...register("cep")} onChange={handleCepChange} maxLength={9} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"/>
-            {errors.cep && <span className="text-red-500 text-xs">{errors.cep.message}</span>}
+            <input
+              {...register("cep", {
+                onChange: (e) => { e.target.value = maskCEP(e.target.value); }
+              })}
+              maxLength={9}
+              className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"
+            />
           </div>
           <div className="md:col-span-3">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Endereço</label>
             <input {...register("endereco")} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"/>
-            {errors.endereco && <span className="text-red-500 text-xs">{errors.endereco.message}</span>}
           </div>
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Bairro</label>
@@ -267,12 +277,26 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Cidade - UF</label>
             <input {...register("cidade")} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"/>
-            {errors.cidade && <span className="text-red-500 text-xs">{errors.cidade.message}</span>}
           </div>
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 flex items-center gap-1">Telefone</label>
-            <input {...register("telefone")} onChange={handlePhoneChange} maxLength={15} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"/>
-            {errors.telefone && <span className="text-red-500 text-xs">{errors.telefone.message}</span>}
+          <div className="md:col-span-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 flex items-center gap-1">Telefone Celular</label>
+            <input
+              {...register("telefone", {
+                onChange: (e) => { e.target.value = maskPhone(e.target.value); }
+              })}
+              maxLength={15}
+              className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 flex items-center gap-1">Telefone Recado / Parente</label>
+            <input
+              {...register("telefone_recado", {
+                onChange: (e) => { e.target.value = maskPhone(e.target.value); }
+              })}
+              maxLength={15}
+              className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"
+            />
           </div>
         </div>
       </section>

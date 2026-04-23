@@ -64,6 +64,19 @@ export function ClientDocumentsManager({ cliente, onBack }: PageProps) {
     return <ImageIcon className="text-blue-500" />;
   };
 
+  const isSafeUrl = (urlStr: string): boolean => {
+    if (!urlStr) return false;
+    if (urlStr.startsWith('/')) return true; // Relative URLs
+    if (urlStr.startsWith('blob:')) return true; // Blob URLs
+
+    try {
+      const parsed = new URL(urlStr);
+      return ['http:', 'https:'].includes(parsed.protocol);
+    } catch {
+      return false; // Invalid URL structure
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-slate-100 font-sans">
       <header className="bg-white border-b border-slate-200 p-4 flex justify-between items-center sticky top-0 z-20 shadow-sm">
@@ -177,19 +190,28 @@ export function ClientDocumentsManager({ cliente, onBack }: PageProps) {
             </div>
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               <div className="aspect-[3/4] bg-slate-100 rounded-xl border flex items-center justify-center overflow-hidden relative group">
-                {selectedDoc.file_url.toLowerCase().endsWith('.pdf') ? (
-                  <iframe src={selectedDoc.file_url} className="w-full h-full" title="Preview" />
+                {!isSafeUrl(selectedDoc.file_url) ? (
+                  <div className="text-center p-4 text-slate-500">
+                    <AlertCircle size={48} className="mx-auto mb-2 opacity-50 text-red-500" />
+                    <p className="text-sm font-medium">URL de documento inválida ou insegura.</p>
+                  </div>
                 ) : (
-                  <img src={selectedDoc.file_url} alt="Preview" className="w-full h-full object-contain" />
+                  <>
+                    {selectedDoc.file_url.toLowerCase().endsWith('.pdf') ? (
+                      <iframe src={selectedDoc.file_url} className="w-full h-full" title="Preview" sandbox="allow-same-origin allow-scripts" />
+                    ) : (
+                      <img src={selectedDoc.file_url} alt="Preview" className="w-full h-full object-contain" />
+                    )}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                      <a href={selectedDoc.file_url} target="_blank" rel="noopener noreferrer" className="p-3 bg-white rounded-full">
+                        <Eye size={20} />
+                      </a>
+                      <a href={selectedDoc.file_url} download className="p-3 bg-white rounded-full">
+                        <Download size={20} />
+                      </a>
+                    </div>
+                  </>
                 )}
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                  <a href={selectedDoc.file_url} target="_blank" rel="noreferrer" className="p-3 bg-white rounded-full">
-                    <Eye size={20} />
-                  </a>
-                  <a href={selectedDoc.file_url} download className="p-3 bg-white rounded-full">
-                    <Download size={20} />
-                  </a>
-                </div>
               </div>
 
               <div className="space-y-4">

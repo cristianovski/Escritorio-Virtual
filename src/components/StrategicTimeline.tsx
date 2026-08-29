@@ -1,51 +1,50 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, type CSSProperties } from 'react';
 import { Ruler, AlertTriangle, FileText } from 'lucide-react';
+import type { Periodo } from '../hooks/useBenefitAnalysis';
+import {
+  addCalendarYears,
+  compareDateOnly,
+  countElapsedCalendarMonths,
+  countUniqueCoveredMonths,
+  isValidDateInterval,
+  normalizeDateOnly,
+} from '../lib/dateIntervals';
+
+type TimelinePeriodo = Periodo & { num?: number | null };
 
 interface StrategicTimelineProps {
   der: string;
-  periodos: any[];
-  documentos?: any[]; 
+  periodos: TimelinePeriodo[];
   clienteNome?: string; 
 }
 
-const parseDate = (d: string) => new Date(`${d.split('T')[0]}T12:00:00`);
-
-const diffMonths = (start: string, end: string) => {
-  if (!start || !end) return 0;
-  const d1 = parseDate(start);
-  const d2 = parseDate(end);
-  return (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
+const toUtcTimestamp = (value: string): number | null => {
+  const normalized = normalizeDateOnly(value);
+  return normalized ? Date.parse(`${normalized}T00:00:00Z`) : null;
 };
 
-const diffDays = (start: string, end: string) => {
-  if (!start || !end) return 0;
-  const diffTime = Math.abs(parseDate(end).getTime() - parseDate(start).getTime());
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-};
+interface RulerState {
+  clientKey: string;
+  start: string;
+  end: string;
+}
 
-const addYears = (date: string, years: number) => {
-  if (!date) return '';
-  const d = parseDate(date);
-  d.setFullYear(d.getFullYear() + years);
-  return d.toISOString().split('T')[0];
+const loadRulerState = (clientKey: string, der: string): RulerState => {
+  const savedStart = localStorage.getItem(`ruler_start_${clientKey}`);
+  const savedEnd = localStorage.getItem(`ruler_end_${clientKey}`);
+
+  return {
+    clientKey,
+    start: savedStart && savedEnd ? savedStart : addCalendarYears(der, -15),
+    end: savedStart && savedEnd ? savedEnd : der,
+  };
 };
 
 export default function StrategicTimeline({ der, periodos, clienteNome = "Cliente" }: StrategicTimelineProps) {
-  const [rulerStart, setRulerStart] = useState('');
-  const [rulerEnd, setRulerEnd] = useState('');
-
-  useEffect(() => {
-    const savedStart = localStorage.getItem(`ruler_start_${clienteNome}`);
-    const savedEnd = localStorage.getItem(`ruler_end_${clienteNome}`);
-    
-    if (savedStart && savedEnd) {
-      setRulerStart(savedStart);
-      setRulerEnd(savedEnd);
-    } else if (der) {
-      setRulerEnd(der);
-      setRulerStart(addYears(der, -15));
-    }
-  }, [der, clienteNome]);
+  const [ruler, setRuler] = useState<RulerState>(() => loadRulerState(clienteNome, der));
+  const activeRuler = ruler.clientKey === clienteNome ? ruler : loadRulerState(clienteNome, der);
+  const rulerStart = activeRuler.start;
+  const rulerEnd = activeRuler.end;
 
   useEffect(() => {
     if (rulerStart && rulerEnd) {
@@ -54,20 +53,22 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
     }
   }, [rulerStart, rulerEnd, clienteNome]);
 
-  const currentMonths = diffMonths(rulerStart, rulerEnd);
-  const isDiff180 = currentMonths === 180;
+  const rulerIsValid = isValidDateInterval(rulerStart, rulerEnd);
+  const currentMonths = countElapsedCalendarMonths(rulerStart, rulerEnd);
+  const isDiff180 = rulerIsValid && currentMonths === 180;
 
   const getLeftPercent = (dateStr: string) => {
-    if (!dateStr || !rulerStart || !rulerEnd) return 0;
-    const startMs = parseDate(rulerStart).getTime();
-    const endMs = parseDate(rulerEnd).getTime();
-    const currentMs = parseDate(dateStr).getTime();
-    let percent = ((currentMs - startMs) / (endMs - startMs)) * 100;
+    if (!dateStr || !rulerIsValid) return 0;
+    const startMs = toUtcTimestamp(rulerStart);
+    const endMs = toUtcTimestamp(rulerEnd);
+    const currentMs = toUtcTimestamp(dateStr);
+    if (startMs === null || endMs === null || currentMs === null || startMs === endMs) return 0;
+    const percent = ((currentMs - startMs) / (endMs - startMs)) * 100;
     return Math.max(0, Math.min(100, percent));
   };
 
   const getWidthPercent = (startStr: string, endStr: string) => {
-    if (!startStr || !rulerStart || !rulerEnd) return 0;
+    if (!isValidDateInterval(startStr, endStr || startStr) || !rulerIsValid) return 0;
     const endSafe = endStr || startStr;
     const left = getLeftPercent(startStr);
     const right = getLeftPercent(endSafe);
@@ -86,31 +87,34 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
   const provasNumeradas = useMemo(() => {
     return (periodos || [])
       .filter(p => p.num)
-      .sort((a, b) => parseDate(a.dataExpedicao || a.inicio).getTime() - parseDate(b.dataExpedicao || b.inicio).getTime());
+      .sort((a, b) => compareDateOnly(a.dataExpedicao || a.inicio, b.dataExpedicao || b.inicio));
   }, [periodos]);
 
   const totalRuralMonths = useMemo(() => {
-    return (periodos || [])
+    const ruralIntervals = (periodos || [])
       .filter(p => (p.tipo || '').toLowerCase() === 'rural')
-      .reduce((acc, p) => acc + diffMonths(p.inicio, p.fim), 0);
+      .map(({ inicio, fim }) => ({ inicio, fim }));
+    return countUniqueCoveredMonths(ruralIntervals);
   }, [periodos]);
 
   const ruralYears = Math.floor(totalRuralMonths / 12);
   const ruralRemainingMonths = totalRuralMonths % 12;
   const totalRuralText = `${ruralYears} anos e ${ruralRemainingMonths} meses (${totalRuralMonths} meses)`;
 
-  const printStyle = { WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' } as any;
+  const printStyle: CSSProperties = { WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' };
 
   const getNinetyMonthMarks = () => {
     if (currentMonths <= 0) return [];
+    const rulerStartTimestamp = toUtcTimestamp(rulerStart);
+    if (rulerStartTimestamp === null) return [];
     const numMarks = Math.floor(currentMonths / 90);
     const marks = [];
     for (let i = 1; i <= numMarks; i++) {
         const positionPercent = ((90 * i) / currentMonths) * 100;
         if (positionPercent < 98) { 
-            const d = parseDate(rulerStart);
-            d.setMonth(d.getMonth() + (90 * i));
-            marks.push({ label: String(d.getFullYear()), percent: positionPercent });
+            const d = new Date(rulerStartTimestamp);
+            d.setUTCMonth(d.getUTCMonth() + (90 * i));
+            marks.push({ label: String(d.getUTCFullYear()), percent: positionPercent });
         }
     }
     return marks;
@@ -146,7 +150,7 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
             <div>
               <label className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">Início da Régua</label>
               <input 
-                type="date" value={rulerStart} onChange={e => setRulerStart(e.target.value)}
+                type="date" value={rulerStart} onChange={e => setRuler({ ...activeRuler, start: e.target.value })}
                 className="text-xs border-none bg-slate-50 p-1.5 rounded font-medium outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
@@ -154,7 +158,7 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
             <div>
               <label className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">Fim da Régua</label>
               <input 
-                type="date" value={rulerEnd} onChange={e => setRulerEnd(e.target.value)}
+                type="date" value={rulerEnd} onChange={e => setRuler({ ...activeRuler, end: e.target.value })}
                 className="text-xs border-none bg-slate-50 p-1.5 rounded font-medium outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
@@ -164,13 +168,15 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
         {!isDiff180 && rulerStart && rulerEnd && (
           <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center gap-2 text-xs text-amber-800 font-bold print:hidden">
             <AlertTriangle size={14} className="text-amber-600" />
-            Atenção: O período selecionado tem {currentMonths} meses. A carência rural padrão exige 180 meses.
+            {rulerIsValid
+              ? `Atenção: o período selecionado tem ${currentMonths} meses. A carência rural padrão exige 180 meses.`
+              : 'Atenção: o fim da régua deve ser igual ou posterior ao início.'}
           </div>
         )}
 
         <div className="mx-4 md:mx-8 mb-2 mt-8 print:mx-0 print:mt-0 print:mb-6 flex justify-center">
             <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-8 py-3 rounded-2xl shadow-sm text-center print:bg-white print:border-2 print:border-emerald-800">
-                <span className="block text-[10px] uppercase font-black tracking-widest opacity-80 mb-0.5">Total de Atividade Rural Provada</span>
+                <span className="block text-[10px] uppercase font-black tracking-widest opacity-80 mb-0.5">Total Rural sem Sobreposição</span>
                 <span className="text-xl font-black">{totalRuralText}</span>
             </div>
         </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { 
   ArrowLeft, Plus, Trash2, User, FileText, 
   Hash, Briefcase, Save, Building
@@ -14,6 +14,11 @@ interface LawyerExtended extends Lawyer {
 }
 
 type LawyerFormData = Partial<LawyerExtended>;
+
+async function loadLawyers() {
+  const { data } = await supabase.from('lawyers').select('*').order('nome');
+  return (data || []) as LawyerExtended[];
+}
 
 function validarCPF(cpf: string) {
   cpf = cpf.replace(/[^\d]+/g, '');
@@ -36,12 +41,13 @@ export function LawyersPage({ onBack }: { onBack: () => void }) {
   const { confirm, isOpen, message, handleConfirm, handleCancel } = useConfirm();
 
   const [lawyers, setLawyers] = useState<LawyerExtended[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   
-  const [officeAddress, setOfficeAddress] = useState("");
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [officeAddress, setOfficeAddress] = useState(
+    () => localStorage.getItem("officeAddress") || ""
+  );
 
   const [formData, setFormData] = useState<LawyerFormData>({
     nome: "",
@@ -51,18 +57,25 @@ export function LawyersPage({ onBack }: { onBack: () => void }) {
     cpf: ""
   });
 
-  useEffect(() => {
-    fetchLawyers();
-    const savedAddress = localStorage.getItem("officeAddress");
-    if (savedAddress) setOfficeAddress(savedAddress);
+  const fetchLawyers = useCallback(async () => {
+    setLoading(true);
+    setLawyers(await loadLawyers());
+    setLoading(false);
   }, []);
 
-  const fetchLawyers = async () => {
-    setLoading(true);
-    const { data } = await supabase.from('lawyers').select('*').order('nome');
-    if (data) setLawyers(data as LawyerExtended[]);
-    setLoading(false);
-  };
+  useEffect(() => {
+    let isCurrent = true;
+
+    void loadLawyers().then((data) => {
+      if (!isCurrent) return;
+      setLawyers(data);
+      setLoading(false);
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
 
   const handleSaveLawyer = async () => {
     if (!formData.nome || !formData.oab || !formData.cpf) {

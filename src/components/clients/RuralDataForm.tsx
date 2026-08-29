@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LayoutList, ChevronRight, ShoppingBag } from "lucide-react";
@@ -12,10 +12,13 @@ interface RuralDataFormProps {
   initialData?: Partial<RuralFormValues>;
   onSave: (data: RuralFormValues) => void;
   loading?: boolean;
+  resetVersion?: number;
 }
 
-export function RuralDataForm({ initialData, onSave, loading }: RuralDataFormProps) {
-  const { register, watch, formState: { errors } } = useForm<RuralFormValues>({
+export function RuralDataForm({ initialData, onSave, loading, resetVersion = 0 }: RuralDataFormProps) {
+  const initialDataRef = useRef(initialData);
+
+  const { register, reset, subscribe } = useForm<RuralFormValues>({
     resolver: zodResolver(ruralSchema),
     mode: "onChange",
     defaultValues: {
@@ -38,11 +41,37 @@ export function RuralDataForm({ initialData, onSave, loading }: RuralDataFormPro
   });
 
   useEffect(() => {
-    const subscription = watch((value) => {
-      onSave(value as RuralFormValues);
+    initialDataRef.current = initialData;
+  }, [initialData]);
+
+  useEffect(() => {
+    const nextInitialData = initialDataRef.current;
+
+    reset({
+      nome_imovel: nextInitialData?.nome_imovel || "",
+      municipio_uf: nextInitialData?.municipio_uf || "",
+      itr_nirf: nextInitialData?.itr_nirf || "",
+      area_total: nextInitialData?.area_total || "",
+      area_util: nextInitialData?.area_util || "",
+      condicao_posse: nextInitialData?.condicao_posse || "proprietario",
+      outorgante_nome: nextInitialData?.outorgante_nome || "",
+      outorgante_cpf: nextInitialData?.outorgante_cpf || "",
+      culturas: nextInitialData?.culturas || "",
+      animais: nextInitialData?.animais || "",
+      destinacao: nextInitialData?.destinacao || "",
+      locais_venda: nextInitialData?.locais_venda || "",
+      tem_empregados: nextInitialData?.tem_empregados || "nao",
+      tempo_empregados: nextInitialData?.tempo_empregados || "",
+      grupo_familiar: nextInitialData?.grupo_familiar || "",
     });
-    return () => subscription.unsubscribe();
-  }, [watch, onSave]);
+  }, [reset, resetVersion]);
+
+  useEffect(() => {
+    return subscribe({
+      formState: { values: true },
+      callback: ({ values }) => onSave(values),
+    });
+  }, [subscribe, onSave]);
 
   const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.target.value = maskCPF(e.target.value);

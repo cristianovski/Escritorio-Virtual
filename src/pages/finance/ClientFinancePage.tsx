@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Wallet, TrendingUp, Calendar, CheckCircle, 
@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../hooks/use-toast';
-import { Client } from '../../types';
+import type { Client, FinancialTransaction, FinancialTransactionInsert } from '../../types';
 
 export function ClientFinancePage() {
   const { id } = useParams<{ id: string }>();
@@ -14,8 +14,7 @@ export function ClientFinancePage() {
   const { toast } = useToast();
 
   const [cliente, setCliente] = useState<Client | null>(null);
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
   const [saving, setSaving] = useState(false);
 
   // Form State
@@ -25,12 +24,7 @@ export function ClientFinancePage() {
   const [installments, setInstallments] = useState('2');
   const [startDate, setStartDate] = useState('');
 
-  useEffect(() => {
-    fetchData();
-  }, [id]);
-
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = useCallback(async () => {
     try {
       const [clientRes, transRes] = await Promise.all([
         supabase.from('clients').select('*').eq('id', id).single(),
@@ -40,10 +34,12 @@ export function ClientFinancePage() {
       if (transRes.data) setTransactions(transRes.data);
     } catch (error) {
       console.error(error);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
 
   const handleSave = async () => {
     // Se for estimativa, não exige a data de início
@@ -55,7 +51,7 @@ export function ClientFinancePage() {
     setSaving(true);
     try {
       const totalAmount = parseFloat(amount.replace(',', '.'));
-      let inserts = [];
+      const inserts: FinancialTransactionInsert[] = [];
       const recurrenceId = crypto.randomUUID();
 
       if (tipoLancamento === 'a_vista') {
@@ -97,8 +93,9 @@ export function ClientFinancePage() {
       toast({ title: 'Sucesso', description: 'Lançamento financeiro criado.', variant: 'success' });
       setDesc(''); setAmount(''); setStartDate(''); setTipoLancamento('a_vista');
       fetchData();
-    } catch (err: any) {
-      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      const description = error instanceof Error ? error.message : 'Falha ao salvar lançamento.';
+      toast({ title: 'Erro', description, variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -114,7 +111,7 @@ export function ClientFinancePage() {
         .eq('id', transId);
       if (error) throw error;
       fetchData();
-    } catch (err) {
+    } catch {
       toast({ title: 'Erro', description: 'Não foi possível atualizar.', variant: 'destructive' });
     }
   };
@@ -125,7 +122,7 @@ export function ClientFinancePage() {
       const { error } = await supabase.from('transactions').delete().eq('id', transId);
       if (error) throw error;
       fetchData();
-    } catch (err) {
+    } catch {
       toast({ title: 'Erro', description: 'Falha ao remover.', variant: 'destructive' });
     }
   };

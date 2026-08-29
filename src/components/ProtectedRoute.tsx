@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Loader2 } from 'lucide-react';
+import type { Session } from '@supabase/supabase-js';
 
 export function ProtectedRoute() {
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,7 +30,7 @@ export function ProtectedRoute() {
       }
     };
 
-    checkSession();
+    void checkSession();
 
     // 2. Fica à escuta de mudanças (Login / Logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -47,7 +48,7 @@ export function ProtectedRoute() {
 
   if (loading) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-50 text-slate-500 gap-4">
+      <div className="min-h-dvh w-full flex flex-col items-center justify-center bg-slate-50 text-slate-500 gap-4">
         <Loader2 className="animate-spin text-emerald-600" size={40} />
         <p className="font-medium animate-pulse">Verificando sessão...</p>
       </div>

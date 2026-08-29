@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { 
   DollarSign, TrendingUp, TrendingDown, Target, 
   Calendar, CheckCircle, Plus, Trash2, Clock,
@@ -7,6 +7,7 @@ import {
 // CORREÇÃO: Voltando duas pastas para achar o lib e hooks
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../hooks/use-toast';
+import type { FinancialTransaction, FinancialTransactionInsert } from '../../types';
 
 export function CashFlowPage() {
   const { toast } = useToast();
@@ -15,7 +16,7 @@ export function CashFlowPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   
   // Dados
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -27,23 +28,23 @@ export function CashFlowPage() {
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringMonths, setRecurringMonths] = useState('12');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       // Puxa as transações do escritório E as que foram lançadas lá na ficha do cliente!
       const { data, error } = await supabase.from('transactions').select(`*, clients ( nome )`).order('due_date', { ascending: true });
       if (error) throw error;
       setTransactions(data || []);
-    } catch (error: any) {
+    } catch {
       toast({ title: 'Erro', description: 'Falha ao carregar fluxo.', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
 
   const handleSave = async () => {
     if (!desc || !amount || !dueDate) {
@@ -54,7 +55,7 @@ export function CashFlowPage() {
     setSaving(true);
     try {
       const totalAmount = parseFloat(amount.replace(',', '.'));
-      let inserts = [];
+      const inserts: FinancialTransactionInsert[] = [];
       const recurrenceId = crypto.randomUUID();
 
       if (isRecurring) {
@@ -83,8 +84,9 @@ export function CashFlowPage() {
       toast({ title: 'Sucesso', description: 'Lançamento salvo com sucesso.', variant: 'success' });
       setDesc(''); setAmount(''); setDueDate(''); setIsRecurring(false);
       fetchData();
-    } catch (err: any) {
-      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      const description = error instanceof Error ? error.message : 'Falha ao salvar lançamento.';
+      toast({ title: 'Erro', description, variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -97,7 +99,7 @@ export function CashFlowPage() {
       const { error } = await supabase.from('transactions').update({ status: novoStatus, payment_date: paymentDate }).eq('id', transId);
       if (error) throw error;
       fetchData();
-    } catch (err) {
+    } catch {
       toast({ title: 'Erro', description: 'Falha ao atualizar.', variant: 'destructive' });
     }
   };
@@ -108,7 +110,7 @@ export function CashFlowPage() {
       const { error } = await supabase.from('transactions').delete().eq('id', transId);
       if (error) throw error;
       fetchData();
-    } catch (err) {
+    } catch {
       toast({ title: 'Erro', description: 'Falha ao remover.', variant: 'destructive' });
     }
   };

@@ -2,13 +2,13 @@ import { useRef } from 'react';
 import {
   ArrowLeft, Search, Plus, FileText,
   Image as ImageIcon, Calendar, Trash2, Eye,
-  Download, Edit2, AlertCircle, Save, Scale, UploadCloud, X, Check, ChevronDown, MessageSquare
+  Download, Edit2, Save, Scale, UploadCloud, X, Check, ChevronDown, MessageSquare,
+  AlertCircle
 } from 'lucide-react';
 import { Client, ClientDocument } from '../../types';
 import { useDocuments } from '../../hooks/useDocuments';
 import { useDocumentUpload } from '../../hooks/useDocumentUpload';
 import { useDocumentEditor } from '../../hooks/useDocumentEditor';
-import { getLocalDateISO } from '../../lib/utils';
 
 interface PageProps {
   cliente: Client;
@@ -41,11 +41,14 @@ export function ClientDocumentsManager({ cliente, onBack }: PageProps) {
 
   const {
     selectedDoc,
+    selectedDownloadUrl,
+    selectedAccessError,
     isEditing,
     saving,
     editForm,
     setEditForm,
     handleSelectDoc,
+    closeSelectedDoc,
     handleSaveEdits,
     handleDeleteDoc,
     getLegalInfo,
@@ -82,6 +85,7 @@ export function ClientDocumentsManager({ cliente, onBack }: PageProps) {
         <div className="flex gap-2">
           <input
             type="file"
+            accept="application/pdf,image/jpeg,image/png,image/webp"
             ref={fileInputRef}
             className="hidden"
             onChange={handleFileSelect}
@@ -171,25 +175,33 @@ export function ClientDocumentsManager({ cliente, onBack }: PageProps) {
           <aside className="w-full md:w-[450px] bg-white border-l border-slate-200 flex flex-col shadow-xl z-10">
             <div className="p-4 border-b flex justify-between items-center bg-slate-50">
               <h3 className="font-bold text-slate-700 text-sm">Detalhes</h3>
-              <button onClick={() => handleSelectDoc(selectedDoc)}>
+              <button onClick={closeSelectedDoc}>
                 <ArrowLeft size={18} className="text-slate-400" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               <div className="aspect-[3/4] bg-slate-100 rounded-xl border flex items-center justify-center overflow-hidden relative group">
-                {selectedDoc.file_url.toLowerCase().endsWith('.pdf') ? (
+                {selectedAccessError ? (
+                  <div className="p-6 text-center text-slate-500">
+                    <AlertCircle size={32} className="mx-auto mb-3 text-amber-500" />
+                    <p className="text-sm font-bold text-slate-700">Pré-visualização indisponível</p>
+                    <p className="mt-1 text-xs">{selectedAccessError}</p>
+                  </div>
+                ) : selectedDoc.file_url.toLowerCase().endsWith('.pdf') ? (
                   <iframe src={selectedDoc.file_url} className="w-full h-full" title="Preview" />
                 ) : (
                   <img src={selectedDoc.file_url} alt="Preview" className="w-full h-full object-contain" />
                 )}
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                  <a href={selectedDoc.file_url} target="_blank" rel="noreferrer" className="p-3 bg-white rounded-full">
-                    <Eye size={20} />
-                  </a>
-                  <a href={selectedDoc.file_url} download className="p-3 bg-white rounded-full">
-                    <Download size={20} />
-                  </a>
-                </div>
+                {!selectedAccessError && selectedDownloadUrl && (
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                    <a href={selectedDoc.file_url} target="_blank" rel="noreferrer" className="p-3 bg-white rounded-full">
+                      <Eye size={20} />
+                    </a>
+                    <a href={selectedDownloadUrl} className="p-3 bg-white rounded-full">
+                      <Download size={20} />
+                    </a>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4">

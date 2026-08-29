@@ -4,9 +4,14 @@ import {
   XCircle, Calendar, HelpCircle, Paperclip, Edit2, 
   X, FileDown, Search
 } from 'lucide-react';
-import { useBenefitAnalysis, Periodo } from '../../hooks/useBenefitAnalysis';
+import { useBenefitAnalysis, Periodo, PeriodoType } from '../../hooks/useBenefitAnalysis';
 import { Client } from '../../types';
 import StrategicTimeline from '../../components/StrategicTimeline';
+import {
+  compareDateOnly,
+  countCoveredCalendarMonths,
+  validateDateInterval,
+} from '../../lib/dateIntervals';
 
 const DOCUMENTOS_LEGAIS = [
   { nome: "Nenhum / Não informar", fund: "" },
@@ -59,11 +64,9 @@ interface AnalysisPageProps {
   onBack: () => void;
 }
 
-const parseLocal = (d: string) => new Date(`${d.split('T')[0]}T12:00:00`);
-
 export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
   const {
-    loading, der, setDer, periodos, documentos,
+    loading, der, setDer, periodos,
     handleSavePeriod, handleRemovePeriod, handleSave,
   } = useBenefitAnalysis(cliente);
 
@@ -77,7 +80,7 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
 
   let docCounter = 1;
   const periodosTratados = [...periodos]
-    .sort((a, b) => parseLocal(a.inicio).getTime() - parseLocal(b.inicio).getTime())
+    .sort((a, b) => compareDateOnly(a.inicio, b.inicio))
     .map(p => {
       const temProva = p.linkedDocTitle || p.tipo === 'prova de retorno';
       return { ...p, num: temProva ? docCounter++ : null };
@@ -97,7 +100,7 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
   };
 
   const onSavePeriod = () => {
-    let payloadToSave = { ...form };
+    const payloadToSave = { ...form };
     
     if (payloadToSave.tipo === 'prova de retorno') {
       if (!payloadToSave.dataExpedicao) {
@@ -117,8 +120,19 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
       }
     }
 
+    const validation = validateDateInterval(payloadToSave.inicio || '', payloadToSave.fim || '');
+    if (!validation.valid) {
+      alert(
+        validation.reason === 'end-before-start'
+          ? 'A data final não pode ser anterior à data inicial.'
+          : 'Informe datas válidas para o início e o fim do período.',
+      );
+      return;
+    }
+
     try {
-      handleSavePeriod(payloadToSave as Periodo, editingId);
+      const saved = handleSavePeriod(payloadToSave, editingId);
+      if (!saved) return;
       setEditingId(null);
       setForm({ tipo: 'rural', inicio: '', fim: '', obs: '', linkedDocTitle: '', law: '', dataExpedicao: '' });
       setDocSearch('');
@@ -132,14 +146,6 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
     if (!d) return '';
     const parts = d.split('T')[0].split('-');
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  };
-
-  const diffMonths = (d1: string, d2: string) => {
-    if (!d1 || !d2) return 0;
-    const date1 = parseLocal(d1);
-    const date2 = parseLocal(d2);
-    const months = (date2.getFullYear() - date1.getFullYear()) * 12 + (date2.getMonth() - date1.getMonth()) + 1;
-    return months > 0 ? months : 0;
   };
 
   const handlePrint = () => {
@@ -241,7 +247,7 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
               
               <div className={isProvaDeRetorno ? "md:col-span-4" : "md:col-span-3"}>
                 <label className="text-xs font-bold text-slate-500 block mb-1">Tipo do Registro</label>
-                <select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value as any })} className="w-full p-2.5 border rounded-lg bg-white outline-none focus:border-amber-500 text-sm font-bold">
+                <select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value as PeriodoType })} className="w-full p-2.5 border rounded-lg bg-white outline-none focus:border-amber-500 text-sm font-bold">
                   <option value="rural">🌾 Atividade Rural (Período)</option>
                   <option value="urbano">🏭 Urbano / CNIS</option>
                   <option value="beneficio">🏥 Benefício INSS</option>
@@ -341,7 +347,7 @@ export function AnalysisPage({ cliente, onBack }: AnalysisPageProps) {
 
           <div className="space-y-3 print:hidden">
             {periodosTratados.map((p) => {
-              const meses = diffMonths(p.inicio, p.fim);
+              const meses = countCoveredCalendarMonths(p.inicio, p.fim);
               let bgColor = 'bg-white', borderColor = 'border-slate-200', icon = <Calendar size={18} className="text-slate-400" />, statusText = '';
               
               if (p.tipo === 'rural') {

@@ -7,14 +7,19 @@ type ToastProps = {
   description?: string
   action?: React.ReactNode
   variant?: "default" | "destructive" | "success"
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 const TOAST_LIMIT = 3
-const TOAST_REMOVE_DELAY = 1000000
-
 type State = {
   toasts: ToastProps[]
 }
+
+type Action =
+  | { type: "ADD_TOAST"; toast: ToastProps }
+  | { type: "UPDATE_TOAST"; toast: ToastProps }
+  | { type: "DISMISS_TOAST"; toastId?: string }
 
 let count = 0
 function genId() {
@@ -22,12 +27,10 @@ function genId() {
   return count.toString()
 }
 
-const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
-
 const listeners: Array<(state: State) => void> = []
 let memoryState: State = { toasts: [] }
 
-function dispatch(action: any) {
+function dispatch(action: Action) {
   switch (action.type) {
     case "ADD_TOAST":
       memoryState = {
@@ -35,7 +38,7 @@ function dispatch(action: any) {
         toasts: [action.toast, ...memoryState.toasts].slice(0, TOAST_LIMIT),
       }
       break
-    case "DISMISS_TOAST":
+    case "DISMISS_TOAST": {
       const { toastId } = action
       if (toastId) {
         // Adiciona ao stack de remoção
@@ -48,6 +51,7 @@ function dispatch(action: any) {
         memoryState = { ...memoryState, toasts: [] }
       }
       break
+    }
   }
   listeners.forEach((listener) => listener(memoryState))
 }
@@ -84,7 +88,7 @@ function useToast() {
         listeners.splice(index, 1)
       }
     }
-  }, [state])
+  }, [])
 
   return {
     ...state,

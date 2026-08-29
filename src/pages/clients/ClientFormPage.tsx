@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Save, User, PenTool, Tractor
@@ -8,7 +8,12 @@ import { useToast } from "../../hooks/use-toast";
 import { getLocalDateISO } from "../../lib/utils";
 import { CivilDataForm } from "../../components/clients/CivilDataForm";
 import { RuralDataForm } from "../../components/clients/RuralDataForm";
-import { CivilFormValues, RuralFormValues } from "../../schemas/clientSchemas";
+import {
+  civilSchema,
+  CivilFormValues,
+  ruralSchema,
+  RuralFormValues,
+} from "../../schemas/clientSchemas";
 import { Client, Period } from "../../types";
 
 interface ClientFormProps {
@@ -22,38 +27,22 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
   
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'civil' | 'rural' | 'anamnese'>('civil');
-  const [idade, setIdade] = useState<number | null>(null);
   
   const [civilData, setCivilData] = useState<Partial<CivilFormValues>>({});
   const [ruralData, setRuralData] = useState<Partial<RuralFormValues>>({});
+  const [formResetVersion, setFormResetVersion] = useState(0);
   const [historico, setHistorico] = useState(""); 
   const [timeline, setTimeline] = useState<Period[]>([]);
+  const clientId = cliente?.id;
 
-  useEffect(() => {
-    if (cliente?.id) loadFullData();
-  }, [cliente]);
+  const loadFullData = useCallback(async () => {
+    if (!clientId) return;
 
-  useEffect(() => {
-    if (civilData.data_nascimento) {
-      const hoje = new Date();
-      const nasc = new Date(civilData.data_nascimento);
-      let idadeCalc = hoje.getFullYear() - nasc.getFullYear();
-      const m = hoje.getMonth() - nasc.getMonth();
-      if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) {
-        idadeCalc--;
-      }
-      setIdade(idadeCalc);
-    } else {
-      setIdade(null);
-    }
-  }, [civilData.data_nascimento]);
-
-  const loadFullData = async () => {
     setLoading(true);
     try {
       const [clientRes, interviewRes] = await Promise.all([
-        supabase.from('clients').select('*').eq('id', cliente!.id).single(),
-        supabase.from('interviews').select('*').eq('client_id', cliente!.id).maybeSingle()
+        supabase.from('clients').select('*').eq('id', clientId).single(),
+        supabase.from('interviews').select('*').eq('client_id', clientId).maybeSingle()
       ]);
 
       if (clientRes.error) throw clientRes.error;
@@ -77,7 +66,6 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
           data_expedicao: clientRes.data.data_expedicao || "",
           nit: clientRes.data.nit || "",
           ctps: clientRes.data.ctps || "",
-          senha_meu_inss: clientRes.data.senha_meu_inss || "",
           nome_mae: clientRes.data.nome_mae || "",
           nome_pai: clientRes.data.nome_pai || "",
           estado_civil: clientRes.data.estado_civil || "Solteiro(a)",
@@ -102,22 +90,29 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
         setCivilData(mapped);
       }
 
-      if (interviewRes.data) {
-        setHistorico(interviewRes.data.historico_locais || "");
-        if (Array.isArray(interviewRes.data.timeline_json)) {
-          setTimeline(interviewRes.data.timeline_json as Period[]);
-        }
-        if (interviewRes.data.dados_rurais) {
-          setRuralData(interviewRes.data.dados_rurais as RuralFormValues);
-        }
-      }
+      setHistorico(interviewRes.data?.historico_locais || "");
+      setTimeline(
+        Array.isArray(interviewRes.data?.timeline_json)
+          ? interviewRes.data.timeline_json as Period[]
+          : []
+      );
+
+      const mappedRural = interviewRes.data?.dados_rurais
+        ? interviewRes.data.dados_rurais as RuralFormValues
+        : {};
+      setRuralData(mappedRural);
+      setFormResetVersion((version) => version + 1);
     } catch (error) {
       console.error("Erro:", error);
       toast({ variant: "destructive", title: "Erro", description: "Falha ao carregar dados." });
     } finally {
       setLoading(false);
     }
-  };
+  }, [clientId, toast]);
+
+  useEffect(() => {
+    if (clientId) void loadFullData();
+  }, [clientId, loadFullData]);
 
   const handleCivilSubmit = (data: CivilFormValues) => {
     setCivilData(data);
@@ -128,11 +123,38 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
   };
 
   const handleSave = async () => {
-    if (!civilData.nome || civilData.nome.trim() === "") {
-      toast({ 
-        title: "Atenção!", 
-        description: "O campo 'Nome Completo' é obrigatório para salvar a ficha do cliente.", 
-        variant: "destructive" 
+    const validatedCivil = civilSchema.safeParse(civilData);
+    if (!validatedCivil.success) {
+      const fieldLabels: Record<string, string> = {
+        nome: "nome completo",
+        cpf: "CPF",
+        data_nascimento: "data de nascimento",
+        sexo: "sexo",
+        analfabeto: "alfabetização",
+        capacidade_civil: "capacidade civil",
+      };
+      const invalidFields = Array.from(new Set(
+        validatedCivil.error.issues.map((issue) => (
+          fieldLabels[String(issue.path[0])] || String(issue.path[0])
+        ))
+      ));
+
+      setActiveTab("civil");
+      toast({
+        title: "Revise os dados civis",
+        description: `Campos inválidos ou ausentes: ${invalidFields.join(", ")}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const validatedRural = ruralSchema.safeParse(ruralData);
+    if (!validatedRural.success) {
+      setActiveTab("rural");
+      toast({
+        title: "Revise a ficha rural",
+        description: validatedRural.error.issues[0]?.message || "Existem dados rurais inválidos.",
+        variant: "destructive",
       });
       return;
     }
@@ -143,10 +165,10 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
       if (!user) throw new Error("Sessão expirada.");
 
       const clientPayload = {
-        ...civilData,
+        ...validatedCivil.data,
         user_id: user.id,
-        data_nascimento: civilData.data_nascimento || null,
-        data_expedicao: civilData.data_expedicao || null,
+        data_nascimento: validatedCivil.data.data_nascimento || null,
+        data_expedicao: validatedCivil.data.data_expedicao || null,
       };
 
       if (clientPayload.capacidade_civil === "Plena") {
@@ -174,7 +196,7 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
           client_id: currentClientId,
           historico_locais: historico, 
           timeline_json: timeline,
-          dados_rurais: ruralData,
+          dados_rurais: validatedRural.data,
           updated_at: getLocalDateISO()
         }, { onConflict: 'client_id' });
         if (interviewError) throw interviewError;
@@ -235,6 +257,7 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
             initialData={civilData}
             onSubmit={handleCivilSubmit}
             loading={loading}
+            resetVersion={formResetVersion}
           />
         )}
         
@@ -243,6 +266,7 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
             initialData={ruralData}
             onSave={handleRuralSave}
             loading={loading}
+            resetVersion={formResetVersion}
           />
         )}
 

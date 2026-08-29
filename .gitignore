@@ -21,6 +21,7 @@ lib-cov
 # Coverage directory used by tools like istanbul
 coverage
 *.lcov
+.vitest/
 
 # nyc test coverage
 .nyc_output
@@ -137,3 +138,9 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Local editor and repository-analysis artifacts
+*.swp
+*.swo
+repomix-output.xml
+contexto_completo.txt

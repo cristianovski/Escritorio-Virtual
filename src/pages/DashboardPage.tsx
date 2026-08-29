@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  Users, UserPlus, Search, AlertCircle, Clock, Calendar, 
-  CheckCircle, ChevronRight, Star, MessageCircle, 
+  Users, UserPlus, Search, AlertCircle, Clock,
+  CheckCircle, Star, MessageCircle,
   FolderOpen, Trash2, UserCog, Calculator, 
   DollarSign, History, MapPin, Phone, Cake, Plus,
   ChevronDown, ChevronUp, Edit2
@@ -15,6 +15,13 @@ interface Note {
   id: string;
   texto: string;
 }
+
+type ClientWithPhase = Client & {
+  fase_processo?: string;
+};
+
+const getClientPhase = (client: Client) =>
+  (client as ClientWithPhase).fase_processo ?? "Administrativo";
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -33,12 +40,7 @@ export function DashboardPage() {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editNoteText, setEditNoteText] = useState("");
 
-  useEffect(() => {
-    fetchClients();
-    fetchNotes(); 
-  }, []);
-
-  const fetchClients = async () => {
+  const fetchClients = useCallback(async () => {
     setLoading(true);
     try {
         const { data, error } = await supabase.from('clients').select('*').order('created_at', { ascending: false });
@@ -50,9 +52,9 @@ export function DashboardPage() {
     } finally {
         setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const fetchNotes = async () => {
+  const fetchNotes = useCallback(async () => {
     try {
       const { data, error } = await supabase.from('dashboard_notes').select('*').order('created_at', { ascending: true });
       if (!error && data) {
@@ -61,7 +63,12 @@ export function DashboardPage() {
     } catch (err) {
       console.error("Erro ao carregar lembretes:", err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchClients();
+    fetchNotes();
+  }, [fetchClients, fetchNotes]);
 
   const addNote = async () => {
       if (!newNote.trim()) return;
@@ -148,7 +155,7 @@ export function DashboardPage() {
       const { error } = await supabase.from('clients').update({ status_processo: novoStatus }).eq('id', client.id);
       if (error) throw error;
       toast({ title: "Status Atualizado", description: `Novo status: ${novoStatus}`, variant: "default" });
-    } catch (err) {
+    } catch {
       toast({ title: "Erro", description: "Não foi possível atualizar.", variant: "destructive" });
       fetchClients();
     }
@@ -157,7 +164,7 @@ export function DashboardPage() {
   const toggleFase = async (client: Client, e: React.MouseEvent) => {
     e.stopPropagation();
     const ciclo = ["Administrativo", "Judicial", "Execução"];
-    const atual = (client as any).fase_processo ?? "Administrativo";
+    const atual = getClientPhase(client);
     const indexAtual = ciclo.indexOf(atual);
     const novoIndex = (indexAtual + 1) % ciclo.length;
     const novaFase = ciclo[novoIndex];
@@ -170,7 +177,7 @@ export function DashboardPage() {
       const { error } = await supabase.from('clients').update({ fase_processo: novaFase }).eq('id', client.id);
       if (error) throw error;
       toast({ title: "Fase Atualizada", description: `Nova fase: ${novaFase}`, variant: "default" });
-    } catch (err) {
+    } catch {
       toast({ title: "Erro", description: "Verifique se a coluna 'fase_processo' existe no Supabase.", variant: "destructive" });
       fetchClients();
     }
@@ -203,7 +210,7 @@ export function DashboardPage() {
       iniciar: clients.filter(c => !c.status_processo || c.status_processo === 'A Iniciar').length,
       andamento: clients.filter(c => c.status_processo === 'Em Andamento').length,
       finalizado: clients.filter(c => c.status_processo === 'Finalizado').length,
-      total: clients.length || 1
+      total: clients.length
   };
 
   const mesAtual = new Date().getMonth();
@@ -333,9 +340,9 @@ export function DashboardPage() {
                           <div className="md:hidden flex flex-col gap-1.5 shrink-0">
                             <button 
                               onClick={(e) => toggleFase(client, e)}
-                              className={`text-[9px] font-bold px-2 py-1 rounded-md ring-1 transition-colors whitespace-nowrap text-center ${getFaseStyle((client as any).fase_processo)} hover:opacity-80`}
+                              className={`text-[9px] font-bold px-2 py-1 rounded-md ring-1 transition-colors whitespace-nowrap text-center ${getFaseStyle(getClientPhase(client))} hover:opacity-80`}
                             >
-                              {(client as any).fase_processo || 'Administrativo'}
+                              {getClientPhase(client)}
                             </button>
                             <button 
                               onClick={(e) => toggleStatus(client, e)}
@@ -362,9 +369,9 @@ export function DashboardPage() {
                            <div className="hidden md:flex items-center gap-2 shrink-0">
                              <button 
                                onClick={(e) => toggleFase(client, e)}
-                               className={`text-[10px] font-bold px-3 py-1.5 rounded-lg ring-1 transition-colors whitespace-nowrap ${getFaseStyle((client as any).fase_processo)} hover:opacity-80`}
+                               className={`text-[10px] font-bold px-3 py-1.5 rounded-lg ring-1 transition-colors whitespace-nowrap ${getFaseStyle(getClientPhase(client))} hover:opacity-80`}
                              >
-                               {(client as any).fase_processo || 'Administrativo'}
+                               {getClientPhase(client)}
                              </button>
                              <button 
                                onClick={(e) => toggleStatus(client, e)}

@@ -1,22 +1,23 @@
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useRef } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { User, PenTool, AlertTriangle, Shield } from "lucide-react";
-import { civilSchema } from "../../schemas/clientSchemas";
-import { z } from "zod";
+import { civilSchema, CivilFormValues } from "../../schemas/clientSchemas";
 import { maskCPF, maskPhone, maskCEP } from "../../lib/utils";
-
-type CivilFormValues = z.infer<typeof civilSchema>;
 
 interface CivilDataFormProps {
   initialData?: Partial<CivilFormValues>;
   onSubmit: (data: CivilFormValues) => void;
   loading?: boolean;
+  resetVersion?: number;
 }
 
-export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormProps) {
-  const { register, watch, reset, formState: { errors } } = useForm<CivilFormValues>({
+export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0 }: CivilDataFormProps) {
+  const initialDataRef = useRef(initialData);
+
+  const { control, register, reset, subscribe, formState: { errors } } = useForm<CivilFormValues>({
     resolver: zodResolver(civilSchema),
+    mode: "onChange",
     defaultValues: {
       nome: initialData?.nome || "",
       cpf: initialData?.cpf || "",
@@ -39,7 +40,6 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
       data_expedicao: initialData?.data_expedicao || "",
       nit: initialData?.nit || "",
       ctps: initialData?.ctps || "",
-      senha_meu_inss: initialData?.senha_meu_inss || "",
       nome_mae: initialData?.nome_mae || "",
       nome_pai: initialData?.nome_pai || "",
       estado_civil: initialData?.estado_civil || "Solteiro(a)",
@@ -50,22 +50,36 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
   });
 
   useEffect(() => {
-    if (initialData && Object.keys(initialData).length > 0) {
-      reset(initialData as CivilFormValues);
-    }
-  }, [initialData, reset]);
+    initialDataRef.current = initialData;
+  }, [initialData]);
 
   useEffect(() => {
-    const subscription = watch((value) => {
-      onSubmit(value as CivilFormValues);
-    });
-    return () => subscription.unsubscribe();
-  }, [watch, onSubmit]);
+    const nextInitialData = initialDataRef.current;
+    if (!nextInitialData || Object.keys(nextInitialData).length === 0) return;
 
-  const isIncapaz = watch("capacidade_civil") !== "Plena";
+    reset((currentValues) => ({
+      ...currentValues,
+      ...nextInitialData,
+    }));
+  }, [reset, resetVersion]);
+
+  useEffect(() => {
+    return subscribe({
+      formState: { values: true },
+      callback: ({ values }) => onSubmit(values),
+    });
+  }, [subscribe, onSubmit]);
+
+  const isIncapaz = useWatch({ control, name: "capacidade_civil" }) !== "Plena";
+  const isAnalfabeto = useWatch({ control, name: "analfabeto" });
+  const estadoCivil = useWatch({ control, name: "estado_civil" });
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-300">
+    <fieldset
+      disabled={loading}
+      aria-busy={loading}
+      className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-300 disabled:opacity-70"
+    >
       <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <h2 className="text-lg font-bold text-slate-700 mb-6 flex items-center gap-2 border-b pb-2">
           <User className="text-emerald-500"/> 1. Identificação Civil
@@ -90,7 +104,7 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
                 onChange: (e) => { e.target.value = maskCPF(e.target.value); }
               })}
               maxLength={14}
-              className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"
+              className={`w-full border rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all ${errors.cpf ? 'border-red-500' : 'border-slate-300'}`}
               placeholder="000.000.000-00"
             />
             {errors.cpf && <span className="text-red-500 text-xs">{errors.cpf.message}</span>}
@@ -109,7 +123,8 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
 
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Data de Nascimento</label>
-            <input type="date" {...register("data_nascimento")} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all" />
+            <input type="date" {...register("data_nascimento")} className={`w-full border rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all ${errors.data_nascimento ? 'border-red-500' : 'border-slate-300'}`} />
+            {errors.data_nascimento && <span className="text-red-500 text-xs">{errors.data_nascimento.message}</span>}
           </div>
 
           <div>
@@ -121,9 +136,9 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
           </div>
 
           <div className="flex items-end">
-            <div className={`flex items-center gap-3 p-3 border rounded-xl w-full transition-all cursor-pointer hover:shadow-sm ${watch("analfabeto") ? 'bg-amber-50 border-amber-300' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
+            <div className={`flex items-center gap-3 p-3 border rounded-xl w-full transition-all cursor-pointer hover:shadow-sm ${isAnalfabeto ? 'bg-amber-50 border-amber-300' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
               <input type="checkbox" id="analfabeto" {...register("analfabeto")} className="w-5 h-5 text-amber-600 rounded focus:ring-amber-500 accent-amber-500" />
-              <label htmlFor="analfabeto" className={`text-sm font-bold cursor-pointer select-none flex items-center gap-2 w-full ${watch("analfabeto") ? 'text-amber-800' : 'text-slate-600'}`}>
+              <label htmlFor="analfabeto" className={`text-sm font-bold cursor-pointer select-none flex items-center gap-2 w-full ${isAnalfabeto ? 'text-amber-800' : 'text-slate-600'}`}>
                 <PenTool size={16}/> Não Assina / Analfabeto
               </label>
             </div>
@@ -155,11 +170,6 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
           </div>
 
           <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Senha Meu INSS</label>
-            <input {...register("senha_meu_inss")} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all" />
-          </div>
-
-          <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Nome da Mãe</label>
             <input {...register("nome_mae")} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all" />
           </div>
@@ -180,7 +190,7 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
             </select>
           </div>
 
-          {watch("estado_civil")?.includes("Casado") || watch("estado_civil") === "União Estável" ? (
+          {estadoCivil?.includes("Casado") || estadoCivil === "União Estável" ? (
             <>
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Nome do Cônjuge</label>
@@ -300,6 +310,6 @@ export function CivilDataForm({ initialData, onSubmit, loading }: CivilDataFormP
           </div>
         </div>
       </section>
-    </div>
+    </fieldset>
   );
 }

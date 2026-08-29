@@ -1,10 +1,15 @@
 import { useState } from "react";
 import { 
   ArrowLeft, Calendar, Search, AlertCircle, 
-  Paperclip, ExternalLink, Clock, FileText, Folder
+  ExternalLink, Clock, FileText, Folder
 } from "lucide-react";
 import { Client } from "../../types";
 import { useTimeline, UnifiedTimelineItem } from "../../hooks/useTimeline";
+import { useToast } from "../../hooks/use-toast";
+import {
+  createDocumentPreviewUrl,
+  getDocumentObjectKeyForClient,
+} from "../../lib/documentStorage";
 
 interface TimelinePageProps {
   cliente: Client;
@@ -13,7 +18,42 @@ interface TimelinePageProps {
 
 export function TimelinePage({ cliente, onBack }: TimelinePageProps) {
   const { loading, timeline } = useTimeline(cliente);
+  const { toast } = useToast();
   const [filter, setFilter] = useState("");
+
+  const handleOpenDocument = async (
+    event: React.MouseEvent<HTMLAnchorElement>,
+    item: UnifiedTimelineItem,
+  ) => {
+    if (
+      item.source !== 'GED (Novo)' ||
+      !item.fileUrl ||
+      !getDocumentObjectKeyForClient(item.fileUrl, cliente.id)
+    ) return;
+
+    event.preventDefault();
+    const previewWindow = window.open('about:blank', '_blank');
+    if (previewWindow) previewWindow.opener = null;
+
+    try {
+      const signedUrl = await createDocumentPreviewUrl(item.fileUrl);
+      if (previewWindow) {
+        previewWindow.location.replace(signedUrl);
+      } else {
+        toast({
+          title: 'Pop-up bloqueado',
+          description: 'Permita pop-ups para abrir o documento em uma nova aba.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error: unknown) {
+      previewWindow?.close();
+      const msg = error instanceof Error
+        ? error.message
+        : 'Não foi possível autorizar o acesso ao documento.';
+      toast({ title: 'Documento indisponível', description: msg, variant: 'destructive' });
+    }
+  };
 
   const filteredItems = timeline.filter(item => {
     const search = filter.toLowerCase();
@@ -113,6 +153,7 @@ export function TimelinePage({ cliente, onBack }: TimelinePageProps) {
                                     {item.fileUrl ? (
                                         <a 
                                             href={item.fileUrl} 
+                                            onClick={(event) => void handleOpenDocument(event, item)}
                                             target="_blank" 
                                             rel="noreferrer"
                                             className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-emerald-600 transition-colors shadow-lg shadow-slate-200 group-hover:shadow-emerald-200"

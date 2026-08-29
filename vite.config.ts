@@ -7,17 +7,22 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['vite.svg', 'pwa-192x192.png', 'pwa-512x512.png'], 
+      includeAssets: ['pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
-        name: 'PrevRural',
+        id: '/',
+        name: 'PrevRural — Gestão Previdenciária Rural',
         short_name: 'PrevRural',
-        description: 'Sistema Previdenciário Rural',
+        description: 'Gestão de clientes, documentos e processos previdenciários rurais.',
+        lang: 'pt-BR',
+        dir: 'ltr',
         theme_color: '#10b981',
-        background_color: '#ffffff',
+        background_color: '#f8fafc',
         display: 'standalone',
         scope: '/',
         start_url: '/',
-        orientation: 'portrait',
+        orientation: 'any',
+        categories: ['business', 'productivity'],
+        prefer_related_applications: false,
         icons: [
           {
             src: 'pwa-192x192.png',

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../hooks/use-toast';
 import { ClientDocument } from '../types';
@@ -10,11 +10,7 @@ export function useDocuments(clientId: number) {
   const [filter, setFilter] = useState('Todos');
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    if (clientId) fetchDocuments();
-  }, [clientId]);
-
-  const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -31,7 +27,11 @@ export function useDocuments(clientId: number) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [clientId, toast]);
+
+  useEffect(() => {
+    if (clientId) void fetchDocuments();
+  }, [clientId, fetchDocuments]);
 
   const filteredDocs = docs.filter(doc => {
     const title = doc.title || '';

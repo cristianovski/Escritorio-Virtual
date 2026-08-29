@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "../hooks/authContext";
 import { supabase } from "../lib/supabase";
-import { LayoutDashboard, LogIn, UserPlus, AlertCircle } from "lucide-react";
+import { LayoutDashboard, LogIn, AlertCircle } from "lucide-react";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -10,7 +10,6 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false); // Alternar entre Login e Cadastro
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
@@ -25,24 +24,14 @@ export function LoginPage() {
     setMsg("");
 
     try {
-      if (isSignUp) {
-        // CADASTRO
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-        if (error) throw error;
-        setMsg("✅ Cadastro realizado! Verifique seu e-mail ou faça login.");
-      } else {
-        // LOGIN
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-      }
-    } catch (error: any) {
-      setMsg("❌ " + error.message);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+    } catch (error: unknown) {
+      const description = error instanceof Error ? error.message : "Não foi possível entrar.";
+      setMsg(description);
     } finally {
       setLoading(false);
     }
@@ -57,15 +46,19 @@ export function LoginPage() {
              <LayoutDashboard size={24} />
           </div>
           <h1 className="text-2xl font-bold text-foreground">PrevRural</h1>
-          <p className="text-muted-foreground">O sistema definitivo para Direito Previdenciário Rural.</p>
+          <p className="text-muted-foreground">Gestão de processos e documentos previdenciários rurais.</p>
         </div>
 
-        <form onSubmit={handleAuth} className="space-y-4">
+        <form onSubmit={handleAuth} className="space-y-4" aria-busy={loading}>
           <div className="space-y-2">
-            <label className="text-sm font-medium">E-mail Profissional</label>
+            <label htmlFor="email" className="text-sm font-medium">E-mail profissional</label>
             <input 
+              id="email"
+              name="email"
               type="email" 
               required
+              autoComplete="email"
+              disabled={loading}
               className="w-full bg-secondary/30 border border-input rounded-xl p-3 outline-none focus:border-primary transition-colors"
               placeholder="seu@email.com"
               value={email}
@@ -74,10 +67,14 @@ export function LoginPage() {
           </div>
           
           <div className="space-y-2">
-            <label className="text-sm font-medium">Senha</label>
+            <label htmlFor="password" className="text-sm font-medium">Senha</label>
             <input 
+              id="password"
+              name="password"
               type="password" 
               required
+              autoComplete="current-password"
+              disabled={loading}
               className="w-full bg-secondary/30 border border-input rounded-xl p-3 outline-none focus:border-primary transition-colors"
               placeholder="••••••••"
               value={password}
@@ -86,29 +83,25 @@ export function LoginPage() {
           </div>
 
           {msg && (
-            <div className="p-3 bg-secondary/50 rounded-lg text-sm flex items-center gap-2">
+            <div role="alert" className="p-3 bg-secondary/50 rounded-lg text-sm flex items-center gap-2">
               <AlertCircle size={14} />
               {msg}
             </div>
           )}
 
           <button 
+            type="submit"
             disabled={loading}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "Processando..." : (isSignUp ? "Criar Conta Grátis" : "Entrar no Sistema")}
-            {!loading && (isSignUp ? <UserPlus size={18} /> : <LogIn size={18} />)}
+            {loading ? "Entrando..." : "Entrar no sistema"}
+            {!loading && <LogIn size={18} />}
           </button>
         </form>
 
-        <div className="text-center">
-          <button 
-            onClick={() => { setIsSignUp(!isSignUp); setMsg(""); }}
-            className="text-sm text-muted-foreground hover:text-primary transition-colors"
-          >
-            {isSignUp ? "Já tem uma conta? Faça Login" : "Não tem conta? Cadastre-se"}
-          </button>
-        </div>
+        <p className="text-center text-sm text-muted-foreground">
+          O acesso é disponibilizado pelo administrador do escritório.
+        </p>
 
       </div>
     </div>

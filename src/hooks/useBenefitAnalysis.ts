@@ -1,8 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useToast } from './use-toast';
 import { Client, ClientDocument } from '../types';
 import { getLocalDateISO } from '../lib/utils';
+import {
+  compareDateOnly,
+  countInclusiveDays,
+  validateDateInterval,
+} from '../lib/dateIntervals';
 
 export type PeriodoType = 'rural' | 'urbano' | 'beneficio' | 'lacuna' | 'prova de retorno';
 
@@ -28,23 +33,17 @@ interface DocumentTimelineItem {
   origem: string;
 }
 
-// Helper interno para fuso horário correto no cálculo de dias
-const parseLocal = (d: string) => new Date(`${d.split('T')[0]}T12:00:00`);
-
 export function useBenefitAnalysis(cliente: Client) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [der, setDer] = useState(getLocalDateISO());
   const [periodos, setPeriodos] = useState<Periodo[]>([]);
   const [documentos, setDocumentos] = useState<DocumentTimelineItem[]>([]);
+  const clientId = cliente?.id;
 
-  useEffect(() => {
-    if (cliente?.id) loadAllData();
-  }, [cliente]);
-
-  const loadAllData = async () => {
+  const loadAllData = useCallback(async () => {
     // 🛡️ TRAVA DE SEGURANÇA EXTRA: Previne crash se o cliente sumir da memória
-    if (!cliente?.id) return; 
+    if (!clientId) return;
     
     setLoading(true);
     try {
@@ -52,9 +51,9 @@ export function useBenefitAnalysis(cliente: Client) {
         supabase
           .from('interviews')
           .select('analise_periodos, data_der')
-          .eq('client_id', cliente.id)
+          .eq('client_id', clientId)
           .maybeSingle(),
-        supabase.from('client_documents').select('*').eq('client_id', cliente.id),
+        supabase.from('client_documents').select('*').eq('client_id', clientId),
       ]);
 
       const interviewData = interviewRes.data;
@@ -84,25 +83,34 @@ export function useBenefitAnalysis(cliente: Client) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [clientId, toast]);
 
-  const diffDays = (d1: string, d2: string) => {
-    if (!d1 || !d2) return 0;
-    // 🛡️ CORREÇÃO: Utilizando o parseLocal para evitar bugs de fuso horário
-    const date1 = parseLocal(d1);
-    const date2 = parseLocal(d2);
-    const diffTime = Math.abs(date2.getTime() - date1.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-  };
+  useEffect(() => {
+    void loadAllData();
+  }, [loadAllData]);
 
   const handleSavePeriod = (form: Partial<Periodo>, editingId: string | null) => {
     if (!form.inicio || !form.fim) {
       toast({ title: 'Atenção', description: 'Preencha as datas de início e fim do período.', variant: 'destructive' });
-      return;
+      return false;
     }
+
+    const validation = validateDateInterval(form.inicio, form.fim);
+    if (!validation.valid) {
+      toast({
+        title: 'Período inválido',
+        description:
+          validation.reason === 'end-before-start'
+            ? 'A data final não pode ser anterior à data inicial.'
+            : 'Informe datas válidas para o período.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+
     let isSafra = false;
     if (form.tipo === 'urbano') {
-      const dias = diffDays(form.inicio, form.fim);
+      const dias = countInclusiveDays(form.inicio, form.fim);
       if (dias <= 120) isSafra = true;
     }
     const item: Periodo = {
@@ -118,11 +126,12 @@ export function useBenefitAnalysis(cliente: Client) {
     };
     if (editingId) {
       setPeriodos((prev) =>
-        prev.map((p) => (p.id === editingId ? item : p)).sort((a, b) => new Date(a.inicio).getTime() - new Date(b.inicio).getTime())
+        prev.map((p) => (p.id === editingId ? item : p)).sort((a, b) => compareDateOnly(a.inicio, b.inicio))
       );
     } else {
-      setPeriodos((prev) => [...prev, item].sort((a, b) => new Date(a.inicio).getTime() - new Date(b.inicio).getTime()));
+      setPeriodos((prev) => [...prev, item].sort((a, b) => compareDateOnly(a.inicio, b.inicio)));
     }
+    return true;
   };
 
   const handleRemovePeriod = (id: string) => {
@@ -143,7 +152,7 @@ export function useBenefitAnalysis(cliente: Client) {
       );
       if (error) throw error;
       toast({ title: 'Sucesso', description: 'Cálculo salvo.', variant: 'success' });
-    } catch (err: unknown) {
+    } catch {
       toast({ title: 'Erro', description: 'Erro ao salvar', variant: 'destructive' });
     } finally {
       setLoading(false);

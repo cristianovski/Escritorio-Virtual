@@ -1,5 +1,5 @@
 import { useCallback, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Save, User, PenTool, Tractor
 } from "lucide-react";
@@ -23,6 +23,7 @@ interface ClientFormProps {
 
 export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   
   const [loading, setLoading] = useState(false);
@@ -34,6 +35,36 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
   const [historico, setHistorico] = useState(""); 
   const [timeline, setTimeline] = useState<Period[]>([]);
   const clientId = cliente?.id;
+  const isExistingClient = Boolean(clientId);
+  const isInterviewRoute = location.pathname.endsWith('/entrevista');
+
+  useEffect(() => {
+    if (!isExistingClient) return;
+
+    if (isInterviewRoute) {
+      const section = new URLSearchParams(location.search).get('secao');
+      setActiveTab(section === 'historico' ? 'anamnese' : 'rural');
+      return;
+    }
+
+    setActiveTab('civil');
+  }, [isExistingClient, isInterviewRoute, location.search]);
+
+  const handleTabChange = (tab: 'civil' | 'rural' | 'anamnese') => {
+    setActiveTab(tab);
+
+    if (!clientId) return;
+    if (tab === 'civil') {
+      navigate(`/cliente/${clientId}/cadastro`);
+      return;
+    }
+
+    navigate(
+      tab === 'anamnese'
+        ? `/cliente/${clientId}/entrevista?secao=historico`
+        : `/cliente/${clientId}/entrevista`,
+    );
+  };
 
   const loadFullData = useCallback(async () => {
     if (!clientId) return;
@@ -139,7 +170,7 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
         ))
       ));
 
-      setActiveTab("civil");
+      handleTabChange("civil");
       toast({
         title: "Revise os dados civis",
         description: `Campos inválidos ou ausentes: ${invalidFields.join(", ")}.`,
@@ -150,7 +181,7 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
 
     const validatedRural = ruralSchema.safeParse(ruralData);
     if (!validatedRural.success) {
-      setActiveTab("rural");
+      handleTabChange("rural");
       toast({
         title: "Revise a ficha rural",
         description: validatedRural.error.issues[0]?.message || "Existem dados rurais inválidos.",
@@ -217,41 +248,102 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      {/* EFEITO VIDRO NO HEADER */}
-      <header className="bg-white/90 backdrop-blur-md border-b p-4 sticky top-0 z-20 shadow-sm flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition">
-            <ArrowLeft className="text-slate-600"/>
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-slate-800">{cliente ? "Editar Cadastro" : "Novo Cliente"}</h1>
-            <p className="text-xs text-slate-500 font-medium">Ficha Cadastral</p>
+    <div className="flex h-full min-h-0 flex-col bg-background font-sans">
+      <header className="shrink-0 border-b border-border bg-white px-4 py-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-5xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            {!isExistingClient ? (
+              <button
+                type="button"
+                onClick={onBack}
+                aria-label="Voltar para clientes"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <ArrowLeft size={20} aria-hidden="true" />
+              </button>
+            ) : null}
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-bronze-foreground">
+                {isExistingClient ? 'Dados do atendimento' : 'Novo atendimento'}
+              </p>
+              <h2 className="mt-1 text-xl font-semibold text-foreground">
+                {!isExistingClient
+                  ? 'Novo cliente'
+                  : activeTab === 'civil'
+                    ? 'Cadastro'
+                    : 'Entrevista rural'}
+              </h2>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {activeTab === 'civil'
+                  ? 'Informações civis, previdenciárias e de contato.'
+                  : 'Atividade rural e histórico relatado pelo cliente.'}
+              </p>
+            </div>
           </div>
-        </div>
-        
-        <div className="flex flex-wrap items-center gap-2">
-          <button onClick={handleSave} disabled={loading} className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg font-bold shadow flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50">
-            <Save size={18}/> {loading ? "Salvando..." : "Salvar Tudo"}
+
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={loading}
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
+          >
+            <Save size={17} aria-hidden="true" />
+            {loading ? 'Salvando…' : 'Salvar cliente'}
           </button>
         </div>
       </header>
 
-      {/* TABS COM EFEITO VIDRO (backdrop-blur) */}
-      <div className="bg-white/80 backdrop-blur-md border-b px-4 flex gap-6 sticky top-[73px] z-10 overflow-x-auto hide-scrollbar">
-        <button onClick={() => setActiveTab('civil')} className={`py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'civil' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-          <User size={18}/> Dados Civis
-        </button>
-        <button onClick={() => setActiveTab('rural')} className={`py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'rural' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-          <Tractor size={18}/> Ficha Rural
-        </button>
-        <button onClick={() => setActiveTab('anamnese')} className={`py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'anamnese' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-          <PenTool size={18}/> Anamnese
-        </button>
-      </div>
+      {!isExistingClient ? (
+        <nav className="shrink-0 overflow-x-auto border-b border-border bg-white px-4 sm:px-6" aria-label="Etapas do cadastro">
+          <div className="mx-auto flex min-w-max max-w-5xl gap-1" role="tablist" aria-label="Seções do novo cliente">
+            {[
+              { id: 'civil' as const, label: 'Cadastro', icon: User },
+              { id: 'rural' as const, label: 'Entrevista rural', icon: Tractor },
+              { id: 'anamnese' as const, label: 'Histórico do caso', icon: PenTool },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`inline-flex min-h-11 items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                  activeTab === tab.id
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
+                }`}
+              >
+                <tab.icon size={17} aria-hidden="true" /> {tab.label}
+              </button>
+            ))}
+          </div>
+        </nav>
+      ) : isInterviewRoute ? (
+        <nav className="shrink-0 border-b border-border bg-surface-subtle px-4 py-2 sm:px-6" aria-label="Seções da entrevista rural">
+          <div className="mx-auto flex max-w-5xl gap-2" role="tablist" aria-label="Conteúdo da entrevista rural">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'rural'}
+              onClick={() => handleTabChange('rural')}
+              className={`min-h-10 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${activeTab === 'rural' ? 'bg-white text-primary shadow-surface' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              Dados da atividade
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'anamnese'}
+              onClick={() => handleTabChange('anamnese')}
+              className={`min-h-10 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${activeTab === 'anamnese' ? 'bg-white text-primary shadow-surface' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              Histórico do caso
+            </button>
+          </div>
+        </nav>
+      ) : null}
 
-      {/* RESPIRO GIGANTE NO FINAL (pb-64) */}
-      <main className="flex-1 overflow-y-auto p-4 md:p-8 max-w-5xl mx-auto w-full space-y-8 pb-64">
+      <main className="mx-auto w-full max-w-5xl flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         {activeTab === 'civil' && (
           <CivilDataForm
             initialData={civilData}
@@ -270,20 +362,44 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
           />
         )}
 
-        {/* ANAMNESE INTELIGENTE (min-h-[60vh] e efeito glow) */}
         {activeTab === 'anamnese' && (
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
-            <h2 className="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2 border-b pb-2 shrink-0">
-              <PenTool className="text-emerald-500"/> Anamnese / Entrevista
-            </h2>
-            <textarea
-              value={historico}
-              onChange={(e) => setHistorico(e.target.value)}
-              disabled={loading}
-              className="w-full flex-1 p-5 border border-slate-300 rounded-2xl outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 resize-none text-base leading-relaxed bg-slate-50 focus:bg-white transition-all min-h-[60vh]"
-              placeholder="Digite aqui todas as anotações, histórico do cliente e pontos importantes da entrevista..."
-            />
-          </div>
+          <section className="rounded-xl border border-border bg-white p-5 sm:p-6">
+            <div className="border-b border-border pb-4">
+              <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
+                <PenTool className="text-primary" size={19} aria-hidden="true" /> Histórico do caso
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Registre o relato em texto livre. Use o roteiro abaixo para manter as entrevistas consistentes.
+              </p>
+            </div>
+
+            <div className="mt-5 grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+              <aside className="rounded-lg bg-secondary p-4">
+                <p className="text-sm font-semibold text-foreground">Roteiro sugerido</p>
+                <ul className="mt-3 space-y-2 text-sm leading-5 text-muted-foreground">
+                  <li>• Locais e períodos de atividade rural</li>
+                  <li>• Composição e trabalho do grupo familiar</li>
+                  <li>• Culturas, criações e comercialização</li>
+                  <li>• Mudanças, vínculos urbanos e divergências</li>
+                  <li>• Provas mencionadas durante a entrevista</li>
+                </ul>
+              </aside>
+              <div>
+                <label htmlFor="historico-caso" className="mb-2 block text-sm font-medium text-foreground">
+                  Relato da entrevista
+                </label>
+                <textarea
+                  id="historico-caso"
+                  value={historico}
+                  onChange={(e) => setHistorico(e.target.value)}
+                  disabled={loading}
+                  rows={16}
+                  className="min-h-80 w-full resize-y rounded-lg border border-input bg-white p-4 text-sm leading-6 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-wait disabled:bg-muted"
+                  placeholder="Descreva o histórico rural, a rotina de trabalho, os períodos e as provas citadas pelo cliente…"
+                />
+              </div>
+            </div>
+          </section>
         )}
       </main>
     </div>

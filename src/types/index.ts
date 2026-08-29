@@ -1,5 +1,6 @@
 // ARQUIVO: src/types/index.ts
 export type BenefitStatus = 'A Iniciar' | 'Em Andamento' | 'Finalizado' | 'Suspenso';
+export type ProcessPhase = 'Administrativo' | 'Judicial' | 'Execução';
 export type DocumentCategory = 'Provas' | 'Pessoal' | 'Processual' | 'Diversos';
 export type PeriodType = 'rural' | 'urbano' | 'beneficio' | 'lacuna';
 
@@ -23,6 +24,7 @@ export interface Client {
   nit?: string;
   ctps?: string;
   status_processo?: BenefitStatus;
+  fase_processo?: ProcessPhase;
   possui_cnpj?: boolean;
   possui_outra_renda?: boolean;
   honorarios?: number;

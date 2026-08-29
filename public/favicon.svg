@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">PrevRural</title>
+  <desc id="desc">Monograma PR em verde-floresta com detalhe bronze.</desc>
+  <rect width="512" height="512" fill="#1e4d3f"/>
+  <rect x="64" y="430" width="384" height="18" rx="9" fill="#b18a4a"/>
+  <text
+    x="256"
+    y="324"
+    fill="#f8faf8"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="190"
+    font-weight="700"
+    letter-spacing="-10"
+    text-anchor="middle"
+  >PR</text>
+</svg>

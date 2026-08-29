@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 import { Toaster } from './components/ui/toaster';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { ClientWorkspaceHeader } from './components/clients/ClientWorkspaceHeader';
 import { Client, ClientComponent } from './types';
 
 const Layout = lazy(() => import('./components/Layout').then(module => ({ default: module.Layout })));
@@ -10,6 +11,7 @@ const LoginPage = lazy(() => import('./components/LoginPage').then(module => ({ 
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then(module => ({ default: module.DashboardPage })));
 const ClientListPage = lazy(() => import('./pages/clients/ClientListPage').then(module => ({ default: module.ClientListPage })));
 const ClientFormPage = lazy(() => import('./pages/clients/ClientFormPage').then(module => ({ default: module.ClientFormPage })));
+const ClientSummaryPage = lazy(() => import('./pages/clients/ClientSummaryPage').then(module => ({ default: module.ClientSummaryPage })));
 const AnalysisPage = lazy(() => import('./pages/analysis/AnalysisPage').then(module => ({ default: module.AnalysisPage })));
 const TimelinePage = lazy(() => import('./pages/timeline/TimelinePage').then(module => ({ default: module.TimelinePage })));
 const ClientDocumentsManager = lazy(() => import('./pages/documents/ClientDocumentsManager').then(module => ({ default: module.ClientDocumentsManager })));
@@ -54,14 +56,43 @@ function ClientLoader({ Component }: { Component: ClientComponent }) {
     };
   }, [id]);
 
-  if (!id || loadedClient?.routeId !== id) {
-    return <div className="h-full flex items-center justify-center text-slate-400">Carregando contexto do cliente...</div>;
-  }
-  if (!loadedClient.client) {
-    return <div className="p-8 text-center">Cliente não encontrado.</div>;
+  if (!id) {
+    return (
+      <div className="flex h-full items-center justify-center p-6 text-center" role="alert">
+        <p className="text-sm text-slate-600">Não foi possível identificar o cliente.</p>
+      </div>
+    );
   }
 
-  return <Component cliente={loadedClient.client} onBack={() => window.history.back()} />;
+  if (loadedClient?.routeId !== id) {
+    return (
+      <div
+        className="flex h-full items-center justify-center p-6 text-center"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <p className="text-sm text-slate-600">Carregando contexto do cliente…</p>
+      </div>
+    );
+  }
+
+  if (!loadedClient.client) {
+    return (
+      <div className="flex h-full items-center justify-center p-6 text-center" role="alert">
+        <p className="text-sm text-slate-700">Cliente não encontrado.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <ClientWorkspaceHeader client={loadedClient.client} />
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <Component cliente={loadedClient.client} onBack={() => window.history.back()} />
+      </div>
+    </div>
+  );
 }
 
 function App() {
@@ -77,7 +108,9 @@ function App() {
 
               <Route path="cliente/novo" element={<ClientFormPage onBack={() => window.history.back()} />} />
 
-              <Route path="cliente/:id" element={<ClientLoader Component={ClientFormPage} />} />
+              <Route path="cliente/:id" element={<ClientLoader Component={ClientSummaryPage} />} />
+              <Route path="cliente/:id/cadastro" element={<ClientLoader Component={ClientFormPage} />} />
+              <Route path="cliente/:id/entrevista" element={<ClientLoader Component={ClientFormPage} />} />
               <Route path="analise/:id" element={<ClientLoader Component={AnalysisPage} />} />
 
               <Route path="linha-tempo/:id" element={<ClientLoader Component={TimelinePage} />} />

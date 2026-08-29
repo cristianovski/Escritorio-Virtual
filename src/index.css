@@ -4,41 +4,91 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    color-scheme: light;
+
+    /* Campo & Lei: superfícies institucionais, quentes e de baixo contraste. */
+    --canvas: 75 17% 95%;
+    --surface: 0 0% 100%;
+    --surface-subtle: 105 11% 93%;
+    --ink: 153 16% 11%;
+
+    --background: var(--canvas);
+    --foreground: var(--ink);
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: var(--ink);
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    
-    /* MUDANÇA PRINCIPAL: Verde Esmeralda (#10b981) convertido para HSL */
-    --primary: 160 84% 39%;
-    --primary-foreground: 210 40% 98%;
+    --popover-foreground: var(--ink);
 
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    
-    /* O anel de foco também fica verde */
-    --ring: 160 84% 39%;
-    
-    --radius: 0.75rem;
+    /* Marca: verde-floresta, azul-tinta e bronze em pequenos acentos. */
+    --brand: 162 44% 21%;
+    --brand-hover: 163 46% 16%;
+    --brand-foreground: 150 17% 98%;
+    --brand-subtle: 154 23% 92%;
+    --navy: 216 43% 18%;
+    --navy-foreground: 210 25% 98%;
+    --navy-subtle: 214 29% 93%;
+    --bronze: 37 42% 49%;
+    --bronze-foreground: 36 64% 18%;
+    --bronze-subtle: 39 42% 92%;
+
+    /* Compatibilidade com os componentes shadcn/CVA existentes. */
+    --primary: var(--brand);
+    --primary-foreground: var(--brand-foreground);
+    --secondary: var(--surface-subtle);
+    --secondary-foreground: var(--ink);
+    --muted: var(--surface-subtle);
+    --muted-foreground: 147 5% 42%;
+    --accent: var(--brand-subtle);
+    --accent-foreground: var(--brand);
+    --destructive: 0 47% 46%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 130 9% 86%;
+    --input: 130 9% 82%;
+    --ring: 158 35% 37%;
+
+    /* Estados semânticos. As cores fortes ficam reservadas para significado. */
+    --success: 156 42% 30%;
+    --success-foreground: 156 42% 25%;
+    --success-subtle: 148 29% 94%;
+    --info: 205 45% 37%;
+    --info-foreground: 205 49% 29%;
+    --info-subtle: 207 38% 94%;
+    --warning: 37 69% 36%;
+    --warning-foreground: 37 68% 28%;
+    --warning-subtle: 40 64% 92%;
+    --danger: 0 47% 46%;
+    --danger-foreground: 0 49% 37%;
+    --danger-subtle: 0 52% 94%;
+    --neutral-subtle: 120 5% 93%;
+
+    --radius: 0.5rem;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
+
+  html {
+    @apply bg-background;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
     @apply bg-background text-foreground antialiased font-sans;
+    min-width: 320px;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  ::selection {
+    background: hsl(var(--brand-subtle));
+    color: hsl(var(--brand-hover));
   }
 }
 
@@ -49,24 +99,45 @@
   .force-select-text * {
     user-select: text !important;
   }
+
+  .text-tabular {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
-/* Personalização da Barra de Rolagem (Scrollbar) */
+/* Scrollbar discreta: o verde deixa de competir com o conteúdo. */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: hsl(var(--muted));
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--primary));
-  border-radius: 4px;
+  background: hsl(var(--muted-foreground) / 0.35);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #059669; /* Verde levemente mais escuro */
+  background: hsl(var(--muted-foreground) / 0.55);
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
-/* Garante altura total no mobile */
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

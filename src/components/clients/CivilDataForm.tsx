@@ -1,9 +1,18 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { User, PenTool, AlertTriangle, Shield } from "lucide-react";
+import {
+  AlertTriangle,
+  FileText,
+  MapPin,
+  PenTool,
+  Shield,
+  User,
+  Users,
+} from "lucide-react";
 import { civilSchema, CivilFormValues } from "../../schemas/clientSchemas";
-import { maskCPF, maskPhone, maskCEP } from "../../lib/utils";
+import { cn, maskCPF, maskPhone, maskCEP } from "../../lib/utils";
+import { Surface } from "../ui/Surface";
 
 interface CivilDataFormProps {
   initialData?: Partial<CivilFormValues>;
@@ -12,8 +21,65 @@ interface CivilDataFormProps {
   resetVersion?: number;
 }
 
+interface FieldProps {
+  id: string;
+  label: ReactNode;
+  children: ReactNode;
+  className?: string;
+  error?: string;
+  required?: boolean;
+}
+
+const controlClassName =
+  "block h-11 w-full rounded-lg border border-input bg-white px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-brand focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-muted-foreground";
+
+function Field({ id, label, children, className, error, required }: FieldProps) {
+  return (
+    <div className={cn("space-y-1.5", className)}>
+      <label htmlFor={id} className="block text-sm font-medium text-foreground">
+        {label}
+        {required ? (
+          <span className="ml-1 text-danger" aria-hidden="true">
+            *
+          </span>
+        ) : null}
+      </label>
+      {children}
+      {error ? (
+        <p id={`${id}-error`} className="text-xs font-medium text-danger" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+interface SectionHeadingProps {
+  id: string;
+  icon: ReactNode;
+  title: string;
+  description: string;
+}
+
+function SectionHeading({ id, icon, title, description }: SectionHeadingProps) {
+  return (
+    <div className="mb-5 flex items-start gap-3 border-b border-border pb-4">
+      <div className="mt-0.5 shrink-0 text-brand [&_svg]:h-[1.125rem] [&_svg]:w-[1.125rem]">
+        {icon}
+      </div>
+      <div>
+        <h2 id={id} className="text-base font-semibold text-foreground">
+          {title}
+        </h2>
+        <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+      </div>
+    </div>
+  );
+}
+
 export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0 }: CivilDataFormProps) {
   const initialDataRef = useRef(initialData);
+  const formId = useId();
 
   const { control, register, reset, subscribe, formState: { errors } } = useForm<CivilFormValues>({
     resolver: zodResolver(civilSchema),
@@ -74,241 +140,341 @@ export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0
   const isAnalfabeto = useWatch({ control, name: "analfabeto" });
   const estadoCivil = useWatch({ control, name: "estado_civil" });
 
+  const idFor = (field: keyof CivilFormValues) => `${formId}-${field}`;
+
   return (
     <fieldset
       disabled={loading}
       aria-busy={loading}
-      className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-300 disabled:opacity-70"
+      className="space-y-6 disabled:cursor-wait disabled:opacity-75"
     >
-      <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-        <h2 className="text-lg font-bold text-slate-700 mb-6 flex items-center gap-2 border-b pb-2">
-          <User className="text-emerald-500"/> 1. Identificação Civil
-        </h2>
+      <section aria-labelledby={`${formId}-personal-heading`}>
+        <Surface variant="outlined" padding="lg" className="bg-card">
+          <SectionHeading
+            id={`${formId}-personal-heading`}
+            icon={<User />}
+            title="Dados pessoais"
+            description="Identificação principal do segurado."
+          />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="col-span-1 md:col-span-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Nome Completo</label>
-            <input
-              {...register("nome")}
-              className={`w-full border rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all ${errors.nome ? 'border-red-500' : 'border-slate-300'}`}
-              placeholder="Nome do Segurado"
-            />
-            {errors.nome && <span className="text-red-500 text-xs">{errors.nome.message}</span>}
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">CPF</label>
-            {/* MUDANÇA: A máscara agora atua JUNTO com o registro oficial */}
-            <input
-              {...register("cpf", {
-                onChange: (e) => { e.target.value = maskCPF(e.target.value); }
-              })}
-              maxLength={14}
-              className={`w-full border rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all ${errors.cpf ? 'border-red-500' : 'border-slate-300'}`}
-              placeholder="000.000.000-00"
-            />
-            {errors.cpf && <span className="text-red-500 text-xs">{errors.cpf.message}</span>}
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 flex items-center gap-1">
-              Capacidade Civil {isIncapaz && <AlertTriangle size={12} className="text-amber-500"/>}
-            </label>
-            <select {...register("capacidade_civil")} className={`w-full border rounded-xl p-3 text-sm outline-none font-bold cursor-pointer focus:ring-4 focus:ring-emerald-500/10 transition-all ${isIncapaz ? 'border-amber-400 bg-amber-50 text-amber-800' : 'border-slate-300 bg-slate-50 focus:bg-white'}`}>
-              <option value="Plena">Plena (Padrão)</option>
-              <option value="Relativamente Incapaz">Relativamente Incapaz (16-18)</option>
-              <option value="Absolutamente Incapaz">Absolutamente Incapaz (Menor/Curatelado)</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Data de Nascimento</label>
-            <input type="date" {...register("data_nascimento")} className={`w-full border rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all ${errors.data_nascimento ? 'border-red-500' : 'border-slate-300'}`} />
-            {errors.data_nascimento && <span className="text-red-500 text-xs">{errors.data_nascimento.message}</span>}
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Sexo</label>
-            <select {...register("sexo")} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all">
-              <option value="Masculino">Masculino</option>
-              <option value="Feminino">Feminino</option>
-            </select>
-          </div>
-
-          <div className="flex items-end">
-            <div className={`flex items-center gap-3 p-3 border rounded-xl w-full transition-all cursor-pointer hover:shadow-sm ${isAnalfabeto ? 'bg-amber-50 border-amber-300' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
-              <input type="checkbox" id="analfabeto" {...register("analfabeto")} className="w-5 h-5 text-amber-600 rounded focus:ring-amber-500 accent-amber-500" />
-              <label htmlFor="analfabeto" className={`text-sm font-bold cursor-pointer select-none flex items-center gap-2 w-full ${isAnalfabeto ? 'text-amber-800' : 'text-slate-600'}`}>
-                <PenTool size={16}/> Não Assina / Analfabeto
-              </label>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">RG</label>
-            <input {...register("rg")} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all" />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Órgão Expedidor</label>
-            <input {...register("orgao_expedidor")} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all" />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Data Expedição</label>
-            <input type="date" {...register("data_expedicao")} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all" />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">NIT/PIS</label>
-            <input {...register("nit")} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all" />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">CTPS</label>
-            <input {...register("ctps")} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all" />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Nome da Mãe</label>
-            <input {...register("nome_mae")} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all" />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Nome do Pai</label>
-            <input {...register("nome_pai")} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all" />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Estado Civil</label>
-            <select {...register("estado_civil")} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all">
-              <option value="Solteiro(a)">Solteiro(a)</option>
-              <option value="Casado(a)">Casado(a)</option>
-              <option value="Divorciado(a)">Divorciado(a)</option>
-              <option value="Viúvo(a)">Viúvo(a)</option>
-              <option value="União Estável">União Estável</option>
-            </select>
-          </div>
-
-          {estadoCivil?.includes("Casado") || estadoCivil === "União Estável" ? (
-            <>
-              <div>
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Nome do Cônjuge</label>
-                <input {...register("nome_conjuge")} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all" />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">CPF do Cônjuge</label>
-                <input
-                  {...register("cpf_conjuge", {
-                    onChange: (e) => { e.target.value = maskCPF(e.target.value); }
-                  })}
-                  maxLength={14}
-                  className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"
-                />
-              </div>
-            </>
-          ) : null}
-        </div>
-      </section>
-
-      {isIncapaz && (
-        <section className="bg-amber-50 p-6 rounded-2xl shadow-sm border border-amber-200">
-          <h2 className="text-lg font-bold text-amber-800 mb-6 flex items-center gap-2 border-b border-amber-200 pb-2">
-            <Shield className="text-amber-600"/> Dados do Representante Legal
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="col-span-1 md:col-span-2">
-              <label className="text-xs font-bold text-amber-700/70 uppercase tracking-wider ml-1">Nome do Representante</label>
-              <input {...register("rep_nome")} className="w-full border border-amber-300 rounded-xl p-3 text-sm outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 bg-white transition-all"/>
-            </div>
-            <div>
-              <label className="text-xs font-bold text-amber-700/70 uppercase tracking-wider ml-1">Vínculo</label>
-              <select {...register("rep_parentesco")} className="w-full border border-amber-300 rounded-xl p-3 text-sm outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 bg-white transition-all">
-                <option value="">Selecione...</option>
-                <option value="Mãe">Mãe</option>
-                <option value="Pai">Pai</option>
-                <option value="Tutor">Tutor</option>
-                <option value="Curador">Curador</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-bold text-amber-700/70 uppercase tracking-wider ml-1">CPF Rep.</label>
+          <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2 lg:grid-cols-3">
+            <Field
+              id={idFor("nome")}
+              label="Nome completo"
+              error={errors.nome?.message}
+              required
+              className="lg:col-span-2"
+            >
               <input
-                {...register("rep_cpf", {
+                id={idFor("nome")}
+                {...register("nome")}
+                autoComplete="name"
+                aria-invalid={Boolean(errors.nome)}
+                aria-describedby={errors.nome ? `${idFor("nome")}-error` : undefined}
+                className={cn(controlClassName, errors.nome && "border-danger focus:border-danger")}
+                placeholder="Nome do segurado"
+              />
+            </Field>
+
+            <Field id={idFor("cpf")} label="CPF" error={errors.cpf?.message} required>
+              <input
+                id={idFor("cpf")}
+                {...register("cpf", {
                   onChange: (e) => { e.target.value = maskCPF(e.target.value); }
                 })}
                 maxLength={14}
-                className="w-full border border-amber-300 rounded-xl p-3 text-sm outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 bg-white transition-all"
+                inputMode="numeric"
+                aria-invalid={Boolean(errors.cpf)}
+                aria-describedby={errors.cpf ? `${idFor("cpf")}-error` : undefined}
+                className={cn(controlClassName, "font-mono", errors.cpf && "border-danger focus:border-danger")}
+                placeholder="000.000.000-00"
               />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-amber-700/70 uppercase tracking-wider ml-1">RG Rep.</label>
-              <input {...register("rep_rg")} className="w-full border border-amber-300 rounded-xl p-3 text-sm outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 bg-white transition-all"/>
-            </div>
-            <div>
-              <label className="text-xs font-bold text-amber-700/70 uppercase tracking-wider ml-1">Telefone Rep.</label>
+            </Field>
+
+            <Field
+              id={idFor("data_nascimento")}
+              label="Data de nascimento"
+              error={errors.data_nascimento?.message}
+              required
+            >
               <input
-                {...register("rep_telefone", {
+                id={idFor("data_nascimento")}
+                type="date"
+                {...register("data_nascimento")}
+                autoComplete="bday"
+                aria-invalid={Boolean(errors.data_nascimento)}
+                aria-describedby={errors.data_nascimento ? `${idFor("data_nascimento")}-error` : undefined}
+                className={cn(controlClassName, errors.data_nascimento && "border-danger focus:border-danger")}
+              />
+            </Field>
+
+            <Field id={idFor("sexo")} label="Sexo">
+              <select id={idFor("sexo")} {...register("sexo")} className={controlClassName}>
+                <option value="Masculino">Masculino</option>
+                <option value="Feminino">Feminino</option>
+              </select>
+            </Field>
+
+            <Field
+              id={idFor("capacidade_civil")}
+              label={(
+                <span className="flex items-center gap-1.5">
+                  Capacidade civil
+                  {isIncapaz ? <AlertTriangle size={14} className="text-warning" aria-hidden="true" /> : null}
+                </span>
+              )}
+            >
+              <select
+                id={idFor("capacidade_civil")}
+                {...register("capacidade_civil")}
+                className={cn(
+                  controlClassName,
+                  isIncapaz && "border-warning/50 bg-warning-subtle text-warning-foreground focus:border-warning",
+                )}
+              >
+                <option value="Plena">Plena (Padrão)</option>
+                <option value="Relativamente Incapaz">Relativamente Incapaz (16-18)</option>
+                <option value="Absolutamente Incapaz">Absolutamente Incapaz (Menor/Curatelado)</option>
+              </select>
+            </Field>
+
+            <div className="flex items-end">
+              <div
+                className={cn(
+                  "flex min-h-11 w-full items-center gap-3 rounded-lg border px-3 transition-colors",
+                  isAnalfabeto
+                    ? "border-warning/40 bg-warning-subtle text-warning-foreground"
+                  : "border-border bg-surface-subtle/60 text-foreground",
+                )}
+              >
+                <input
+                  type="checkbox"
+                  id={idFor("analfabeto")}
+                  {...register("analfabeto")}
+                  className="h-4 w-4 rounded border-input accent-brand focus:ring-2 focus:ring-ring/25"
+                />
+                <label htmlFor={idFor("analfabeto")} className="flex flex-1 cursor-pointer select-none items-center gap-2 text-sm font-medium">
+                  <PenTool size={16} aria-hidden="true" /> Não assina / pessoa analfabeta
+                </label>
+              </div>
+            </div>
+          </div>
+        </Surface>
+      </section>
+
+      <section aria-labelledby={`${formId}-documents-heading`}>
+        <Surface variant="outlined" padding="lg" className="bg-card">
+          <SectionHeading
+            id={`${formId}-documents-heading`}
+            icon={<FileText />}
+            title="Documentos previdenciários e civis"
+            description="Registros utilizados na instrução e no atendimento previdenciário."
+          />
+
+          <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2 lg:grid-cols-3">
+            <Field id={idFor("rg")} label="RG">
+              <input id={idFor("rg")} {...register("rg")} className={controlClassName} />
+            </Field>
+
+            <Field id={idFor("orgao_expedidor")} label="Órgão expedidor">
+              <input id={idFor("orgao_expedidor")} {...register("orgao_expedidor")} className={controlClassName} />
+            </Field>
+
+            <Field id={idFor("data_expedicao")} label="Data de expedição">
+              <input id={idFor("data_expedicao")} type="date" {...register("data_expedicao")} className={controlClassName} />
+            </Field>
+
+            <Field id={idFor("nit")} label="NIT / PIS">
+              <input id={idFor("nit")} {...register("nit")} className={cn(controlClassName, "font-mono")} />
+            </Field>
+
+            <Field id={idFor("ctps")} label="CTPS">
+              <input id={idFor("ctps")} {...register("ctps")} className={cn(controlClassName, "font-mono")} />
+            </Field>
+          </div>
+        </Surface>
+      </section>
+
+      <section aria-labelledby={`${formId}-family-heading`}>
+        <Surface variant="outlined" padding="lg" className="bg-card">
+          <SectionHeading
+            id={`${formId}-family-heading`}
+            icon={<Users />}
+            title="Família e representação"
+            description="Filiação, estado civil e responsável legal, quando aplicável."
+          />
+
+          <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2 lg:grid-cols-3">
+            <Field id={idFor("nome_mae")} label="Nome da mãe">
+              <input id={idFor("nome_mae")} {...register("nome_mae")} className={controlClassName} />
+            </Field>
+
+            <Field id={idFor("nome_pai")} label="Nome do pai">
+              <input id={idFor("nome_pai")} {...register("nome_pai")} className={controlClassName} />
+            </Field>
+
+            <Field id={idFor("estado_civil")} label="Estado civil">
+              <select id={idFor("estado_civil")} {...register("estado_civil")} className={controlClassName}>
+                <option value="Solteiro(a)">Solteiro(a)</option>
+                <option value="Casado(a)">Casado(a)</option>
+                <option value="Divorciado(a)">Divorciado(a)</option>
+                <option value="Viúvo(a)">Viúvo(a)</option>
+                <option value="União Estável">União Estável</option>
+              </select>
+            </Field>
+
+            {estadoCivil?.includes("Casado") || estadoCivil === "União Estável" ? (
+              <>
+                <Field id={idFor("nome_conjuge")} label="Nome do cônjuge" className="lg:col-span-2">
+                  <input id={idFor("nome_conjuge")} {...register("nome_conjuge")} className={controlClassName} />
+                </Field>
+                <Field id={idFor("cpf_conjuge")} label="CPF do cônjuge">
+                  <input
+                    id={idFor("cpf_conjuge")}
+                    {...register("cpf_conjuge", {
+                      onChange: (e) => { e.target.value = maskCPF(e.target.value); }
+                    })}
+                    maxLength={14}
+                    inputMode="numeric"
+                    className={cn(controlClassName, "font-mono")}
+                    placeholder="000.000.000-00"
+                  />
+                </Field>
+              </>
+            ) : null}
+
+            {isIncapaz ? (
+              <div className="rounded-lg border border-warning/25 bg-warning-subtle/60 p-4 md:col-span-2 lg:col-span-3">
+                <div className="mb-4 flex items-start gap-2.5 border-b border-warning/20 pb-3">
+                  <Shield size={18} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
+                  <div>
+                    <h3 className="text-sm font-semibold text-warning-foreground">Representante legal</h3>
+                    <p className="mt-0.5 text-xs text-warning-foreground/80">
+                      Preencha os dados da pessoa responsável pela representação civil.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2 lg:grid-cols-3">
+                  <Field id={idFor("rep_nome")} label="Nome do representante" className="lg:col-span-2">
+                    <input id={idFor("rep_nome")} {...register("rep_nome")} className={controlClassName} />
+                  </Field>
+
+                  <Field id={idFor("rep_parentesco")} label="Vínculo">
+                    <select id={idFor("rep_parentesco")} {...register("rep_parentesco")} className={controlClassName}>
+                      <option value="">Selecione...</option>
+                      <option value="Mãe">Mãe</option>
+                      <option value="Pai">Pai</option>
+                      <option value="Tutor">Tutor</option>
+                      <option value="Curador">Curador</option>
+                    </select>
+                  </Field>
+
+                  <Field id={idFor("rep_cpf")} label="CPF do representante">
+                    <input
+                      id={idFor("rep_cpf")}
+                      {...register("rep_cpf", {
+                        onChange: (e) => { e.target.value = maskCPF(e.target.value); }
+                      })}
+                      maxLength={14}
+                      inputMode="numeric"
+                      className={cn(controlClassName, "font-mono")}
+                      placeholder="000.000.000-00"
+                    />
+                  </Field>
+
+                  <Field id={idFor("rep_rg")} label="RG do representante">
+                    <input id={idFor("rep_rg")} {...register("rep_rg")} className={controlClassName} />
+                  </Field>
+
+                  <Field id={idFor("rep_telefone")} label="Telefone do representante">
+                    <input
+                      id={idFor("rep_telefone")}
+                      {...register("rep_telefone", {
+                        onChange: (e) => { e.target.value = maskPhone(e.target.value); }
+                      })}
+                      maxLength={15}
+                      inputMode="tel"
+                      autoComplete="tel"
+                      className={controlClassName}
+                      placeholder="(00) 00000-0000"
+                    />
+                  </Field>
+
+                  <Field id={idFor("rep_endereco")} label="Endereço do representante" className="md:col-span-2 lg:col-span-3">
+                    <input id={idFor("rep_endereco")} {...register("rep_endereco")} className={controlClassName} />
+                  </Field>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </Surface>
+      </section>
+
+      <section aria-labelledby={`${formId}-contact-heading`}>
+        <Surface variant="outlined" padding="lg" className="bg-card">
+          <SectionHeading
+            id={`${formId}-contact-heading`}
+            icon={<MapPin />}
+            title="Endereço e contato"
+            description="Localização e canais para comunicação com o segurado."
+          />
+
+          <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2 lg:grid-cols-4">
+            <Field id={idFor("cep")} label="CEP">
+              <input
+                id={idFor("cep")}
+                {...register("cep", {
+                  onChange: (e) => { e.target.value = maskCEP(e.target.value); }
+                })}
+                maxLength={9}
+                inputMode="numeric"
+                autoComplete="postal-code"
+                className={cn(controlClassName, "font-mono")}
+                placeholder="00000-000"
+              />
+            </Field>
+
+            <Field id={idFor("endereco")} label="Endereço" className="lg:col-span-3">
+              <input id={idFor("endereco")} {...register("endereco")} autoComplete="street-address" className={controlClassName} />
+            </Field>
+
+            <Field id={idFor("bairro")} label="Bairro">
+              <input id={idFor("bairro")} {...register("bairro")} autoComplete="address-level3" className={controlClassName} />
+            </Field>
+
+            <Field id={idFor("cidade")} label="Cidade / UF">
+              <input id={idFor("cidade")} {...register("cidade")} autoComplete="address-level2" className={controlClassName} />
+            </Field>
+
+            <Field id={idFor("telefone")} label="Telefone celular">
+              <input
+                id={idFor("telefone")}
+                {...register("telefone", {
                   onChange: (e) => { e.target.value = maskPhone(e.target.value); }
                 })}
                 maxLength={15}
-                className="w-full border border-amber-300 rounded-xl p-3 text-sm outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 bg-white transition-all"
+                inputMode="tel"
+                autoComplete="tel"
+                className={controlClassName}
+                placeholder="(00) 00000-0000"
               />
-            </div>
-            <div className="col-span-1 md:col-span-3">
-              <label className="text-xs font-bold text-amber-700/70 uppercase tracking-wider ml-1">Endereço Rep.</label>
-              <input {...register("rep_endereco")} className="w-full border border-amber-300 rounded-xl p-3 text-sm outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 bg-white transition-all"/>
-            </div>
-          </div>
-        </section>
-      )}
+            </Field>
 
-      <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-        <h2 className="text-lg font-bold text-slate-700 mb-6 flex items-center gap-2 border-b pb-2">Contato & Localização</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">CEP</label>
-            <input
-              {...register("cep", {
-                onChange: (e) => { e.target.value = maskCEP(e.target.value); }
-              })}
-              maxLength={9}
-              className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"
-            />
+            <Field id={idFor("telefone_recado")} label="Telefone de recado / parente">
+              <input
+                id={idFor("telefone_recado")}
+                {...register("telefone_recado", {
+                  onChange: (e) => { e.target.value = maskPhone(e.target.value); }
+                })}
+                maxLength={15}
+                inputMode="tel"
+                className={controlClassName}
+                placeholder="(00) 00000-0000"
+              />
+            </Field>
           </div>
-          <div className="md:col-span-3">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Endereço</label>
-            <input {...register("endereco")} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"/>
-          </div>
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Bairro</label>
-            <input {...register("bairro")} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"/>
-          </div>
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Cidade - UF</label>
-            <input {...register("cidade")} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"/>
-          </div>
-          <div className="md:col-span-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 flex items-center gap-1">Telefone Celular</label>
-            <input
-              {...register("telefone", {
-                onChange: (e) => { e.target.value = maskPhone(e.target.value); }
-              })}
-              maxLength={15}
-              className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 flex items-center gap-1">Telefone Recado / Parente</label>
-            <input
-              {...register("telefone_recado", {
-                onChange: (e) => { e.target.value = maskPhone(e.target.value); }
-              })}
-              maxLength={15}
-              className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-slate-50 focus:bg-white transition-all"
-            />
-          </div>
-        </div>
+        </Surface>
       </section>
     </fieldset>
   );

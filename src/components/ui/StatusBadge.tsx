@@ -3,26 +3,26 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../../lib/utils';
 
 const statusBadgeVariants = cva(
-  'inline-flex min-h-6 items-center gap-1.5 whitespace-nowrap rounded-md border font-semibold leading-none',
+  'inline-flex min-h-6 items-center gap-1.5 whitespace-nowrap rounded-full font-medium leading-none',
   {
     variants: {
       tone: {
         neutral:
-          'border-border bg-neutral-subtle text-muted-foreground before:bg-muted-foreground/70',
+          'bg-neutral-subtle text-muted-foreground before:bg-muted-foreground/70',
         brand:
-          'border-brand/20 bg-brand-subtle text-brand before:bg-brand',
+          'bg-brand-subtle text-brand before:bg-brand',
         navy:
-          'border-navy/20 bg-navy-subtle text-navy before:bg-navy',
+          'bg-navy-subtle text-navy before:bg-navy',
         bronze:
-          'border-bronze/25 bg-bronze-subtle text-bronze-foreground before:bg-bronze',
+          'bg-bronze-subtle text-bronze-foreground before:bg-bronze',
         success:
-          'border-success/20 bg-success-subtle text-success-foreground before:bg-success',
+          'bg-success-subtle text-success-foreground before:bg-success',
         info:
-          'border-info/20 bg-info-subtle text-info-foreground before:bg-info',
+          'bg-info-subtle text-info-foreground before:bg-info',
         warning:
-          'border-warning/20 bg-warning-subtle text-warning-foreground before:bg-warning',
+          'bg-warning-subtle text-warning-foreground before:bg-warning',
         danger:
-          'border-danger/20 bg-danger-subtle text-danger-foreground before:bg-danger',
+          'bg-danger-subtle text-danger-foreground before:bg-danger',
       },
       size: {
         sm: 'px-2 py-0.5 text-xs',

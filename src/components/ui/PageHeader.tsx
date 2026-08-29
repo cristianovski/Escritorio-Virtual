@@ -9,6 +9,7 @@ export interface PageHeaderProps
   leading?: React.ReactNode;
   actions?: React.ReactNode;
   headingId?: string;
+  headingLevel?: 1 | 2;
 }
 
 export function PageHeader({
@@ -18,39 +19,46 @@ export function PageHeader({
   leading,
   actions,
   headingId,
+  headingLevel = 1,
   className,
   ...props
 }: PageHeaderProps) {
   const generatedId = React.useId();
   const resolvedHeadingId = headingId ?? generatedId;
+  const Heading = headingLevel === 2 ? 'h2' : 'h1';
 
   return (
     <header
       aria-labelledby={resolvedHeadingId}
       className={cn(
-        'flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between',
+        'flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between',
         className,
       )}
       {...props}
     >
       <div className="flex min-w-0 items-start gap-3">
         {leading ? (
-          <div className="mt-0.5 shrink-0 text-muted-foreground">{leading}</div>
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-secondary text-muted-foreground">{leading}</div>
         ) : null}
         <div className="min-w-0">
           {eyebrow ? (
-            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-bronze-foreground">
+            <p className="mb-1.5 text-xs font-medium text-primary">
               {eyebrow}
             </p>
           ) : null}
-          <h1
+          <Heading
             id={resolvedHeadingId}
-            className="text-2xl font-semibold leading-tight tracking-[-0.015em] text-foreground"
+            className={cn(
+              'font-semibold leading-[1.12] tracking-[-0.03em] text-foreground',
+              headingLevel === 2
+                ? 'text-2xl sm:text-[1.75rem]'
+                : 'text-[1.75rem] sm:text-[2rem]',
+            )}
           >
             {title}
-          </h1>
+          </Heading>
           {description ? (
-            <div className="mt-1.5 max-w-3xl text-sm leading-5 text-muted-foreground">
+            <div className="mt-2 max-w-3xl text-[0.9375rem] leading-6 text-muted-foreground">
               {description}
             </div>
           ) : null}

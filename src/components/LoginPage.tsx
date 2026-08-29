@@ -5,9 +5,6 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  LockKeyhole,
-  LogIn,
-  ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "../hooks/authContext";
 import { supabase } from "../lib/supabase";
@@ -81,56 +78,29 @@ export function LoginPage() {
   };
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-background px-4 py-8 sm:px-6">
-      <div className="grid w-full max-w-4xl overflow-hidden rounded-dialog border border-border bg-card shadow-surface lg:grid-cols-[0.95fr_1.05fr]">
-        <section className="relative flex flex-col justify-between bg-primary px-6 py-7 text-primary-foreground sm:px-8 sm:py-9 lg:min-h-[580px] lg:px-10 lg:py-10">
-          <div>
-            <div className="flex items-center gap-3" aria-label="PrevRural">
-              <span className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-lg border border-white/20 bg-white/10 text-xs font-semibold tracking-[0.1em]">
-                PR
-                <span className="absolute inset-x-0 bottom-0 h-0.5 bg-bronze" aria-hidden="true" />
-              </span>
-              <span>
-                <span className="block text-lg font-semibold leading-tight tracking-tight">PrevRural</span>
-                <span className="block text-xs text-primary-foreground/70">Gestão previdenciária</span>
-              </span>
-            </div>
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-background px-4 py-8 sm:px-6">
+      <div className="pointer-events-none absolute -left-24 top-[-8rem] h-80 w-80 rounded-full bg-brand/5 blur-3xl" aria-hidden="true" />
+      <div className="pointer-events-none absolute -bottom-40 right-[-8rem] h-96 w-96 rounded-full bg-navy/5 blur-3xl" aria-hidden="true" />
 
-            <div className="mt-12 hidden max-w-sm sm:block lg:mt-24">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-bronze-subtle">Campo &amp; Lei</p>
-              <h2 className="mt-3 text-3xl font-semibold leading-tight tracking-[-0.02em] lg:text-4xl">
-                A rotina previdenciária em um só lugar.
-              </h2>
-              <p className="mt-4 text-sm leading-6 text-primary-foreground/75">
-                Clientes, documentos e análises organizados para apoiar o trabalho diário do escritório.
-              </p>
-            </div>
-          </div>
+      <section className="relative w-full max-w-[27rem] rounded-[1.75rem] bg-card/[0.92] p-6 shadow-surface ring-1 ring-black/[0.045] backdrop-blur-xl sm:p-8">
+        <div className="flex items-center gap-3" aria-label="PrevRural">
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary text-xs font-semibold tracking-[0.06em] text-primary ring-1 ring-black/[0.035]">
+            PR
+          </span>
+          <span>
+            <span className="block text-base font-semibold leading-tight tracking-[-0.02em] text-foreground">PrevRural</span>
+            <span className="block text-xs text-muted-foreground">Gestão previdenciária</span>
+          </span>
+        </div>
 
-          <div className="mt-8 flex items-start gap-3 border-t border-white/15 pt-5 lg:mt-12">
-            <ShieldCheck className="mt-0.5 shrink-0 text-bronze-subtle" size={19} aria-hidden="true" />
-            <div>
-              <p className="text-sm font-semibold">Ambiente de acesso restrito</p>
-              <p className="mt-1 text-xs leading-5 text-primary-foreground/65">
-                Use somente as credenciais fornecidas pelo administrador do escritório.
-              </p>
-            </div>
-          </div>
-        </section>
+        <div className="mb-8 mt-10">
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.035em] text-foreground">Acesse sua conta</h1>
+          <p className="mt-2 text-[0.9375rem] leading-6 text-muted-foreground">
+            Use o e-mail profissional vinculado ao escritório.
+          </p>
+        </div>
 
-        <section className="flex items-center px-6 py-8 sm:px-10 sm:py-10 lg:px-14">
-          <div className="mx-auto w-full max-w-sm">
-            <div className="mb-7">
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-surface-subtle text-brand">
-                <LockKeyhole size={19} aria-hidden="true" />
-              </span>
-              <h1 className="mt-5 text-2xl font-semibold tracking-tight text-foreground">Acesse sua conta</h1>
-              <p className="mt-1.5 text-sm leading-5 text-muted-foreground">
-                Entre com o e-mail profissional vinculado ao escritório.
-              </p>
-            </div>
-
-            <form onSubmit={handleAuth} className="space-y-5" aria-busy={loading}>
+        <form onSubmit={handleAuth} className="space-y-5" aria-busy={loading}>
               <div className="space-y-1.5">
                 <label htmlFor="email" className="text-sm font-medium text-foreground">E-mail profissional</label>
                 <input
@@ -145,7 +115,7 @@ export function LoginPage() {
                   autoComplete="email"
                   disabled={loading}
                   aria-describedby={msg ? "login-error" : undefined}
-                  className="h-11 w-full rounded-lg border border-input bg-card px-3.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-brand focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-70"
+                  className="h-12 w-full rounded-control border border-input bg-card px-3.5 text-[0.9375rem] text-foreground outline-none transition-all placeholder:text-muted-foreground/70 focus:border-ring focus:ring-2 focus:ring-ring/70 disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-70"
                   placeholder="nome@escritorio.com.br"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
@@ -163,7 +133,7 @@ export function LoginPage() {
                     autoComplete="current-password"
                     disabled={loading}
                     aria-describedby={msg ? "login-error" : undefined}
-                    className="h-11 w-full rounded-lg border border-input bg-card px-3.5 pr-12 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-brand focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-70"
+                    className="h-12 w-full rounded-control border border-input bg-card px-3.5 pr-12 text-[0.9375rem] text-foreground outline-none transition-all placeholder:text-muted-foreground/70 focus:border-ring focus:ring-2 focus:ring-ring/70 disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-70"
                     placeholder="Digite sua senha"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
@@ -174,7 +144,7 @@ export function LoginPage() {
                     disabled={loading}
                     aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                     aria-pressed={showPassword}
-                    className="absolute right-1 top-1 flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    className="absolute right-0.5 top-0.5 flex h-11 w-11 items-center justify-center rounded-[0.65rem] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
                   </button>
@@ -182,7 +152,7 @@ export function LoginPage() {
               </div>
 
               {msg && (
-                <div id="login-error" role="alert" aria-live="polite" className="flex items-start gap-2.5 rounded-lg border border-danger/20 bg-danger-subtle p-3 text-sm leading-5 text-danger-foreground">
+                <div id="login-error" role="alert" aria-live="polite" className="flex items-start gap-2.5 rounded-control bg-danger-subtle p-3 text-sm leading-5 text-danger-foreground">
                   <AlertCircle className="mt-0.5 shrink-0" size={17} aria-hidden="true" />
                   <span>{msg}</span>
                 </div>
@@ -191,26 +161,22 @@ export function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-65"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-control bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-all duration-200 ease-product hover:bg-brand-hover hover:shadow-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-65"
               >
                 {loading ? (
                   <>
                     <Loader2 className="animate-spin" size={18} aria-hidden="true" /> Entrando…
                   </>
                 ) : (
-                  <>
-                    Entrar no sistema <LogIn size={17} aria-hidden="true" />
-                  </>
+                  "Entrar"
                 )}
               </button>
-            </form>
+        </form>
 
-            <p className="mt-6 border-t border-border pt-5 text-center text-xs leading-5 text-muted-foreground">
-              O acesso é disponibilizado pelo administrador do escritório.
-            </p>
-          </div>
-        </section>
-      </div>
+        <p className="mt-7 text-center text-xs leading-5 text-muted-foreground">
+          Ambiente restrito aos profissionais autorizados.
+        </p>
+      </section>
     </main>
   );
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ChevronRight,
   LayoutList,
@@ -8,7 +8,6 @@ import {
   Plus,
   RefreshCw,
   Search,
-  Users,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { maskCPF } from '../../lib/utils';
@@ -18,6 +17,9 @@ import { Button } from '../../components/ui/button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { StatusBadge } from '../../components/ui/StatusBadge';
+
+const STATUS_FILTERS = ['Todos', 'A Iniciar', 'Em Andamento', 'Finalizado', 'Suspenso'] as const;
+type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 const getStatusTone = (
   status?: Client['status_processo'],
@@ -60,7 +62,7 @@ function ClientListSkeleton() {
     <div role="status" aria-live="polite" aria-label="Carregando clientes">
       <span className="sr-only">Carregando clientes…</span>
 
-      <div className="hidden overflow-hidden rounded-surface border border-border bg-card lg:block">
+      <div className="hidden overflow-hidden rounded-surface bg-card shadow-surface ring-1 ring-black/[0.035] xl:block">
         <div className="h-11 animate-pulse border-b border-border bg-surface-subtle" />
         {[1, 2, 3, 4].map((item) => (
           <div key={item} className="grid grid-cols-[2fr_1.2fr_1.2fr_0.8fr_0.7fr] gap-4 border-b border-border px-5 py-4 last:border-0">
@@ -73,9 +75,9 @@ function ClientListSkeleton() {
         ))}
       </div>
 
-      <div className="grid gap-3 lg:hidden">
+      <div className="overflow-hidden rounded-surface bg-card shadow-surface ring-1 ring-black/[0.035] xl:hidden">
         {[1, 2, 3].map((item) => (
-          <div key={item} className="rounded-surface border border-border bg-card p-4">
+          <div key={item} className="border-b border-border/70 p-4 last:border-0">
             <div className="h-12 animate-pulse rounded-md bg-surface-subtle" />
             <div className="mt-4 h-8 animate-pulse rounded-md bg-surface-subtle" />
           </div>
@@ -87,11 +89,23 @@ function ClientListSkeleton() {
 
 export function ClientListPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const requestedStatus = searchParams.get('status');
+  const statusFilter: StatusFilter = STATUS_FILTERS.includes(requestedStatus as StatusFilter)
+    ? requestedStatus as StatusFilter
+    : 'Todos';
+
+  const updateStatusFilter = (nextStatus: StatusFilter) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextStatus === 'Todos') nextParams.delete('status');
+    else nextParams.set('status', nextStatus);
+    setSearchParams(nextParams, { replace: true });
+  };
 
   const fetchClients = useCallback(async () => {
     setLoading(true);
@@ -126,6 +140,9 @@ export function ClientListPage() {
   const normalizedSearch = searchTerm.trim().toLocaleLowerCase('pt-BR');
   const searchDigits = searchTerm.replace(/\D/g, '');
   const filteredClients = clients.filter((client) => {
+    if (statusFilter !== 'Todos' && (client.status_processo || 'A Iniciar') !== statusFilter) {
+      return false;
+    }
     if (!normalizedSearch) return true;
 
     const clientCpf = client.cpf?.replace(/\D/g, '') || '';
@@ -139,12 +156,10 @@ export function ClientListPage() {
 
   return (
     <div className="h-full overflow-y-auto bg-background">
-      <main className="mx-auto w-full max-w-content space-y-6 p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto w-full max-w-content space-y-8 p-4 sm:p-6 lg:p-8">
         <PageHeader
-          eyebrow="Atendimento"
           title="Clientes"
           description="Consulte cadastros e acesse o acompanhamento previdenciário de cada cliente."
-          leading={<Users aria-hidden="true" size={22} />}
           actions={(
             <Button onClick={() => navigate('/cliente/novo')}>
               <Plus aria-hidden="true" size={17} />
@@ -153,9 +168,10 @@ export function ClientListPage() {
           )}
         />
 
-        <section aria-labelledby="client-list-heading" className="space-y-4">
+        <section aria-labelledby="client-list-heading" className="space-y-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div className="w-full sm:max-w-md">
+            <div className="grid w-full gap-3 sm:max-w-2xl sm:grid-cols-[minmax(0,1fr)_12rem]">
+              <div>
               <label htmlFor="client-search" className="sr-only">
                 Buscar cliente por nome ou CPF
               </label>
@@ -172,8 +188,24 @@ export function ClientListPage() {
                   placeholder="Buscar por nome ou CPF"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  className="h-11 w-full rounded-lg border border-input bg-card pl-10 pr-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20"
+                  className="h-11 w-full rounded-control border border-input bg-card pl-10 pr-3 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/70"
                 />
+              </div>
+              </div>
+              <div>
+                <label htmlFor="client-status-filter" className="sr-only">
+                  Filtrar clientes por situação
+                </label>
+                <select
+                  id="client-status-filter"
+                  value={statusFilter}
+                  onChange={(event) => updateStatusFilter(event.target.value as StatusFilter)}
+                  className="h-11 w-full rounded-control border border-input bg-card px-3 text-sm text-foreground outline-none transition-all focus:border-ring focus:ring-2 focus:ring-ring/70"
+                >
+                  {STATUS_FILTERS.map((status) => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -207,16 +239,16 @@ export function ClientListPage() {
           ) : filteredClients.length === 0 ? (
             <EmptyState
               icon={emptyBecauseOfSearch ? <Search aria-hidden="true" /> : <LayoutList aria-hidden="true" />}
-              title={emptyBecauseOfSearch ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'}
+              title={emptyBecauseOfSearch || statusFilter !== 'Todos' ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'}
               description={
-                emptyBecauseOfSearch
-                  ? 'Revise o nome ou CPF informado para ampliar a busca.'
+                emptyBecauseOfSearch || statusFilter !== 'Todos'
+                  ? 'Revise a busca ou a situação selecionada para ampliar os resultados.'
                   : 'Cadastre o primeiro cliente para iniciar um atendimento previdenciário.'
               }
               action={
-                emptyBecauseOfSearch ? (
-                  <Button variant="outline" onClick={() => setSearchTerm('')}>
-                    Limpar busca
+                emptyBecauseOfSearch || statusFilter !== 'Todos' ? (
+                  <Button variant="outline" onClick={() => { setSearchTerm(''); updateStatusFilter('Todos'); }}>
+                    Limpar filtros
                   </Button>
                 ) : (
                   <Button onClick={() => navigate('/cliente/novo')}>
@@ -228,14 +260,14 @@ export function ClientListPage() {
             />
           ) : (
             <>
-              <div className="hidden overflow-hidden rounded-surface border border-border bg-card shadow-surface lg:block">
+              <div className="hidden overflow-hidden rounded-surface bg-card shadow-surface ring-1 ring-black/[0.035] xl:block">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[880px] border-collapse text-left">
                     <caption className="sr-only">
                       Clientes cadastrados, contato, localidade, situação e data de cadastro
                     </caption>
-                    <thead className="border-b border-border bg-surface-subtle/70">
-                      <tr className="text-xs font-semibold text-muted-foreground">
+                    <thead className="border-b border-border/70 bg-secondary/55">
+                      <tr className="text-xs font-medium text-muted-foreground">
                         <th scope="col" className="px-5 py-3">Cliente</th>
                         <th scope="col" className="px-5 py-3">Contato</th>
                         <th scope="col" className="px-5 py-3">Localidade</th>
@@ -246,18 +278,18 @@ export function ClientListPage() {
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-border">
+                    <tbody className="divide-y divide-border/70">
                       {filteredClients.map((client) => (
-                        <tr key={client.id} className="transition-colors hover:bg-brand-subtle/30">
+                        <tr key={client.id} className="transition-colors hover:bg-secondary/35">
                           <td className="px-5 py-3.5">
                             <div className="flex min-w-0 items-center gap-3">
-                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-brand/15 bg-brand-subtle text-sm font-semibold text-brand" aria-hidden="true">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-medium text-foreground" aria-hidden="true">
                                 {client.nome?.trim().charAt(0).toUpperCase() || '?'}
                               </div>
                               <div className="min-w-0">
                                 <Link
                                   to={`/cliente/${client.id}`}
-                                  className="block truncate text-sm font-semibold text-foreground hover:text-brand focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                  className="block truncate text-sm font-medium text-foreground hover:text-primary focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 >
                                   {client.nome || 'Cliente sem nome'}
                                 </Link>
@@ -285,7 +317,7 @@ export function ClientListPage() {
                             <Link
                               to={`/cliente/${client.id}`}
                               aria-label={`Abrir resumo de ${client.nome || 'cliente'}`}
-                              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-brand-subtle hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              className="inline-flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             >
                               <ChevronRight aria-hidden="true" size={17} />
                             </Link>
@@ -297,22 +329,21 @@ export function ClientListPage() {
                 </div>
               </div>
 
-              <div className="grid gap-3 lg:hidden">
+              <div className="divide-y divide-border/70 overflow-hidden rounded-surface bg-card shadow-surface ring-1 ring-black/[0.035] xl:hidden">
                 {filteredClients.map((client) => (
                   <Link
                     key={client.id}
                     to={`/cliente/${client.id}`}
-                    aria-label={`Abrir resumo de ${client.nome || 'cliente'}`}
-                    className="rounded-surface border border-border bg-card p-4 shadow-surface transition-colors hover:border-brand/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className="block p-4 transition-colors hover:bg-secondary/35 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:p-5"
                   >
                     <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-brand/15 bg-brand-subtle text-sm font-semibold text-brand" aria-hidden="true">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-medium text-foreground" aria-hidden="true">
                         {client.nome?.trim().charAt(0).toUpperCase() || '?'}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <h3 className="truncate text-sm font-semibold text-foreground">
+                            <h3 className="truncate text-sm font-medium text-foreground">
                               {client.nome || 'Cliente sem nome'}
                             </h3>
                             <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
@@ -343,7 +374,7 @@ export function ClientListPage() {
             </>
           )}
         </section>
-      </main>
+      </div>
     </div>
   );
 }

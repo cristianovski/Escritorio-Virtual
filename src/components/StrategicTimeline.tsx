@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, type CSSProperties } from 'react';
-import { Ruler, AlertTriangle, FileText } from 'lucide-react';
+import { useEffect, useId, useMemo, useState, type CSSProperties } from 'react';
+import { AlertTriangle, ChevronDown, FileText, Ruler } from 'lucide-react';
 import type { Periodo } from '../hooks/useBenefitAnalysis';
+import { Surface } from './ui/Surface';
 import {
   addCalendarYears,
   compareDateOnly,
@@ -15,19 +16,78 @@ type TimelinePeriodo = Periodo & { num?: number | null };
 interface StrategicTimelineProps {
   der: string;
   periodos: TimelinePeriodo[];
-  clienteNome?: string; 
+  clienteNome?: string;
 }
-
-const toUtcTimestamp = (value: string): number | null => {
-  const normalized = normalizeDateOnly(value);
-  return normalized ? Date.parse(`${normalized}T00:00:00Z`) : null;
-};
 
 interface RulerState {
   clientKey: string;
   start: string;
   end: string;
 }
+
+interface TimelinePresentation {
+  label: string;
+  barClassName: string;
+  legendClassName: string;
+  shortLabel: string;
+}
+
+const TIMELINE_PRESENTATION: Record<Periodo['tipo'], TimelinePresentation> = {
+  rural: {
+    label: 'Atividade rural',
+    shortLabel: 'R',
+    barClassName: 'h-3 rounded-full bg-foreground',
+    legendClassName: 'h-3 w-5 rounded-full bg-foreground',
+  },
+  urbano: {
+    label: 'Urbano / CNIS',
+    shortLabel: 'U',
+    barClassName: 'h-5 rounded-sm border-y-2 border-danger-foreground bg-danger',
+    legendClassName: 'h-5 w-5 rounded-sm border-y-2 border-danger-foreground bg-danger',
+  },
+  beneficio: {
+    label: 'Benefício INSS',
+    shortLabel: 'B',
+    barClassName: 'h-3 rounded-none border border-warning-foreground bg-warning',
+    legendClassName: 'h-3 w-5 rounded-none border border-warning-foreground bg-warning',
+  },
+  lacuna: {
+    label: 'Sem atividade',
+    shortLabel: 'S',
+    barClassName: 'h-2 rounded-full border border-dashed border-muted-foreground bg-muted',
+    legendClassName: 'h-2 w-5 rounded-full border border-dashed border-muted-foreground bg-muted',
+  },
+  'prova de retorno': {
+    label: 'Prova de retorno',
+    shortLabel: 'P',
+    barClassName: 'h-8 rounded-sm bg-info',
+    legendClassName: 'h-7 w-1.5 rounded-sm bg-info',
+  },
+};
+
+const fieldClassName =
+  'h-11 w-full rounded-control border border-input bg-card px-3 text-sm text-foreground shadow-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/70 motion-reduce:transition-none';
+
+const UNKNOWN_TIMELINE_PRESENTATION: TimelinePresentation = {
+  label: 'Registro legado',
+  shortLabel: '?',
+  barClassName: 'h-2 rounded-full border border-dashed border-muted-foreground bg-muted',
+  legendClassName: 'h-2 w-5 rounded-full border border-dashed border-muted-foreground bg-muted',
+};
+
+const getTimelinePresentation = (type: unknown) => (
+  TIMELINE_PRESENTATION[type as Periodo['tipo']] ?? UNKNOWN_TIMELINE_PRESENTATION
+);
+
+const toUtcTimestamp = (value: string): number | null => {
+  const normalized = normalizeDateOnly(value);
+  return normalized ? Date.parse(`${normalized}T00:00:00Z`) : null;
+};
+
+const formatDate = (value?: string) => {
+  if (!value) return 'data não informada';
+  return value.split('T')[0].split('-').reverse().join('/');
+};
 
 const loadRulerState = (clientKey: string, der: string): RulerState => {
   const savedStart = localStorage.getItem(`ruler_start_${clientKey}`);
@@ -40,7 +100,12 @@ const loadRulerState = (clientKey: string, der: string): RulerState => {
   };
 };
 
-export default function StrategicTimeline({ der, periodos, clienteNome = "Cliente" }: StrategicTimelineProps) {
+export default function StrategicTimeline({ der, periodos, clienteNome = 'Cliente' }: StrategicTimelineProps) {
+  const startId = useId();
+  const endId = useId();
+  const titleId = useId();
+  const descriptionId = useId();
+
   const [ruler, setRuler] = useState<RulerState>(() => loadRulerState(clienteNome, der));
   const activeRuler = ruler.clientKey === clienteNome ? ruler : loadRulerState(clienteNome, der);
   const rulerStart = activeRuler.start;
@@ -75,218 +140,299 @@ export default function StrategicTimeline({ der, periodos, clienteNome = "Client
     return Math.max(0, right - left);
   };
 
-  const getBlockColorCode = (tipo: string) => {
-    const t = (tipo || '').toLowerCase();
-    if (t === 'rural') return '#10b981'; 
-    if (t === 'beneficio') return '#f59e0b'; 
-    if (t === 'urbano') return '#ef4444'; 
-    if (t === 'lacuna') return '#cbd5e1'; 
-    return '#2563eb'; 
-  };
-
   const provasNumeradas = useMemo(() => {
-    return (periodos || [])
-      .filter(p => p.num)
+    return periodos
+      .filter((periodo) => periodo.num)
       .sort((a, b) => compareDateOnly(a.dataExpedicao || a.inicio, b.dataExpedicao || b.inicio));
   }, [periodos]);
 
   const totalRuralMonths = useMemo(() => {
-    const ruralIntervals = (periodos || [])
-      .filter(p => (p.tipo || '').toLowerCase() === 'rural')
+    const ruralIntervals = periodos
+      .filter((periodo) => periodo.tipo === 'rural')
       .map(({ inicio, fim }) => ({ inicio, fim }));
     return countUniqueCoveredMonths(ruralIntervals);
   }, [periodos]);
 
   const ruralYears = Math.floor(totalRuralMonths / 12);
   const ruralRemainingMonths = totalRuralMonths % 12;
-  const totalRuralText = `${ruralYears} anos e ${ruralRemainingMonths} meses (${totalRuralMonths} meses)`;
-
+  const totalRuralText = `${ruralYears} anos e ${ruralRemainingMonths} meses`;
   const printStyle: CSSProperties = { WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' };
 
-  const getNinetyMonthMarks = () => {
+  const ninetyMonthMarks = useMemo(() => {
     if (currentMonths <= 0) return [];
     const rulerStartTimestamp = toUtcTimestamp(rulerStart);
     if (rulerStartTimestamp === null) return [];
     const numMarks = Math.floor(currentMonths / 90);
-    const marks = [];
-    for (let i = 1; i <= numMarks; i++) {
-        const positionPercent = ((90 * i) / currentMonths) * 100;
-        if (positionPercent < 98) { 
-            const d = new Date(rulerStartTimestamp);
-            d.setUTCMonth(d.getUTCMonth() + (90 * i));
-            marks.push({ label: String(d.getUTCFullYear()), percent: positionPercent });
-        }
-    }
-    return marks;
-  };
+    const marks: Array<{ label: string; percent: number }> = [];
 
-  const ninetyMonthMarks = getNinetyMonthMarks();
+    for (let index = 1; index <= numMarks; index += 1) {
+      const positionPercent = ((90 * index) / currentMonths) * 100;
+      if (positionPercent < 98) {
+        const date = new Date(rulerStartTimestamp);
+        date.setUTCMonth(date.getUTCMonth() + 90 * index);
+        marks.push({ label: String(date.getUTCFullYear()), percent: positionPercent });
+      }
+    }
+
+    return marks;
+  }, [currentMonths, rulerStart]);
+
+  const timelineText = useMemo(() => {
+    const range = `Régua de ${formatDate(rulerStart)} a ${formatDate(rulerEnd)}, com ${currentMonths} meses.`;
+    const ruralTotal = `Tempo rural sem sobreposição: ${totalRuralText}, total de ${totalRuralMonths} meses.`;
+    if (!periodos.length) return `${range} ${ruralTotal} Nenhum período registrado.`;
+
+    const items = periodos
+      .map((periodo) => {
+        const presentation = getTimelinePresentation(periodo.tipo);
+        const start = formatDate(periodo.dataExpedicao || periodo.inicio);
+        const end = formatDate(periodo.fim || periodo.inicio);
+        return periodo.tipo === 'prova de retorno'
+          ? `${presentation.label} em ${start}.`
+          : `${presentation.label}, de ${start} a ${end}.`;
+      })
+      .join(' ');
+
+    return `${range} ${ruralTotal} ${items}`;
+  }, [currentMonths, periodos, rulerEnd, rulerStart, totalRuralMonths, totalRuralText]);
 
   return (
-    <div style={printStyle} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden font-sans my-6 print:shadow-none print:border-none print:m-0 print:overflow-visible">
-      
-      {/* BLOCO DO GRÁFICO: Evita quebra de página no meio da régua */}
-      <div className="print:break-inside-avoid">
-        
-        <div className="hidden print:block border-b border-slate-800 pb-4 mb-6">
-          <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Linha do Tempo Rural</h1>
-          <div className="flex justify-between mt-2 text-sm font-bold text-slate-700">
+    <Surface
+      style={printStyle}
+      padding="none"
+      className="overflow-hidden print:m-0 print:break-inside-avoid print:overflow-visible print:rounded-none print:shadow-none print:ring-0"
+    >
+      <section aria-labelledby={titleId} aria-describedby={descriptionId}>
+        <p id={descriptionId} className="sr-only">{timelineText}</p>
+
+        <div className="hidden border-b border-foreground pb-4 print:block">
+          <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Linha do tempo rural</h1>
+          <div className="mt-2 flex justify-between text-sm text-foreground">
             <span>Segurado(a): {clienteNome}</span>
-            <span>DER: {der?.split('-').reverse().join('/')}</span>
+            <span>DER: {formatDate(der)}</span>
           </div>
         </div>
 
-        <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
+        <div className="flex flex-col gap-5 border-b border-border p-5 sm:p-6 lg:flex-row lg:items-end lg:justify-between print:hidden">
           <div>
-            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <Ruler className="text-emerald-600" /> Régua de Provas
-            </h2>
-            <p className="text-slate-500 text-xs mt-1">
-              Visualização progressiva baseada na Súmula 14 da TNU (frações de 90 meses).
+            <div className="flex items-center gap-2 text-foreground">
+              <Ruler aria-hidden="true" size={19} />
+              <h2 id={titleId} className="text-lg font-semibold tracking-[-0.02em]">Régua de provas</h2>
+            </div>
+            <p className="mt-1.5 max-w-xl text-sm leading-6 text-muted-foreground">
+              Leitura progressiva das provas em frações de 90 meses, conforme a Súmula 14 da TNU.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
-            <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">Início da Régua</label>
-              <input 
-                type="date" value={rulerStart} onChange={e => setRuler({ ...activeRuler, start: e.target.value })}
-                className="text-xs border-none bg-slate-50 p-1.5 rounded font-medium outline-none focus:ring-1 focus:ring-emerald-500"
+          <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:w-auto">
+            <div className="sm:w-44">
+              <label htmlFor={startId} className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                Início da régua
+              </label>
+              <input
+                id={startId}
+                type="date"
+                value={rulerStart}
+                onChange={(event) => setRuler({ ...activeRuler, start: event.target.value })}
+                className={`${fieldClassName} text-tabular`}
               />
             </div>
-            <span className="text-slate-300">-</span>
-            <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">Fim da Régua</label>
-              <input 
-                type="date" value={rulerEnd} onChange={e => setRuler({ ...activeRuler, end: e.target.value })}
-                className="text-xs border-none bg-slate-50 p-1.5 rounded font-medium outline-none focus:ring-1 focus:ring-emerald-500"
+            <div className="sm:w-44">
+              <label htmlFor={endId} className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                Fim da régua
+              </label>
+              <input
+                id={endId}
+                type="date"
+                value={rulerEnd}
+                onChange={(event) => setRuler({ ...activeRuler, end: event.target.value })}
+                className={`${fieldClassName} text-tabular`}
               />
             </div>
           </div>
         </div>
 
-        {!isDiff180 && rulerStart && rulerEnd && (
-          <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center gap-2 text-xs text-amber-800 font-bold print:hidden">
-            <AlertTriangle size={14} className="text-amber-600" />
-            {rulerIsValid
-              ? `Atenção: o período selecionado tem ${currentMonths} meses. A carência rural padrão exige 180 meses.`
-              : 'Atenção: o fim da régua deve ser igual ou posterior ao início.'}
+        {!isDiff180 && rulerStart && rulerEnd ? (
+          <div
+            role="status"
+            className="flex items-start gap-2.5 border-b border-warning/20 bg-warning-subtle px-5 py-3 text-sm text-warning-foreground sm:px-6 print:hidden"
+          >
+            <AlertTriangle aria-hidden="true" size={17} className="mt-0.5 shrink-0" />
+            <span>
+              <strong className="font-semibold">Atenção.</strong>{' '}
+              {rulerIsValid
+                ? `O intervalo selecionado tem ${currentMonths} meses; a carência rural padrão exige 180 meses.`
+                : 'O fim da régua deve ser igual ou posterior ao início.'}
+            </span>
           </div>
-        )}
+        ) : null}
 
-        <div className="mx-4 md:mx-8 mb-2 mt-8 print:mx-0 print:mt-0 print:mb-6 flex justify-center">
-            <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-8 py-3 rounded-2xl shadow-sm text-center print:bg-white print:border-2 print:border-emerald-800">
-                <span className="block text-[10px] uppercase font-black tracking-widest opacity-80 mb-0.5">Total Rural sem Sobreposição</span>
-                <span className="text-xl font-black">{totalRuralText}</span>
-            </div>
+        <div className="flex flex-col gap-1 border-b border-border px-5 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-6 print:border-b-2 print:border-foreground print:px-0">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">Tempo rural sem sobreposição</p>
+            <p className="mt-1 text-2xl font-semibold tracking-[-0.03em] text-foreground text-tabular">
+              {totalRuralText}
+            </p>
+          </div>
+          <p className="text-sm text-muted-foreground text-tabular">{totalRuralMonths} meses computados</p>
         </div>
 
-        {/* AJUSTE NA RÉGUA: print:min-w-0 e print:w-full para caber certinho na folha A4 e não espremer o flex */}
-        <div className="p-8 overflow-x-auto print:overflow-visible print:px-6 print:py-4">
-          <div className="min-w-[700px] print:min-w-0 print:w-full relative pt-10 pb-12">
-            
-            <div className="absolute top-1/2 left-0 right-0 h-2 bg-slate-200 rounded-full -translate-y-1/2"></div>
-            <div className="absolute top-1/2 left-0 w-1 h-6 bg-slate-400 -translate-y-1/2 rounded-full"></div>
-            <div className="absolute top-1/2 right-0 w-1 h-6 bg-slate-400 -translate-y-1/2 rounded-full"></div>
+        <div
+          className="overflow-x-auto p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:p-8 print:overflow-visible print:px-6 print:py-8"
+          tabIndex={0}
+          role="region"
+          aria-label="Visualização gráfica da linha do tempo. Deslize horizontalmente quando necessário."
+        >
+          <div aria-hidden="true" className="relative min-w-[700px] pb-12 pt-10 print:w-full print:min-w-0">
+            <div className="absolute left-0 right-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-muted" />
+            <div className="absolute left-0 top-1/2 h-6 w-0.5 -translate-y-1/2 bg-muted-foreground" />
+            <div className="absolute right-0 top-1/2 h-6 w-0.5 -translate-y-1/2 bg-muted-foreground" />
 
-            {ninetyMonthMarks.map((mark, i) => (
-               <div key={i}>
-                   <div className="absolute top-1/2 w-1 h-6 bg-emerald-600 -translate-y-1/2 -translate-x-1/2 rounded-full z-10 shadow-sm" style={{ left: `${mark.percent}%` }}></div>
-                   <div className="absolute -bottom-6 text-[10px] font-black text-emerald-700 uppercase -translate-x-1/2 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 whitespace-nowrap z-10" style={{ left: `${mark.percent}%` }}>
-                      {mark.label}
-                   </div>
-               </div>
+            {ninetyMonthMarks.map((mark) => (
+              <div key={`${mark.label}-${mark.percent}`}>
+                <div
+                  className="absolute top-1/2 z-10 h-6 w-0.5 -translate-x-1/2 -translate-y-1/2 bg-info"
+                  style={{ left: `${mark.percent}%` }}
+                />
+                <div
+                  className="absolute -bottom-6 z-10 -translate-x-1/2 whitespace-nowrap text-xs font-medium text-info-foreground"
+                  style={{ left: `${mark.percent}%` }}
+                >
+                  {mark.label}
+                  <span className="ml-1 text-xs text-muted-foreground">90 meses</span>
+                </div>
+              </div>
             ))}
 
-            <div className="absolute -bottom-2 left-0 text-[10px] font-black text-slate-400 uppercase whitespace-nowrap">
-              Início ({rulerStart?.split('-')[0]})
+            <div className="absolute -bottom-2 left-0 text-xs font-medium text-muted-foreground text-tabular">
+              Início · {rulerStart?.split('-')[0]}
             </div>
-            <div className="absolute -bottom-2 right-0 text-[10px] font-black text-slate-400 uppercase whitespace-nowrap">
-              Fim ({rulerEnd?.split('-')[0]})
+            <div className="absolute -bottom-2 right-0 text-xs font-medium text-muted-foreground text-tabular">
+              Fim · {rulerEnd?.split('-')[0]}
             </div>
 
-            {(periodos || []).map(p => {
-              const left = getLeftPercent(p.inicio);
-              const width = getWidthPercent(p.inicio, p.fim);
-              
-              const docDate = p.dataExpedicao || p.inicio;
+            {periodos.map((periodo) => {
+              const left = getLeftPercent(periodo.inicio);
+              const width = getWidthPercent(periodo.inicio, periodo.fim);
+              const docDate = periodo.dataExpedicao || periodo.inicio;
               const leftDoc = getLeftPercent(docDate);
-              
-              const isProvaRetorno = (p.tipo || '').toLowerCase() === 'prova de retorno';
+              const isProvaRetorno = periodo.tipo === 'prova de retorno';
               const leftPos = isProvaRetorno ? leftDoc : left;
+              const presentation = getTimelinePresentation(periodo.tipo);
 
               return (
-                <div key={p.id}>
-                  {p.num && leftDoc >= 0 && leftDoc <= 100 && (
-                    <div 
-                      className="absolute top-1/2 flex flex-col items-center group z-30"
-                      style={{ left: `${leftDoc}%`, transform: 'translateX(-50%) translateY(-130%)' }}
+                <div key={periodo.id}>
+                  {periodo.num && leftDoc >= 0 && leftDoc <= 100 ? (
+                    <div
+                      className="absolute top-1/2 z-30 flex -translate-x-1/2 -translate-y-[130%] flex-col items-center"
+                      style={{ left: `${leftDoc}%` }}
                     >
-                      <div className="w-6 h-6 bg-indigo-600 border-2 border-white text-white rounded-full flex items-center justify-center text-xs font-black shadow-md z-20 print:border-indigo-800">
-                        {p.num}
+                      <div className="z-20 flex h-6 w-6 items-center justify-center rounded-full border-2 border-card bg-info text-xs font-semibold text-white print:border-info-foreground">
+                        {periodo.num}
                       </div>
-                      <div className="w-0.5 h-4 bg-indigo-400"></div>
+                      <div className="h-4 w-0.5 bg-info/65" />
                     </div>
-                  )}
-                  
-                  {leftPos <= 100 && (leftPos + width) >= 0 && (
-                    <div 
-                      className={`absolute top-1/2 opacity-90 hover:opacity-100 transition-all shadow-sm cursor-help border border-black/10 ${isProvaRetorno ? 'h-8 z-20 rounded-none' : 'h-4 rounded-sm hover:scale-y-125 z-10'}`}
-                      style={{ 
-                        left: `${leftPos}%`, 
-                        width: isProvaRetorno ? '6px' : `${Math.max(width, 0.5)}%`, 
-                        transform: isProvaRetorno ? 'translateY(-50%) translateX(-50%)' : 'translateY(-50%)', 
-                        backgroundColor: getBlockColorCode(p.tipo) 
+                  ) : null}
+
+                  {leftPos <= 100 && leftPos + width >= 0 ? (
+                    <div
+                      className={`absolute top-1/2 z-10 -translate-y-1/2 border border-black/10 opacity-90 transition-opacity hover:opacity-100 motion-reduce:transition-none ${presentation.barClassName}`}
+                      style={{
+                        left: `${leftPos}%`,
+                        width: isProvaRetorno ? '6px' : `${Math.max(width, 0.5)}%`,
+                        transform: isProvaRetorno
+                          ? 'translateY(-50%) translateX(-50%)'
+                          : 'translateY(-50%)',
                       }}
-                      title={`${(p.tipo || '').toUpperCase()}: ${p.obs}\n(${p.inicio} a ${p.fim || p.inicio})`}
-                    ></div>
-                  )}
+                      title={`${presentation.label}: ${periodo.obs || 'sem observação'}\n(${periodo.inicio} a ${periodo.fim || periodo.inicio})`}
+                    />
+                  ) : null}
                 </div>
               );
             })}
           </div>
         </div>
 
-        <div className="p-4 border-t border-slate-200 bg-slate-50 flex flex-wrap gap-4 text-xs font-medium text-slate-600 justify-center print:bg-transparent print:border-slate-800 print:mt-4">
-          <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-emerald-500 rounded print:border print:border-black"></div> Atividade Rural</div>
-          <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-slate-300 rounded print:border print:border-black"></div> Sem Atividade</div>
-          <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-red-500 rounded print:border print:border-black"></div> Urbano</div>
-          <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-amber-500 rounded print:border print:border-black"></div> Benefício</div>
-          <div className="flex items-center gap-1.5"><div className="w-3 h-8 bg-blue-600 rounded-sm print:border print:border-black" style={{ width: '6px' }}></div> Prova de Retorno</div>
+        <div className="flex flex-wrap gap-x-5 gap-y-3 border-t border-border px-5 py-4 text-xs text-muted-foreground sm:px-6 print:border-foreground print:px-0">
+          {(Object.entries(TIMELINE_PRESENTATION) as Array<[Periodo['tipo'], TimelinePresentation]>).map(
+            ([type, presentation]) => (
+              <div key={type} className="flex items-center gap-2">
+                <span aria-hidden="true" className={`shrink-0 ${presentation.legendClassName}`} />
+                <span>{presentation.label}</span>
+              </div>
+            ),
+          )}
         </div>
-      </div>
 
-      {provasNumeradas.length > 0 && (
-        <div className="p-6 border-t border-slate-200 bg-white print:border-t-2 print:border-slate-800 mt-4">
-          <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2 uppercase text-sm tracking-wide">
-            <FileText size={18} className="text-indigo-600 print:text-black"/> Fundamentação das Provas Utilizadas
-          </h3>
-          <ul className="space-y-4">
-            {provasNumeradas.map((prova) => {
-              const isProvaRetorno = (prova.tipo || '').toLowerCase() === 'prova de retorno';
-              const docTitle = isProvaRetorno ? 'Prova de Retorno' : (prova.linkedDocTitle || 'Prova Documental');
-              const docLaw = (isProvaRetorno && !prova.law) ? 'art. 116, § 2º, V, da IN 128/2022' : prova.law;
+        <details className="border-t border-border print:hidden">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 text-sm font-medium text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:transition-none sm:px-6">
+            Ver períodos em formato textual
+            <ChevronDown aria-hidden="true" size={17} className="text-muted-foreground" />
+          </summary>
+          <div className="border-t border-border px-5 py-4 sm:px-6">
+            {periodos.length > 0 ? (
+              <ol className="space-y-3">
+                {periodos.map((periodo) => {
+                  const presentation = getTimelinePresentation(periodo.tipo);
+                  return (
+                    <li key={periodo.id} className="text-sm leading-6 text-foreground">
+                      <span className="font-semibold">{presentation.label}:</span>{' '}
+                      {periodo.tipo === 'prova de retorno'
+                        ? formatDate(periodo.dataExpedicao || periodo.inicio)
+                        : `${formatDate(periodo.inicio)} a ${formatDate(periodo.fim || periodo.inicio)}`}
+                      {periodo.obs ? <span className="text-muted-foreground"> — {periodo.obs}</span> : null}
+                    </li>
+                  );
+                })}
+              </ol>
+            ) : (
+              <p className="text-sm text-muted-foreground">Nenhum período registrado.</p>
+            )}
+          </div>
+        </details>
 
-              return (
-                <li key={prova.id} className="flex items-start gap-4 print:break-inside-avoid print:mb-6" style={{ pageBreakInside: 'avoid' }}>
-                  <div className="w-7 h-7 shrink-0 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center text-sm font-black print:bg-transparent print:border-2 print:border-black print:text-black">
-                    {prova.num}
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-800 text-sm">
-                      {docTitle} <span className="font-normal text-slate-500 text-xs ml-2">({(prova.dataExpedicao || prova.inicio)?.split('-').reverse().join('/')})</span>
-                    </p>
-                    {prova.obs && <p className="text-sm text-slate-600 font-medium">Ref: {prova.obs}</p>}
-                    <p className="text-xs text-slate-500 mt-1 italic">
-                      <span className="font-bold not-italic">Fundamento Legal:</span> {docLaw}
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-    </div>
+        {provasNumeradas.length > 0 ? (
+          <div className="border-t border-border p-5 sm:p-6 print:mt-4 print:border-t-2 print:border-foreground print:px-0">
+            <h3 className="mb-5 flex items-center gap-2 text-sm font-semibold text-foreground">
+              <FileText aria-hidden="true" size={17} className="text-info-foreground print:text-foreground" />
+              Fundamentação das provas utilizadas
+            </h3>
+            <ol className="space-y-5">
+              {provasNumeradas.map((prova) => {
+                const isProvaRetorno = prova.tipo === 'prova de retorno';
+                const docTitle = isProvaRetorno ? 'Prova de retorno' : prova.linkedDocTitle || 'Prova documental';
+                const docLaw = isProvaRetorno && !prova.law
+                  ? 'art. 116, § 2º, V, da IN 128/2022'
+                  : prova.law;
+
+                return (
+                  <li
+                    key={prova.id}
+                    className="flex items-start gap-3 print:mb-6 print:break-inside-avoid"
+                    style={{ pageBreakInside: 'avoid' }}
+                  >
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-info-subtle text-sm font-semibold text-info-foreground print:border print:border-foreground print:bg-transparent print:text-foreground">
+                      {prova.num}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground">
+                        {docTitle}{' '}
+                        <span className="font-normal text-muted-foreground text-tabular">
+                          · {formatDate(prova.dataExpedicao || prova.inicio)}
+                        </span>
+                      </p>
+                      {prova.obs ? <p className="mt-1 text-sm text-muted-foreground">Referência: {prova.obs}</p> : null}
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        <span className="font-medium text-foreground">Fundamento legal:</span> {docLaw}
+                      </p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        ) : null}
+      </section>
+    </Surface>
   );
 }

@@ -3,14 +3,14 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../../lib/utils';
 
 const surfaceVariants = cva(
-  'border text-card-foreground',
+  'text-card-foreground',
   {
     variants: {
       variant: {
-        default: 'border-border bg-card shadow-surface',
-        subtle: 'border-border/80 bg-surface-subtle shadow-none',
-        outlined: 'border-border bg-transparent shadow-none',
-        elevated: 'border-border bg-card shadow-floating',
+        default: 'bg-card shadow-surface ring-1 ring-black/[0.035]',
+        subtle: 'bg-surface-subtle shadow-none',
+        outlined: 'bg-transparent shadow-none ring-1 ring-inset ring-border',
+        elevated: 'bg-card shadow-floating ring-1 ring-black/[0.04]',
       },
       padding: {
         none: 'p-0',
@@ -19,7 +19,7 @@ const surfaceVariants = cva(
         lg: 'p-6',
       },
       radius: {
-        sm: 'rounded-lg',
+        sm: 'rounded-control',
         default: 'rounded-surface',
         lg: 'rounded-dialog',
       },

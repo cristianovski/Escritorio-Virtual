@@ -8,13 +8,13 @@ export default {
     extend: {
       fontFamily: {
         sans: [
-          "IBM Plex Sans",
-          "Inter",
-          "ui-sans-serif",
-          "system-ui",
           "-apple-system",
           "BlinkMacSystemFont",
+          '"SF Pro Text"',
+          '"Helvetica Neue"',
+          "system-ui",
           '"Segoe UI"',
+          "Roboto",
           "sans-serif",
         ],
         mono: [
@@ -109,16 +109,20 @@ export default {
         },
       },
       borderRadius: {
-        surface: "0.75rem",
-        dialog: "1rem",
+        control: "0.75rem",
+        surface: "1rem",
+        dialog: "1.25rem",
       },
       boxShadow: {
-        surface: "0 1px 2px rgb(24 33 29 / 0.05)",
-        floating: "0 10px 30px rgb(24 33 29 / 0.09)",
-        overlay: "0 24px 64px rgb(24 33 29 / 0.16)",
+        surface: "0 1px 2px rgb(0 0 0 / 0.025), 0 8px 24px rgb(0 0 0 / 0.035)",
+        floating: "0 12px 36px rgb(0 0 0 / 0.08)",
+        overlay: "0 28px 80px rgb(0 0 0 / 0.16)",
       },
       maxWidth: {
-        content: "90rem",
+        content: "84rem",
+      },
+      transitionTimingFunction: {
+        product: "cubic-bezier(0.2, 0.8, 0.2, 1)",
       },
     },
   },

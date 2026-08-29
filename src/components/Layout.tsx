@@ -5,17 +5,9 @@ import {
   DollarSign,
   LayoutDashboard,
   LogOut,
-  Menu,
   Users,
   type LucideIcon,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  DialogTrigger,
-} from "./ui/dialog";
 import { supabase } from "../lib/supabase";
 
 interface NavigationItem {
@@ -67,7 +59,7 @@ interface NavigationProps {
 
 function Navigation({ pathname, onNavigate }: NavigationProps) {
   return (
-    <nav aria-label="Navegação principal" className="space-y-1.5">
+    <nav aria-label="Navegação principal" className="space-y-1">
       {navigationItems.map((item) => {
         const active = item.matches(pathname);
         const Icon = item.icon;
@@ -78,17 +70,17 @@ function Navigation({ pathname, onNavigate }: NavigationProps) {
             to={item.to}
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
-            className={`flex min-h-11 items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+            className={`flex min-h-11 items-center gap-3 rounded-control px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-product focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
               active
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                ? "bg-card text-foreground shadow-surface ring-1 ring-black/[0.035]"
+                : "text-muted-foreground hover:bg-card/60 hover:text-foreground"
             }`}
           >
             <Icon
               aria-hidden="true"
-              className={active ? "text-bronze-subtle" : "text-muted-foreground"}
-              size={20}
-              strokeWidth={2}
+              className={active ? "text-primary" : "text-muted-foreground"}
+              size={19}
+              strokeWidth={1.8}
             />
             <span>{item.label}</span>
           </Link>
@@ -109,18 +101,17 @@ function Brand({ compact = false, onNavigate }: BrandProps) {
       to="/"
       onClick={onNavigate}
       aria-label="PrevRural — ir para a visão geral"
-      className="flex min-h-11 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      className="flex min-h-11 items-center gap-3 rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
-      <span className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary text-xs font-semibold tracking-[0.08em] text-primary-foreground">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-card text-xs font-semibold tracking-[0.06em] text-primary shadow-surface ring-1 ring-black/[0.04]">
         PR
-        <span className="absolute inset-x-0 bottom-0 h-0.5 bg-bronze" aria-hidden="true" />
       </span>
       <span className="min-w-0">
-        <span className="block text-base font-bold leading-tight tracking-tight text-slate-950">
+        <span className="block text-base font-semibold leading-tight tracking-[-0.02em] text-foreground">
           PrevRural
         </span>
         {!compact && (
-          <span className="block truncate text-xs font-medium text-slate-500">
+          <span className="block truncate text-xs text-muted-foreground">
             Gestão previdenciária
           </span>
         )}
@@ -132,27 +123,56 @@ function Brand({ compact = false, onNavigate }: BrandProps) {
 interface LogoutButtonProps {
   isSigningOut: boolean;
   onLogout: () => void;
+  compact?: boolean;
 }
 
-function LogoutButton({ isSigningOut, onLogout }: LogoutButtonProps) {
+function LogoutButton({ isSigningOut, onLogout, compact = false }: LogoutButtonProps) {
   return (
     <button
       type="button"
       onClick={onLogout}
       disabled={isSigningOut}
       aria-busy={isSigningOut}
-      className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-left text-sm font-semibold text-slate-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
+      aria-label={compact ? (isSigningOut ? "Encerrando sessão" : "Encerrar sessão") : undefined}
+      className={`flex min-h-11 items-center rounded-control text-sm font-medium text-muted-foreground transition-colors hover:bg-card hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60 ${compact ? "w-11 justify-center" : "w-full gap-3 px-3 py-2.5 text-left"}`}
     >
-      <LogOut aria-hidden="true" size={20} strokeWidth={2} />
-      <span>{isSigningOut ? "Encerrando sessão..." : "Encerrar sessão"}</span>
+      <LogOut aria-hidden="true" size={19} strokeWidth={1.8} />
+      {!compact ? <span>{isSigningOut ? "Encerrando sessão..." : "Encerrar sessão"}</span> : null}
     </button>
+  );
+}
+
+function MobileNavigation({ pathname }: { pathname: string }) {
+  return (
+    <nav
+      aria-label="Navegação móvel"
+      className="shrink-0 border-t border-black/[0.055] bg-card/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
+    >
+      <div className="grid grid-cols-4">
+        {navigationItems.map((item) => {
+          const active = item.matches(pathname);
+          const Icon = item.icon;
+
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              aria-current={active ? "page" : undefined}
+              className={`flex min-h-16 flex-col items-center justify-center gap-1 px-1 text-[0.6875rem] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${active ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <Icon aria-hidden="true" size={21} strokeWidth={active ? 2.1 : 1.7} />
+              <span>{item.label === "Visão geral" ? "Visão" : item.label}</span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
   );
 }
 
 export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleLogout = async () => {
@@ -168,78 +188,32 @@ export function Layout() {
   };
 
   return (
-    <div className="flex h-dvh min-h-dvh overflow-hidden bg-slate-50 font-sans text-slate-800 selection:bg-emerald-100 selection:text-emerald-950">
+    <div className="flex h-dvh min-h-dvh overflow-hidden bg-background font-sans text-foreground">
       <a
         href="#main-content"
-        className="sr-only fixed left-4 top-4 z-[100] rounded-lg bg-navy px-4 py-3 text-sm font-semibold text-navy-foreground focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        className="sr-only fixed left-4 top-4 z-[100] rounded-control bg-foreground px-4 py-3 text-sm font-medium text-background shadow-floating focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
       >
         Pular para o conteúdo
       </a>
 
-      <aside className="hidden h-dvh w-60 shrink-0 flex-col border-r border-slate-200 bg-white px-4 py-5 lg:flex">
+      <aside className="hidden h-dvh w-64 shrink-0 flex-col border-r border-black/[0.055] bg-background px-4 py-5 lg:flex">
         <div className="px-1">
           <Brand />
         </div>
 
         <div className="mt-8 flex-1">
-          <p className="mb-2 px-3.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-            Escritório
-          </p>
           <Navigation pathname={location.pathname} />
         </div>
 
-        <div className="border-t border-slate-200 pt-3">
+        <div className="border-t border-black/[0.055] pt-3">
           <LogoutButton isSigningOut={isSigningOut} onLogout={handleLogout} />
         </div>
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 lg:hidden">
+        <header className="flex min-h-14 shrink-0 items-center justify-between border-b border-black/[0.055] bg-background/[0.85] px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-xl lg:hidden">
           <Brand compact />
-
-          <Dialog open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-            <DialogTrigger asChild>
-              <button
-                type="button"
-                aria-label="Abrir menu principal"
-                aria-expanded={isMobileMenuOpen}
-                aria-controls="mobile-navigation"
-                className="flex h-11 w-11 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                <Menu aria-hidden="true" size={24} />
-              </button>
-            </DialogTrigger>
-
-            <DialogContent
-              id="mobile-navigation"
-              className="left-0 top-0 h-dvh max-h-dvh w-[min(86vw,20rem)] max-w-none translate-x-0 translate-y-0 gap-0 overflow-y-auto rounded-none border-y-0 border-l-0 p-0 [&>button]:right-3 [&>button]:top-3 [&>button]:flex [&>button]:h-11 [&>button]:w-11 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-lg"
-            >
-              <div className="border-b border-slate-200 px-5 py-5 pr-16">
-                <DialogTitle asChild>
-                  <div>
-                    <Brand onNavigate={() => setIsMobileMenuOpen(false)} />
-                  </div>
-                </DialogTitle>
-                <DialogDescription className="sr-only">
-                  Escolha uma área do PrevRural para navegar.
-                </DialogDescription>
-              </div>
-
-              <div className="flex min-h-[calc(100dvh-81px)] flex-col p-4">
-                <p className="mb-2 px-3.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-                  Escritório
-                </p>
-                <Navigation
-                  pathname={location.pathname}
-                  onNavigate={() => setIsMobileMenuOpen(false)}
-                />
-
-                <div className="mt-auto border-t border-slate-200 pt-3">
-                  <LogoutButton isSigningOut={isSigningOut} onLogout={handleLogout} />
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <LogoutButton compact isSigningOut={isSigningOut} onLogout={handleLogout} />
         </header>
 
         <main
@@ -249,6 +223,7 @@ export function Layout() {
         >
           <Outlet />
         </main>
+        <MobileNavigation pathname={location.pathname} />
       </div>
     </div>
   );

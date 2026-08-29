@@ -15,16 +15,16 @@ const client: Client = {
 };
 
 describe('ClientSummaryPage', () => {
-  it('indica a próxima pendência e oferece atalhos do atendimento', () => {
+  it('indica a próxima pendência e a completude do cadastro', () => {
     render(
       <MemoryRouter>
         <ClientSummaryPage cliente={client} onBack={() => undefined} />
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { name: 'Resumo do cliente' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Resumo do atendimento' })).toBeInTheDocument();
     expect(screen.getByText('Completar identificação civil')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Completar cadastro/i })).toHaveAttribute('href', '/cliente/7/cadastro');
+    expect(screen.getByRole('link', { name: /Revisar cadastro/i })).toHaveAttribute('href', '/cliente/7/cadastro');
     expect(screen.getByRole('progressbar', { name: 'Completude do cadastro essencial' })).toHaveAttribute('aria-valuenow', '25');
   });
 });

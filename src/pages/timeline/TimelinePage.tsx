@@ -1,37 +1,58 @@
-import { useState } from "react";
-import { 
-  ArrowLeft, Calendar, Search, AlertCircle, 
-  ExternalLink, Clock, FileText, Folder
-} from "lucide-react";
-import { Client } from "../../types";
-import { useTimeline, UnifiedTimelineItem } from "../../hooks/useTimeline";
-import { useToast } from "../../hooks/use-toast";
+import { useState } from 'react';
+import {
+  AlertCircle,
+  CalendarDays,
+  ExternalLink,
+  FileText,
+  Folder,
+  Search,
+} from 'lucide-react';
+import type { Client } from '../../types';
+import { useTimeline, type UnifiedTimelineItem } from '../../hooks/useTimeline';
+import { useToast } from '../../hooks/use-toast';
 import {
   createDocumentPreviewUrl,
   getDocumentObjectKeyForClient,
-} from "../../lib/documentStorage";
+} from '../../lib/documentStorage';
+import { Button } from '../../components/ui/button';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Surface } from '../../components/ui/Surface';
 
 interface TimelinePageProps {
   cliente: Client;
   onBack: () => void;
 }
 
-export function TimelinePage({ cliente, onBack }: TimelinePageProps) {
+function TimelineSkeleton() {
+  return (
+    <Surface padding="none" role="status" aria-live="polite">
+      <span className="sr-only">Consolidando histórico do cliente…</span>
+      {[1, 2, 3].map((item) => (
+        <div
+          key={item}
+          className="grid animate-pulse gap-4 border-b border-border/70 p-4 motion-reduce:animate-none last:border-0 sm:grid-cols-[5rem_minmax(0,1fr)] sm:p-5 md:grid-cols-[5rem_minmax(0,1fr)_10rem]"
+        >
+          <div className="h-7 w-16 rounded-full bg-secondary" />
+          <div className="space-y-2">
+            <div className="h-4 w-48 max-w-full rounded bg-secondary" />
+            <div className="h-3 w-72 max-w-full rounded bg-secondary" />
+          </div>
+          <div className="h-11 rounded-control bg-secondary sm:col-start-2 md:col-start-auto" />
+        </div>
+      ))}
+    </Surface>
+  );
+}
+
+export function TimelinePage({ cliente }: TimelinePageProps) {
   const { loading, timeline } = useTimeline(cliente);
   const { toast } = useToast();
-  const [filter, setFilter] = useState("");
+  const [filter, setFilter] = useState('');
 
-  const handleOpenDocument = async (
-    event: React.MouseEvent<HTMLAnchorElement>,
-    item: UnifiedTimelineItem,
-  ) => {
-    if (
-      item.source !== 'GED (Novo)' ||
-      !item.fileUrl ||
-      !getDocumentObjectKeyForClient(item.fileUrl, cliente.id)
-    ) return;
+  const handleOpenDocument = async (item: UnifiedTimelineItem) => {
+    if (!item.fileUrl) return;
 
-    event.preventDefault();
     const previewWindow = window.open('about:blank', '_blank');
     if (previewWindow) previewWindow.opener = null;
 
@@ -48,131 +69,178 @@ export function TimelinePage({ cliente, onBack }: TimelinePageProps) {
       }
     } catch (error: unknown) {
       previewWindow?.close();
-      const msg = error instanceof Error
+      const message = error instanceof Error
         ? error.message
         : 'Não foi possível autorizar o acesso ao documento.';
-      toast({ title: 'Documento indisponível', description: msg, variant: 'destructive' });
+      toast({ title: 'Documento indisponível', description: message, variant: 'destructive' });
     }
   };
 
-  const filteredItems = timeline.filter(item => {
-    const search = filter.toLowerCase();
-    const type = (item.type || "").toLowerCase();
-    const name = (item.customName || "").toLowerCase();
+  const normalizedFilter = filter.trim().toLocaleLowerCase('pt-BR');
+  const filteredItems = timeline.filter((item) => {
+    if (!normalizedFilter) return true;
+
+    const type = (item.type || '').toLocaleLowerCase('pt-BR');
+    const name = (item.customName || '').toLocaleLowerCase('pt-BR');
     const year = String(item.displayYear);
-    return type.includes(search) || name.includes(search) || year.includes(search);
+    return type.includes(normalizedFilter) || name.includes(normalizedFilter) || year.includes(normalizedFilter);
   });
+  const emptyBecauseOfSearch = timeline.length > 0 && filteredItems.length === 0;
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 font-sans">
-      
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-20 px-6 py-4">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-                <button onClick={onBack} className="p-2.5 bg-white border border-slate-200 hover:bg-slate-50 hover:border-emerald-200 rounded-xl transition-all text-slate-500 hover:text-emerald-600 shadow-sm">
-                    <ArrowLeft size={20}/>
-                </button>
-                <div>
-                    <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                        Linha do Tempo
-                    </h1>
-                    <p className="text-xs font-medium text-slate-500 flex items-center gap-1">
-                        <Clock size={12}/> Visualização Cronológica Unificada
-                    </p>
-                </div>
-            </div>
+    <div className="h-full min-h-0 overflow-y-auto bg-background">
+      <div className="mx-auto w-full max-w-content space-y-8 p-4 sm:p-6 lg:p-8">
+        <PageHeader
+          headingLevel={2}
+          title="Linha do tempo"
+          description={`Histórico cronológico de ${cliente.nome || 'cliente'}, reunido em uma única visualização.`}
+        />
 
-            <div className="relative w-full md:w-72 group">
-                <Search size={18} className="absolute left-3 top-3.5 text-slate-400 group-focus-within:text-emerald-500 transition-colors"/>
-                <input 
-                    type="text" 
-                    placeholder="Buscar documento, ano ou tipo..." 
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-100/50 border border-slate-200 rounded-xl text-sm outline-none focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all"
+        <section aria-labelledby="timeline-heading" className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="w-full sm:max-w-md">
+              <label htmlFor="timeline-search" className="sr-only">
+                Buscar no histórico por documento, ano ou tipo
+              </label>
+              <div className="relative">
+                <Search
+                  size={18}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                 />
+                <input
+                  id="timeline-search"
+                  type="search"
+                  placeholder="Buscar por documento, ano ou tipo"
+                  value={filter}
+                  onChange={(event) => setFilter(event.target.value)}
+                  className="h-11 w-full rounded-control border border-input bg-card pl-10 pr-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/70"
+                  autoComplete="off"
+                />
+              </div>
             </div>
-        </div>
-      </header>
 
-      <main className="flex-1 overflow-y-auto p-6 md:p-10 scroll-smooth">
-        
-        {loading ? (
-            <div className="flex flex-col items-center justify-center h-64 text-slate-400 animate-pulse">
-                <Calendar size={48} className="mb-4 opacity-20"/>
-                <p>Consolidando história do cliente...</p>
-            </div>
-        ) : filteredItems.length === 0 ? (
-            <div className="max-w-md mx-auto mt-10 text-center p-10 bg-white rounded-[2rem] border-2 border-dashed border-slate-200">
-                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <AlertCircle className="text-slate-300" size={32}/>
-                </div>
-                <h3 className="text-slate-700 font-bold mb-1">Nenhum registro encontrado</h3>
-                <p className="text-sm text-slate-400">Adicione provas através do botão GED no painel.</p>
-            </div>
-        ) : (
-            <div className="max-w-4xl mx-auto relative pb-20">
-                <div className="absolute left-8 md:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-emerald-500 via-slate-300 to-transparent -translate-x-1/2"></div>
+            {!loading ? (
+              <p className="text-sm tabular-nums text-muted-foreground" aria-live="polite">
+                {filteredItems.length === timeline.length
+                  ? `${timeline.length} ${timeline.length === 1 ? 'registro' : 'registros'}`
+                  : `${filteredItems.length} de ${timeline.length} registros`}
+              </p>
+            ) : null}
+          </div>
 
-                {filteredItems.map((item, idx) => {
-                    const fileExt = item.fileName?.includes('.') ? item.fileName.split('.').pop()?.toUpperCase() : "DOC";
-                    const isEven = idx % 2 === 0;
+          <h2 id="timeline-heading" className="sr-only">
+            Histórico cronológico
+          </h2>
 
-                    return (
-                        <div key={item.id} className={`relative flex items-center mb-12 ${isEven ? 'md:flex-row-reverse' : ''} group`}>
-                             
-                            {/* ANO (NÓ CENTRAL) */}
-                            <div className="absolute left-8 md:left-1/2 -translate-x-1/2 w-12 h-12 bg-white border-4 border-slate-100 rounded-2xl flex flex-col items-center justify-center z-10 shadow-lg group-hover:scale-110 group-hover:border-emerald-100 transition-all duration-300">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase leading-none">Ano</span>
-                                <span className="text-sm font-black text-slate-700 leading-none">{item.displayYear}</span>
-                            </div>
+          {loading ? (
+            <TimelineSkeleton />
+          ) : filteredItems.length === 0 ? (
+            <Surface padding="none">
+              <EmptyState
+                icon={emptyBecauseOfSearch ? <Search aria-hidden="true" /> : <CalendarDays aria-hidden="true" />}
+                title={emptyBecauseOfSearch ? 'Nenhum registro encontrado' : 'Histórico ainda vazio'}
+                description={
+                  emptyBecauseOfSearch
+                    ? 'Revise o documento, ano ou tipo informado para ampliar a busca.'
+                    : 'Os documentos e registros do cliente aparecerão aqui em ordem cronológica.'
+                }
+                action={
+                  emptyBecauseOfSearch ? (
+                    <Button variant="outline" onClick={() => setFilter('')}>
+                      Limpar busca
+                    </Button>
+                  ) : undefined
+                }
+              />
+            </Surface>
+          ) : (
+            <Surface padding="none" className="overflow-hidden">
+              <ol className="divide-y divide-border/70">
+                {filteredItems.map((item) => {
+                  const title = item.customName || item.type;
+                  const fileExtension = item.fileName?.includes('.')
+                    ? item.fileName.split('.').pop()?.toUpperCase()
+                    : 'DOC';
+                  const isGed = item.source.includes('GED');
+                  const isPrivateGed = Boolean(
+                    item.fileUrl &&
+                    item.source === 'GED (Novo)' &&
+                    getDocumentObjectKeyForClient(item.fileUrl, cliente.id),
+                  );
 
-                            <div className={`w-full md:w-[45%] pl-20 md:pl-0 ${isEven ? 'md:pr-14' : 'md:pl-14'}`}>
-                                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
-                                    
-                                    <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                  return (
+                    <li
+                      key={item.id}
+                      className="grid gap-4 p-4 sm:grid-cols-[5rem_minmax(0,1fr)] sm:p-5 md:grid-cols-[5rem_minmax(0,1fr)_auto] md:items-center"
+                    >
+                      <div className="flex sm:block">
+                        <time className="inline-flex min-h-7 items-center rounded-full bg-secondary px-2.5 text-xs font-medium tabular-nums text-foreground">
+                          {item.displayYear}
+                        </time>
+                      </div>
 
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div>
-                                            <h4 className="font-bold text-slate-800 text-sm leading-tight">{item.customName || item.type}</h4>
-                                            <div className="flex items-center gap-1 mt-1">
-                                                {item.source.includes('GED') ? <Folder size={10} className="text-blue-400"/> : <FileText size={10} className="text-amber-400"/>}
-                                                <span className="text-[10px] text-slate-400 uppercase tracking-wide">{item.source}</span>
-                                            </div>
-                                        </div>
-                                        <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider border border-slate-200">{fileExt}</span>
-                                    </div>
-
-                                    {item.law && (
-                                        <div className="mb-4 p-2.5 bg-blue-50/50 rounded-xl text-[10px] text-blue-700 border border-blue-100/50 leading-relaxed">
-                                            <strong className="block mb-0.5 text-blue-800">Base Legal:</strong>
-                                            {item.law}
-                                        </div>
-                                    )}
-
-                                    {item.fileUrl ? (
-                                        <a 
-                                            href={item.fileUrl} 
-                                            onClick={(event) => void handleOpenDocument(event, item)}
-                                            target="_blank" 
-                                            rel="noreferrer"
-                                            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-emerald-600 transition-colors shadow-lg shadow-slate-200 group-hover:shadow-emerald-200"
-                                        >
-                                            <ExternalLink size={14}/> Abrir Documento
-                                        </a>
-                                    ) : (
-                                        <div className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-slate-100 text-slate-400 text-xs font-bold border border-slate-200 cursor-not-allowed">
-                                            <AlertCircle size={14}/> Apenas Registro (Sem Arquivo)
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h3 className="text-sm font-semibold leading-5 text-foreground">
+                              {title}
+                            </h3>
+                            <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                              {isGed ? <Folder size={13} aria-hidden="true" /> : <FileText size={13} aria-hidden="true" />}
+                              <span>{item.source}</span>
+                            </p>
+                          </div>
+                          <span className="rounded-md bg-secondary px-2 py-1 text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
+                            {fileExtension}
+                          </span>
                         </div>
-                    );
+
+                        {item.law ? (
+                          <div className="mt-3 rounded-control bg-secondary/60 px-3 py-2.5 text-xs leading-5 text-muted-foreground">
+                            <span className="font-medium text-foreground">Base legal: </span>
+                            {item.law}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="sm:col-start-2 md:col-start-auto">
+                        {item.fileUrl && isPrivateGed ? (
+                          <button
+                            type="button"
+                            onClick={() => void handleOpenDocument(item)}
+                            aria-label={`Abrir documento ${title}`}
+                            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-control bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm outline-none transition-colors hover:bg-brand-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:w-auto"
+                          >
+                            <ExternalLink size={16} aria-hidden="true" />
+                            Abrir documento
+                          </button>
+                        ) : item.fileUrl ? (
+                          <a
+                            href={item.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`Abrir documento ${title}`}
+                            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-control bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm outline-none transition-colors hover:bg-brand-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:w-auto"
+                          >
+                            <ExternalLink size={16} aria-hidden="true" />
+                            Abrir documento
+                          </a>
+                        ) : (
+                          <span className="flex min-h-11 w-full items-center justify-center gap-2 rounded-control bg-secondary px-4 text-sm text-muted-foreground md:w-auto">
+                            <AlertCircle size={16} aria-hidden="true" />
+                            Sem arquivo
+                          </span>
+                        )}
+                      </div>
+                    </li>
+                  );
                 })}
-            </div>
-        )}
-      </main>
+              </ol>
+            </Surface>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

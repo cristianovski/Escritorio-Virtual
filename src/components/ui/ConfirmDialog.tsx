@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from './dialog';
 import { Button } from './button';
 
 interface ConfirmDialogProps {
@@ -8,6 +8,7 @@ interface ConfirmDialogProps {
   message: string;
   onConfirm: () => void;
   onCancel: () => void;
+  confirming?: boolean;
 }
 
 export function ConfirmDialog({
@@ -17,20 +18,21 @@ export function ConfirmDialog({
   message,
   onConfirm,
   onCancel,
+  confirming = false,
 }: ConfirmDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(nextOpen) => !confirming && onOpenChange(nextOpen)}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <p className="text-sm text-slate-600">{message}</p>
+        <DialogDescription className="leading-6">{message}</DialogDescription>
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>
+          <Button variant="outline" onClick={onCancel} disabled={confirming}>
             Cancelar
           </Button>
-          <Button variant="destructive" onClick={onConfirm}>
-            Confirmar
+          <Button variant="destructive" onClick={onConfirm} disabled={confirming} aria-busy={confirming}>
+            {confirming ? 'Excluindo…' : 'Confirmar'}
           </Button>
         </DialogFooter>
       </DialogContent>

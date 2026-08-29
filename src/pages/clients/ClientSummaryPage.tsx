@@ -2,19 +2,17 @@ import {
   ArrowRight,
   CalendarDays,
   CheckCircle2,
-  ClipboardList,
+  Circle,
   FileSearch,
-  FolderOpen,
   Landmark,
   MapPin,
   Phone,
-  Scale,
-  UserRound,
   WalletCards,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Client, WithClientProps } from '../../types';
 import { maskCPF, maskPhone } from '../../lib/utils';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 interface ChecklistItem {
   label: string;
@@ -25,7 +23,7 @@ interface ChecklistItem {
 function formatDate(value?: string) {
   if (!value) return 'Não informado';
 
-  const normalized = value.includes('T') ? value : `${value}T12:00:00`;
+  const normalized = value.includes('T') ? value : value + 'T12:00:00';
   const parsed = new Date(normalized);
   return Number.isNaN(parsed.getTime())
     ? 'Não informado'
@@ -37,7 +35,7 @@ function buildChecklist(client: Client): ChecklistItem[] {
     {
       label: 'Identificação civil',
       complete: Boolean(client.nome && client.cpf && client.data_nascimento),
-      detail: 'Nome, CPF e data de nascimento',
+      detail: 'Nome, CPF e nascimento',
     },
     {
       label: 'Contato',
@@ -62,97 +60,81 @@ export function ClientSummaryPage({ cliente }: WithClientProps) {
   const completedItems = checklist.filter((item) => item.complete).length;
   const completion = Math.round((completedItems / checklist.length) * 100);
   const pendingItem = checklist.find((item) => !item.complete);
-  const phase = cliente.fase_processo || 'Administrativo';
-  const status = cliente.status_processo || 'A Iniciar';
+  const nextLink = pendingItem
+    ? '/cliente/' + cliente.id + '/cadastro'
+    : '/documentos/' + cliente.id;
 
-  const quickActions = [
+  const essentials = [
     {
-      label: 'Completar cadastro',
-      description: 'Revise os dados civis e de contato.',
-      to: `/cliente/${cliente.id}/cadastro`,
-      icon: UserRound,
+      label: 'CPF',
+      value: cliente.cpf ? maskCPF(cliente.cpf) : 'Não informado',
+      icon: Landmark,
     },
     {
-      label: 'Entrevista rural',
-      description: 'Registre imóvel, produção e histórico.',
-      to: `/cliente/${cliente.id}/entrevista`,
-      icon: ClipboardList,
+      label: 'Nascimento',
+      value: formatDate(cliente.data_nascimento),
+      icon: CalendarDays,
     },
     {
-      label: 'Organizar documentos',
-      description: 'Adicione e classifique as provas.',
-      to: `/documentos/${cliente.id}`,
-      icon: FolderOpen,
+      label: 'Telefone',
+      value: cliente.telefone ? maskPhone(cliente.telefone) : 'Não informado',
+      icon: Phone,
     },
     {
-      label: 'Analisar benefício',
-      description: 'Monte períodos e estratégia previdenciária.',
-      to: `/analise/${cliente.id}`,
-      icon: Scale,
+      label: 'Localidade',
+      value: cliente.cidade || 'Não informada',
+      icon: MapPin,
+    },
+    {
+      label: 'NIT',
+      value: cliente.nit || 'Não informado',
+      icon: WalletCards,
     },
   ];
 
   return (
-    <main className="h-full overflow-y-auto bg-background px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      <div className="mx-auto max-w-[1440px] space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-sm font-medium text-primary">Visão do atendimento</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
-              Resumo do cliente
-            </h2>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              Dados essenciais, pendências e próximos passos reunidos em um só lugar.
-            </p>
-          </div>
-          <Link
-            to={`/cliente/${cliente.id}/cadastro`}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            Editar cadastro <ArrowRight size={16} aria-hidden="true" />
-          </Link>
-        </div>
+    <div className="h-full overflow-y-auto bg-background px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <div className="mx-auto max-w-content space-y-8">
+        <PageHeader
+          headingLevel={2}
+          title="Resumo do atendimento"
+          description={'Última atualização em ' + formatDate(cliente.updated_at || cliente.created_at) + '.'}
+          actions={(
+            <Link
+              to={'/cliente/' + cliente.id + '/cadastro'}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-brand-hover hover:shadow-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              Editar cadastro <ArrowRight size={16} aria-hidden="true" />
+            </Link>
+          )}
+        />
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores do cliente">
-          {[
-            { label: 'Situação', value: status, helper: 'Andamento atual' },
-            { label: 'Fase', value: phase, helper: 'Etapa do processo' },
-            { label: 'Cadastro essencial', value: `${completion}%`, helper: `${completedItems} de ${checklist.length} itens` },
-            { label: 'Última atualização', value: formatDate(cliente.updated_at || cliente.created_at), helper: 'Dados do cliente' },
-          ].map((item) => (
-            <article key={item.label} className="rounded-xl border border-border bg-card p-4">
-              <p className="text-sm font-medium text-muted-foreground">{item.label}</p>
-              <p className="mt-2 text-xl font-semibold text-card-foreground">{item.value}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{item.helper}</p>
-            </article>
-          ))}
-        </section>
-
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
           <div className="space-y-6">
-            <section className="rounded-xl border border-border bg-card">
-              <div className="border-b border-border px-5 py-4">
-                <h3 className="text-base font-semibold text-card-foreground">Próxima ação recomendada</h3>
-              </div>
-              <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
-                    {pendingItem ? <FileSearch size={19} aria-hidden="true" /> : <CheckCircle2 size={19} aria-hidden="true" />}
-                  </div>
+            <section
+              aria-labelledby="next-action-title"
+              className="rounded-surface bg-brand-subtle p-5 ring-1 ring-brand/10 sm:p-6"
+            >
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-4">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-card text-primary shadow-sm" aria-hidden="true">
+                    {pendingItem ? <FileSearch size={20} /> : <CheckCircle2 size={20} />}
+                  </span>
                   <div>
-                    <p className="font-semibold text-card-foreground">
-                      {pendingItem ? `Completar ${pendingItem.label.toLowerCase()}` : 'Cadastro essencial completo'}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <p className="text-xs font-medium text-primary">Próximo passo</p>
+                    <h2 id="next-action-title" className="mt-1 text-lg font-semibold tracking-[-0.02em] text-foreground">
+                      {pendingItem ? 'Completar ' + pendingItem.label.toLowerCase() : 'Organizar os documentos'}
+                    </h2>
+                    <p className="mt-1 max-w-xl text-sm leading-6 text-muted-foreground">
                       {pendingItem
-                        ? `${pendingItem.detail}. Depois, avance para a organização das provas.`
-                        : 'Revise agora os documentos e a análise previdenciária.'}
+                        ? pendingItem.detail + '. Depois, avance para a organização das provas.'
+                        : 'O cadastro essencial está completo. Revise agora as provas disponíveis.'}
                     </p>
                   </div>
                 </div>
                 <Link
-                  to={pendingItem ? `/cliente/${cliente.id}/cadastro` : `/documentos/${cliente.id}`}
-                  className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  to={nextLink}
+                  className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-control bg-card px-4 py-2.5 text-sm font-medium text-foreground shadow-sm ring-1 ring-black/[0.045] transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {pendingItem ? 'Revisar cadastro' : 'Ver documentos'}
                   <ArrowRight size={15} aria-hidden="true" />
@@ -160,108 +142,77 @@ export function ClientSummaryPage({ cliente }: WithClientProps) {
               </div>
             </section>
 
-            <section className="rounded-xl border border-border bg-card">
-              <div className="border-b border-border px-5 py-4">
-                <h3 className="text-base font-semibold text-card-foreground">Atalhos do atendimento</h3>
+            <section aria-labelledby="essential-data-title" className="overflow-hidden rounded-surface bg-card shadow-surface ring-1 ring-black/[0.035]">
+              <div className="px-5 py-5 sm:px-6">
+                <h2 id="essential-data-title" className="text-lg font-semibold tracking-[-0.02em] text-foreground">Informações essenciais</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Dados usados com maior frequência durante o atendimento.</p>
               </div>
-              <div className="grid gap-px overflow-hidden rounded-b-xl bg-border sm:grid-cols-2">
-                {quickActions.map((action) => (
-                  <Link
-                    key={action.label}
-                    to={action.to}
-                    className="group flex min-h-28 items-start gap-3 bg-white p-5 transition-colors hover:bg-secondary focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+              <dl className="grid border-t border-border/70 sm:grid-cols-2">
+                {essentials.map((item, index) => (
+                  <div
+                    key={item.label}
+                    className={'flex gap-3 border-b border-border/70 px-5 py-4 last:border-b-0 sm:px-6 ' + (
+                      index === essentials.length - 1
+                        ? 'sm:col-span-2'
+                        : index % 2 === 0 ? 'sm:border-r' : ''
+                    )}
                   >
-                    <action.icon className="mt-0.5 shrink-0 text-primary" size={19} aria-hidden="true" />
-                    <span className="min-w-0">
-                      <span className="flex items-center gap-1 font-semibold text-foreground">
-                        {action.label}
-                        <ArrowRight className="opacity-0 transition-opacity group-hover:opacity-100" size={14} aria-hidden="true" />
-                      </span>
-                      <span className="mt-1 block text-sm leading-5 text-muted-foreground">{action.description}</span>
-                    </span>
-                  </Link>
+                    <item.icon className="mt-0.5 shrink-0 text-muted-foreground" size={17} aria-hidden="true" />
+                    <div className="min-w-0">
+                      <dt className="text-xs text-muted-foreground">{item.label}</dt>
+                      <dd className="mt-1 truncate text-sm font-medium text-foreground">{item.value}</dd>
+                    </div>
+                  </div>
                 ))}
-              </div>
+              </dl>
             </section>
           </div>
 
-          <aside className="space-y-6">
-            <section className="rounded-xl border border-border bg-card">
-              <div className="border-b border-border px-5 py-4">
-                <h3 className="text-base font-semibold text-card-foreground">Completude do cadastro</h3>
-              </div>
-              <div className="p-5">
-                <div
-                  className="h-2 overflow-hidden rounded-full bg-secondary"
-                  role="progressbar"
-                  aria-label="Completude do cadastro essencial"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={completion}
-                >
-                  <div className="h-full rounded-full bg-primary" style={{ width: `${completion}%` }} />
+          <aside>
+            <section aria-labelledby="completion-title" className="rounded-surface bg-card p-5 shadow-surface ring-1 ring-black/[0.035] sm:p-6">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <h2 id="completion-title" className="text-base font-semibold tracking-[-0.015em] text-foreground">Cadastro essencial</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">{completedItems} de {checklist.length} itens concluídos</p>
                 </div>
-                <ul className="mt-5 space-y-4">
-                  {checklist.map((item) => (
-                    <li key={item.label} className="flex items-start gap-3">
-                      <CheckCircle2
-                        size={18}
-                        className={item.complete ? 'mt-0.5 shrink-0 text-emerald-700' : 'mt-0.5 shrink-0 text-slate-300'}
-                        aria-hidden="true"
-                      />
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{item.label}</p>
-                        <p className="text-xs text-muted-foreground">{item.detail}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                <span className="text-2xl font-semibold tracking-[-0.03em] tabular-nums text-foreground">{completion}%</span>
               </div>
-            </section>
 
-            <section className="rounded-xl border border-border bg-card p-5">
-              <h3 className="text-base font-semibold text-card-foreground">Dados rápidos</h3>
-              <dl className="mt-4 space-y-4 text-sm">
-                <div className="flex gap-3">
-                  <Landmark className="mt-0.5 shrink-0 text-muted-foreground" size={17} aria-hidden="true" />
-                  <div>
-                    <dt className="text-xs text-muted-foreground">CPF</dt>
-                    <dd className="mt-0.5 font-medium text-foreground">{cliente.cpf ? maskCPF(cliente.cpf) : 'Não informado'}</dd>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <CalendarDays className="mt-0.5 shrink-0 text-muted-foreground" size={17} aria-hidden="true" />
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Nascimento</dt>
-                    <dd className="mt-0.5 font-medium text-foreground">{formatDate(cliente.data_nascimento)}</dd>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <Phone className="mt-0.5 shrink-0 text-muted-foreground" size={17} aria-hidden="true" />
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Telefone</dt>
-                    <dd className="mt-0.5 font-medium text-foreground">{cliente.telefone ? maskPhone(cliente.telefone) : 'Não informado'}</dd>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <MapPin className="mt-0.5 shrink-0 text-muted-foreground" size={17} aria-hidden="true" />
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Localidade</dt>
-                    <dd className="mt-0.5 font-medium text-foreground">{cliente.cidade || 'Não informada'}</dd>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <WalletCards className="mt-0.5 shrink-0 text-muted-foreground" size={17} aria-hidden="true" />
-                  <div>
-                    <dt className="text-xs text-muted-foreground">NIT</dt>
-                    <dd className="mt-0.5 font-medium text-foreground">{cliente.nit || 'Não informado'}</dd>
-                  </div>
-                </div>
-              </dl>
+              <div
+                className="mt-5 h-1.5 overflow-hidden rounded-full bg-secondary"
+                role="progressbar"
+                aria-label="Completude do cadastro essencial"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={completion}
+              >
+                <div className="h-full rounded-full bg-primary" style={{ width: completion + '%' }} />
+              </div>
+
+              <ul className="mt-5 divide-y divide-border/70">
+                {checklist.map((item) => (
+                  <li key={item.label} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                    {item.complete ? (
+                      <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-success" aria-hidden="true" />
+                    ) : (
+                      <Circle size={18} className="mt-0.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium text-foreground">{item.label}</p>
+                        <span className="text-[0.6875rem] font-medium text-muted-foreground">
+                          {item.complete ? 'Completo' : 'Pendente'}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{item.detail}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </section>
           </aside>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

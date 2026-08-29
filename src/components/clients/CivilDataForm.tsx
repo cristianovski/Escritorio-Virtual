@@ -3,12 +3,8 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AlertTriangle,
-  FileText,
-  MapPin,
   PenTool,
   Shield,
-  User,
-  Users,
 } from "lucide-react";
 import { civilSchema, CivilFormValues } from "../../schemas/clientSchemas";
 import { cn, maskCPF, maskPhone, maskCEP } from "../../lib/utils";
@@ -31,7 +27,7 @@ interface FieldProps {
 }
 
 const controlClassName =
-  "block h-11 w-full rounded-lg border border-input bg-white px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-brand focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-muted-foreground";
+  "block h-11 w-full rounded-control border border-input bg-card px-3 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground/70 focus:border-ring focus:ring-2 focus:ring-ring/70 disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-muted-foreground";
 
 function Field({ id, label, children, className, error, required }: FieldProps) {
   return (
@@ -56,22 +52,18 @@ function Field({ id, label, children, className, error, required }: FieldProps) 
 
 interface SectionHeadingProps {
   id: string;
-  icon: ReactNode;
   title: string;
   description: string;
 }
 
-function SectionHeading({ id, icon, title, description }: SectionHeadingProps) {
+function SectionHeading({ id, title, description }: SectionHeadingProps) {
   return (
-    <div className="mb-5 flex items-start gap-3 border-b border-border pb-4">
-      <div className="mt-0.5 shrink-0 text-brand [&_svg]:h-[1.125rem] [&_svg]:w-[1.125rem]">
-        {icon}
-      </div>
+    <div className="mb-6">
       <div>
-        <h2 id={id} className="text-base font-semibold text-foreground">
+        <h2 id={id} className="text-lg font-semibold tracking-[-0.02em] text-foreground">
           {title}
         </h2>
-        <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
       </div>
     </div>
   );
@@ -146,29 +138,30 @@ export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0
     <fieldset
       disabled={loading}
       aria-busy={loading}
-      className="space-y-6 disabled:cursor-wait disabled:opacity-75"
+      className="overflow-hidden rounded-surface bg-card shadow-surface ring-1 ring-black/[0.035] disabled:cursor-wait disabled:opacity-75"
     >
-      <section aria-labelledby={`${formId}-personal-heading`}>
-        <Surface variant="outlined" padding="lg" className="bg-card">
+      <legend className="sr-only">Dados civis e de contato do cliente</legend>
+      <section aria-labelledby={`${formId}-personal-heading`} className="border-b border-border/70 last:border-0">
+        <Surface variant="subtle" padding="lg" className="rounded-none bg-card shadow-none ring-0">
           <SectionHeading
             id={`${formId}-personal-heading`}
-            icon={<User />}
             title="Dados pessoais"
             description="Identificação principal do segurado."
           />
 
-          <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
             <Field
               id={idFor("nome")}
               label="Nome completo"
               error={errors.nome?.message}
               required
-              className="lg:col-span-2"
+              className="md:col-span-2"
             >
               <input
                 id={idFor("nome")}
                 {...register("nome")}
                 autoComplete="name"
+                aria-required="true"
                 aria-invalid={Boolean(errors.nome)}
                 aria-describedby={errors.nome ? `${idFor("nome")}-error` : undefined}
                 className={cn(controlClassName, errors.nome && "border-danger focus:border-danger")}
@@ -184,9 +177,10 @@ export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0
                 })}
                 maxLength={14}
                 inputMode="numeric"
+                aria-required="true"
                 aria-invalid={Boolean(errors.cpf)}
                 aria-describedby={errors.cpf ? `${idFor("cpf")}-error` : undefined}
-                className={cn(controlClassName, "font-mono", errors.cpf && "border-danger focus:border-danger")}
+                className={cn(controlClassName, "tabular-nums", errors.cpf && "border-danger focus:border-danger")}
                 placeholder="000.000.000-00"
               />
             </Field>
@@ -202,6 +196,7 @@ export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0
                 type="date"
                 {...register("data_nascimento")}
                 autoComplete="bday"
+                aria-required="true"
                 aria-invalid={Boolean(errors.data_nascimento)}
                 aria-describedby={errors.data_nascimento ? `${idFor("data_nascimento")}-error` : undefined}
                 className={cn(controlClassName, errors.data_nascimento && "border-danger focus:border-danger")}
@@ -241,7 +236,7 @@ export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0
             <div className="flex items-end">
               <div
                 className={cn(
-                  "flex min-h-11 w-full items-center gap-3 rounded-lg border px-3 transition-colors",
+                  "flex min-h-11 w-full items-center gap-3 rounded-control border px-3 transition-colors",
                   isAnalfabeto
                     ? "border-warning/40 bg-warning-subtle text-warning-foreground"
                   : "border-border bg-surface-subtle/60 text-foreground",
@@ -262,16 +257,15 @@ export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0
         </Surface>
       </section>
 
-      <section aria-labelledby={`${formId}-documents-heading`}>
-        <Surface variant="outlined" padding="lg" className="bg-card">
+      <section aria-labelledby={`${formId}-documents-heading`} className="border-b border-border/70 last:border-0">
+        <Surface variant="subtle" padding="lg" className="rounded-none bg-card shadow-none ring-0">
           <SectionHeading
             id={`${formId}-documents-heading`}
-            icon={<FileText />}
             title="Documentos previdenciários e civis"
             description="Registros utilizados na instrução e no atendimento previdenciário."
           />
 
-          <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
             <Field id={idFor("rg")} label="RG">
               <input id={idFor("rg")} {...register("rg")} className={controlClassName} />
             </Field>
@@ -285,26 +279,25 @@ export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0
             </Field>
 
             <Field id={idFor("nit")} label="NIT / PIS">
-              <input id={idFor("nit")} {...register("nit")} className={cn(controlClassName, "font-mono")} />
+              <input id={idFor("nit")} {...register("nit")} className={cn(controlClassName, "tabular-nums")} />
             </Field>
 
             <Field id={idFor("ctps")} label="CTPS">
-              <input id={idFor("ctps")} {...register("ctps")} className={cn(controlClassName, "font-mono")} />
+              <input id={idFor("ctps")} {...register("ctps")} className={cn(controlClassName, "tabular-nums")} />
             </Field>
           </div>
         </Surface>
       </section>
 
-      <section aria-labelledby={`${formId}-family-heading`}>
-        <Surface variant="outlined" padding="lg" className="bg-card">
+      <section aria-labelledby={`${formId}-family-heading`} className="border-b border-border/70 last:border-0">
+        <Surface variant="subtle" padding="lg" className="rounded-none bg-card shadow-none ring-0">
           <SectionHeading
             id={`${formId}-family-heading`}
-            icon={<Users />}
             title="Família e representação"
             description="Filiação, estado civil e responsável legal, quando aplicável."
           />
 
-          <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
             <Field id={idFor("nome_mae")} label="Nome da mãe">
               <input id={idFor("nome_mae")} {...register("nome_mae")} className={controlClassName} />
             </Field>
@@ -325,7 +318,7 @@ export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0
 
             {estadoCivil?.includes("Casado") || estadoCivil === "União Estável" ? (
               <>
-                <Field id={idFor("nome_conjuge")} label="Nome do cônjuge" className="lg:col-span-2">
+                <Field id={idFor("nome_conjuge")} label="Nome do cônjuge">
                   <input id={idFor("nome_conjuge")} {...register("nome_conjuge")} className={controlClassName} />
                 </Field>
                 <Field id={idFor("cpf_conjuge")} label="CPF do cônjuge">
@@ -336,7 +329,7 @@ export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0
                     })}
                     maxLength={14}
                     inputMode="numeric"
-                    className={cn(controlClassName, "font-mono")}
+                    className={cn(controlClassName, "tabular-nums")}
                     placeholder="000.000.000-00"
                   />
                 </Field>
@@ -344,7 +337,7 @@ export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0
             ) : null}
 
             {isIncapaz ? (
-              <div className="rounded-lg border border-warning/25 bg-warning-subtle/60 p-4 md:col-span-2 lg:col-span-3">
+              <div className="rounded-control bg-warning-subtle/60 p-4 md:col-span-2">
                 <div className="mb-4 flex items-start gap-2.5 border-b border-warning/20 pb-3">
                   <Shield size={18} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
                   <div>
@@ -355,8 +348,8 @@ export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2 lg:grid-cols-3">
-                  <Field id={idFor("rep_nome")} label="Nome do representante" className="lg:col-span-2">
+                <div className="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
+                  <Field id={idFor("rep_nome")} label="Nome do representante">
                     <input id={idFor("rep_nome")} {...register("rep_nome")} className={controlClassName} />
                   </Field>
 
@@ -378,7 +371,7 @@ export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0
                       })}
                       maxLength={14}
                       inputMode="numeric"
-                      className={cn(controlClassName, "font-mono")}
+                      className={cn(controlClassName, "tabular-nums")}
                       placeholder="000.000.000-00"
                     />
                   </Field>
@@ -401,7 +394,7 @@ export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0
                     />
                   </Field>
 
-                  <Field id={idFor("rep_endereco")} label="Endereço do representante" className="md:col-span-2 lg:col-span-3">
+                  <Field id={idFor("rep_endereco")} label="Endereço do representante" className="md:col-span-2">
                     <input id={idFor("rep_endereco")} {...register("rep_endereco")} className={controlClassName} />
                   </Field>
                 </div>
@@ -411,16 +404,15 @@ export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0
         </Surface>
       </section>
 
-      <section aria-labelledby={`${formId}-contact-heading`}>
-        <Surface variant="outlined" padding="lg" className="bg-card">
+      <section aria-labelledby={`${formId}-contact-heading`} className="border-b border-border/70 last:border-0">
+        <Surface variant="subtle" padding="lg" className="rounded-none bg-card shadow-none ring-0">
           <SectionHeading
             id={`${formId}-contact-heading`}
-            icon={<MapPin />}
             title="Endereço e contato"
             description="Localização e canais para comunicação com o segurado."
           />
 
-          <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
             <Field id={idFor("cep")} label="CEP">
               <input
                 id={idFor("cep")}
@@ -430,12 +422,12 @@ export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0
                 maxLength={9}
                 inputMode="numeric"
                 autoComplete="postal-code"
-                className={cn(controlClassName, "font-mono")}
+                className={cn(controlClassName, "tabular-nums")}
                 placeholder="00000-000"
               />
             </Field>
 
-            <Field id={idFor("endereco")} label="Endereço" className="lg:col-span-3">
+            <Field id={idFor("endereco")} label="Endereço">
               <input id={idFor("endereco")} {...register("endereco")} autoComplete="street-address" className={controlClassName} />
             </Field>
 

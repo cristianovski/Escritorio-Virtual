@@ -1,14 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  KeyRound,
-  MapPinned,
-  Sprout,
-  Store,
-  UsersRound,
-  type LucideIcon,
-} from "lucide-react";
 import { z } from "zod";
 import { ruralSchema } from "../../schemas/clientSchemas";
 import { maskCPF } from "../../lib/utils";
@@ -23,27 +15,23 @@ interface RuralDataFormProps {
 }
 
 const labelClassName = "mb-1.5 block text-sm font-medium text-foreground";
-const controlClassName = "min-h-11 w-full rounded-lg border border-input bg-white px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1";
+const controlClassName = "min-h-11 w-full rounded-control border border-input bg-card px-3 py-2.5 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/70";
 const textareaClassName = `${controlClassName} resize-y`;
 
 interface SectionHeaderProps {
   id: string;
   title: string;
   description: string;
-  icon: LucideIcon;
 }
 
-function SectionHeader({ id, title, description, icon: Icon }: SectionHeaderProps) {
+function SectionHeader({ id, title, description }: SectionHeaderProps) {
   return (
-    <div className="flex items-start gap-3 border-b border-border px-4 py-4 sm:px-5">
-      <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-primary">
-        <Icon aria-hidden="true" size={18} />
-      </span>
+    <div className="px-5 pb-0 pt-6 sm:px-6">
       <div>
-        <h3 id={id} className="text-base font-semibold text-foreground">
+        <h3 id={id} className="text-lg font-semibold tracking-[-0.02em] text-foreground">
           {title}
         </h3>
-        <p className="mt-0.5 text-sm leading-5 text-muted-foreground">
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">
           {description}
         </p>
       </div>
@@ -148,18 +136,17 @@ export function RuralDataForm({
     <fieldset
       disabled={loading}
       aria-busy={loading}
-      className="space-y-5 disabled:opacity-70"
+      className="overflow-hidden rounded-surface bg-card shadow-surface ring-1 ring-black/[0.035] disabled:opacity-70"
     >
       <legend className="sr-only">Ficha de atividade rural</legend>
 
-      <section aria-labelledby="rural-section-imovel" className="rounded-lg border border-border bg-card">
+      <section aria-labelledby="rural-section-imovel" className="border-b border-border/70 last:border-0">
         <SectionHeader
           id="rural-section-imovel"
           title="Imóvel"
           description="Identificação, localização e dimensões da área rural."
-          icon={MapPinned}
         />
-        <div className="grid grid-cols-1 gap-5 p-4 sm:p-5 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 p-5 sm:p-6 md:grid-cols-2">
           <div>
             <label htmlFor="rural-nome-imovel" className={labelClassName}>
               Nome do imóvel
@@ -241,14 +228,13 @@ export function RuralDataForm({
         </div>
       </section>
 
-      <section aria-labelledby="rural-section-posse" className="rounded-lg border border-border bg-card">
+      <section aria-labelledby="rural-section-posse" className="border-b border-border/70 last:border-0">
         <SectionHeader
           id="rural-section-posse"
           title="Posse"
           description="Condição de exploração da terra e identificação do proprietário, quando aplicável."
-          icon={KeyRound}
         />
-        <div className="grid grid-cols-1 gap-5 p-4 sm:p-5 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 p-5 sm:p-6 md:grid-cols-2">
           <div className="md:col-span-2 md:max-w-sm">
             <label htmlFor="rural-condicao-posse" className={labelClassName}>
               Condição de posse
@@ -308,14 +294,13 @@ export function RuralDataForm({
         </div>
       </section>
 
-      <section aria-labelledby="rural-section-producao" className="rounded-lg border border-border bg-card">
+      <section aria-labelledby="rural-section-producao" className="border-b border-border/70 last:border-0">
         <SectionHeader
           id="rural-section-producao"
           title="Produção"
           description="Atividades agrícolas, criações e destinação da produção."
-          icon={Sprout}
         />
-        <div className="grid grid-cols-1 gap-5 p-4 sm:p-5 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 p-5 sm:p-6 md:grid-cols-2">
           <div>
             <label htmlFor="rural-culturas" className={labelClassName}>
               Culturas e atividades agrícolas
@@ -366,14 +351,13 @@ export function RuralDataForm({
         </div>
       </section>
 
-      <section aria-labelledby="rural-section-comercializacao" className="rounded-lg border border-border bg-card">
+      <section aria-labelledby="rural-section-comercializacao" className="border-b border-border/70 last:border-0">
         <SectionHeader
           id="rural-section-comercializacao"
           title="Comercialização"
           description="Canais e locais usados para vender a produção rural."
-          icon={Store}
         />
-        <div className="p-4 sm:p-5">
+        <div className="p-5 sm:p-6">
           <label htmlFor="rural-locais-venda" className={labelClassName}>
             Locais e formas de venda
           </label>
@@ -390,14 +374,13 @@ export function RuralDataForm({
         </div>
       </section>
 
-      <section aria-labelledby="rural-section-grupo" className="rounded-lg border border-border bg-card">
+      <section aria-labelledby="rural-section-grupo" className="border-b border-border/70 last:border-0">
         <SectionHeader
           id="rural-section-grupo"
           title="Grupo familiar"
           description="Participação da família e eventual contratação de empregados."
-          icon={UsersRound}
         />
-        <div className="grid grid-cols-1 gap-5 p-4 sm:p-5 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 p-5 sm:p-6 md:grid-cols-2">
           <div className={showTempoEmpregados ? "" : "md:col-span-2 md:max-w-sm"}>
             <label htmlFor="rural-tem-empregados" className={labelClassName}>
               Possui empregados?

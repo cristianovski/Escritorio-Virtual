@@ -249,35 +249,30 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background font-sans">
-      <header className="shrink-0 border-b border-border bg-white px-4 py-4 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-5xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="shrink-0 bg-background px-4 py-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-3">
             {!isExistingClient ? (
               <button
                 type="button"
                 onClick={onBack}
                 aria-label="Voltar para clientes"
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <ArrowLeft size={20} aria-hidden="true" />
               </button>
             ) : null}
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-bronze-foreground">
-                {isExistingClient ? 'Dados do atendimento' : 'Novo atendimento'}
-              </p>
-              <h2 className="mt-1 text-xl font-semibold text-foreground">
-                {!isExistingClient
-                  ? 'Novo cliente'
-                  : activeTab === 'civil'
-                    ? 'Cadastro'
-                    : 'Entrevista rural'}
-              </h2>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                {activeTab === 'civil'
-                  ? 'Informações civis, previdenciárias e de contato.'
-                  : 'Atividade rural e histórico relatado pelo cliente.'}
-              </p>
+              {!isExistingClient ? (
+                <>
+                  <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Novo cliente</h1>
+                  <p className="mt-1 text-sm text-muted-foreground">Cadastre as informações do novo atendimento.</p>
+                </>
+              ) : (
+                <h2 className="text-lg font-semibold tracking-[-0.02em] text-foreground">
+                  {activeTab === 'civil' ? 'Cadastro' : activeTab === 'rural' ? 'Entrevista rural' : 'Histórico do caso'}
+                </h2>
+              )}
             </div>
           </div>
 
@@ -285,7 +280,7 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
             type="button"
             onClick={handleSave}
             disabled={loading}
-            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-control bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-brand-hover hover:shadow-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
           >
             <Save size={17} aria-hidden="true" />
             {loading ? 'Salvando…' : 'Salvar cliente'}
@@ -294,8 +289,8 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
       </header>
 
       {!isExistingClient ? (
-        <nav className="shrink-0 overflow-x-auto border-b border-border bg-white px-4 sm:px-6" aria-label="Etapas do cadastro">
-          <div className="mx-auto flex min-w-max max-w-5xl gap-1" role="tablist" aria-label="Seções do novo cliente">
+        <nav className="shrink-0 overflow-x-auto bg-background px-4 pb-4 sm:px-6" aria-label="Etapas do cadastro">
+          <div className="mx-auto flex min-w-max max-w-6xl gap-1 rounded-control bg-secondary p-1" aria-label="Seções do novo cliente">
             {[
               { id: 'civil' as const, label: 'Cadastro', icon: User },
               { id: 'rural' as const, label: 'Entrevista rural', icon: Tractor },
@@ -304,13 +299,12 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
               <button
                 key={tab.id}
                 type="button"
-                role="tab"
-                aria-selected={activeTab === tab.id}
+                aria-pressed={activeTab === tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`inline-flex min-h-11 items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                className={`inline-flex min-h-11 items-center gap-2 rounded-[0.6rem] px-3 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   activeTab === tab.id
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 <tab.icon size={17} aria-hidden="true" /> {tab.label}
@@ -319,23 +313,21 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
           </div>
         </nav>
       ) : isInterviewRoute ? (
-        <nav className="shrink-0 border-b border-border bg-surface-subtle px-4 py-2 sm:px-6" aria-label="Seções da entrevista rural">
-          <div className="mx-auto flex max-w-5xl gap-2" role="tablist" aria-label="Conteúdo da entrevista rural">
+        <nav className="shrink-0 bg-background px-4 pb-4 sm:px-6" aria-label="Seções da entrevista rural">
+          <div className="mx-auto flex max-w-6xl gap-1 rounded-control bg-secondary p-1" aria-label="Conteúdo da entrevista rural">
             <button
               type="button"
-              role="tab"
-              aria-selected={activeTab === 'rural'}
+              aria-pressed={activeTab === 'rural'}
               onClick={() => handleTabChange('rural')}
-              className={`min-h-10 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${activeTab === 'rural' ? 'bg-white text-primary shadow-surface' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`min-h-11 rounded-[0.6rem] px-3 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${activeTab === 'rural' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Dados da atividade
             </button>
             <button
               type="button"
-              role="tab"
-              aria-selected={activeTab === 'anamnese'}
+              aria-pressed={activeTab === 'anamnese'}
               onClick={() => handleTabChange('anamnese')}
-              className={`min-h-10 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${activeTab === 'anamnese' ? 'bg-white text-primary shadow-surface' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`min-h-11 rounded-[0.6rem] px-3 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${activeTab === 'anamnese' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Histórico do caso
             </button>
@@ -343,7 +335,7 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
         </nav>
       ) : null}
 
-      <main className="mx-auto w-full max-w-5xl flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <div className="mx-auto w-full max-w-6xl flex-1 overflow-y-auto px-4 pb-8 sm:px-6 lg:px-8">
         {activeTab === 'civil' && (
           <CivilDataForm
             initialData={civilData}
@@ -363,8 +355,8 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
         )}
 
         {activeTab === 'anamnese' && (
-          <section className="rounded-xl border border-border bg-white p-5 sm:p-6">
-            <div className="border-b border-border pb-4">
+          <section className="rounded-surface bg-card p-5 shadow-surface ring-1 ring-black/[0.035] sm:p-6">
+            <div>
               <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
                 <PenTool className="text-primary" size={19} aria-hidden="true" /> Histórico do caso
               </h3>
@@ -374,7 +366,7 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
             </div>
 
             <div className="mt-5 grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
-              <aside className="rounded-lg bg-secondary p-4">
+              <aside className="rounded-control bg-secondary p-4">
                 <p className="text-sm font-semibold text-foreground">Roteiro sugerido</p>
                 <ul className="mt-3 space-y-2 text-sm leading-5 text-muted-foreground">
                   <li>• Locais e períodos de atividade rural</li>
@@ -394,14 +386,14 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
                   onChange={(e) => setHistorico(e.target.value)}
                   disabled={loading}
                   rows={16}
-                  className="min-h-80 w-full resize-y rounded-lg border border-input bg-white p-4 text-sm leading-6 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-wait disabled:bg-muted"
+                  className="min-h-80 w-full resize-y rounded-control border border-input bg-card p-4 text-sm leading-6 text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/70 disabled:cursor-wait disabled:bg-muted"
                   placeholder="Descreva o histórico rural, a rotina de trabalho, os períodos e as provas citadas pelo cliente…"
                 />
               </div>
             </div>
           </section>
         )}
-      </main>
+      </div>
     </div>
   );
 }

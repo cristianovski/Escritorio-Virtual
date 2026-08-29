@@ -22,20 +22,20 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center rounded-surface border border-dashed border-border bg-surface/60 px-6 text-center',
+        'flex flex-col items-center justify-center rounded-surface px-6 text-center',
         compact ? 'py-8' : 'py-12',
         className,
       )}
       {...props}
     >
       {icon ? (
-        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground shadow-surface [&_svg]:h-5 [&_svg]:w-5">
+        <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-muted-foreground [&_svg]:h-5 [&_svg]:w-5">
           {icon}
         </div>
       ) : null}
-      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      <h3 className="text-base font-medium text-foreground">{title}</h3>
       {description ? (
-        <div className="mt-1 max-w-md text-sm leading-5 text-muted-foreground">
+        <div className="mt-1.5 max-w-md text-sm leading-6 text-muted-foreground">
           {description}
         </div>
       ) : null}

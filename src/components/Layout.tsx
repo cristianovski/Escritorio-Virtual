@@ -72,7 +72,7 @@ function Navigation({ pathname, onNavigate }: NavigationProps) {
             aria-current={active ? "page" : undefined}
             className={`flex min-h-11 items-center gap-3 rounded-control px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-product focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
               active
-                ? "bg-card text-foreground shadow-surface ring-1 ring-black/[0.035]"
+                ? "bg-card text-foreground shadow-panel ring-1 ring-black/[0.035]"
                 : "text-muted-foreground hover:bg-card/60 hover:text-foreground"
             }`}
           >
@@ -103,7 +103,7 @@ function Brand({ compact = false, onNavigate }: BrandProps) {
       aria-label="PrevRural — ir para a visão geral"
       className="flex min-h-11 items-center gap-3 rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-card text-xs font-semibold tracking-[0.06em] text-primary shadow-surface ring-1 ring-black/[0.04]">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-card text-xs font-semibold tracking-[0.06em] text-primary shadow-panel ring-1 ring-black/[0.04]">
         PR
       </span>
       <span className="min-w-0">

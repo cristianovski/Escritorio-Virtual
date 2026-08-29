@@ -171,7 +171,7 @@ export function ClientDocumentsManager({ cliente, onBack }: PageProps) {
                 <div className="space-y-2" role="status" aria-live="polite" aria-busy="true">
                   <span className="sr-only">Carregando documentos</span>
                   {[1, 2, 3, 4].map((item) => (
-                    <div key={item} className="h-[5.25rem] animate-pulse rounded-surface bg-card shadow-surface motion-reduce:animate-none" />
+                    <div key={item} className="h-[5.25rem] animate-pulse rounded-surface bg-card shadow-panel motion-reduce:animate-none" />
                   ))}
                 </div>
               ) : filteredDocs.length === 0 ? (
@@ -209,7 +209,7 @@ export function ClientDocumentsManager({ cliente, onBack }: PageProps) {
                           aria-pressed={selected}
                           aria-describedby={metadataId}
                           className={cn(
-                            'flex min-h-[5.25rem] w-full items-start gap-3 rounded-surface bg-card p-4 text-left shadow-surface ring-1 ring-black/[0.035] transition-all duration-200 ease-product focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:gap-4',
+                            'flex min-h-[5.25rem] w-full items-start gap-3 rounded-surface bg-card p-4 text-left shadow-panel ring-1 ring-black/[0.035] transition-all duration-200 ease-product focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:gap-4',
                             selected
                               ? 'bg-brand-subtle ring-primary/20'
                               : 'hover:bg-secondary/35',

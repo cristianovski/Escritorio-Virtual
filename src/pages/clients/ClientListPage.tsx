@@ -62,7 +62,7 @@ function ClientListSkeleton() {
     <div role="status" aria-live="polite" aria-label="Carregando clientes">
       <span className="sr-only">Carregando clientes…</span>
 
-      <div className="hidden overflow-hidden rounded-surface bg-card shadow-surface ring-1 ring-black/[0.035] xl:block">
+      <div className="hidden overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-black/[0.035] xl:block">
         <div className="h-11 animate-pulse border-b border-border bg-surface-subtle" />
         {[1, 2, 3, 4].map((item) => (
           <div key={item} className="grid grid-cols-[2fr_1.2fr_1.2fr_0.8fr_0.7fr] gap-4 border-b border-border px-5 py-4 last:border-0">
@@ -75,7 +75,7 @@ function ClientListSkeleton() {
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-surface bg-card shadow-surface ring-1 ring-black/[0.035] xl:hidden">
+      <div className="overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-black/[0.035] xl:hidden">
         {[1, 2, 3].map((item) => (
           <div key={item} className="border-b border-border/70 p-4 last:border-0">
             <div className="h-12 animate-pulse rounded-md bg-surface-subtle" />
@@ -260,7 +260,7 @@ export function ClientListPage() {
             />
           ) : (
             <>
-              <div className="hidden overflow-hidden rounded-surface bg-card shadow-surface ring-1 ring-black/[0.035] xl:block">
+              <div className="hidden overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-black/[0.035] xl:block">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[880px] border-collapse text-left">
                     <caption className="sr-only">
@@ -329,7 +329,7 @@ export function ClientListPage() {
                 </div>
               </div>
 
-              <div className="divide-y divide-border/70 overflow-hidden rounded-surface bg-card shadow-surface ring-1 ring-black/[0.035] xl:hidden">
+              <div className="divide-y divide-border/70 overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-black/[0.035] xl:hidden">
                 {filteredClients.map((client) => (
                   <Link
                     key={client.id}

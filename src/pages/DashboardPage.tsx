@@ -291,7 +291,7 @@ export function DashboardPage() {
 
           <section aria-labelledby="portfolio-summary-title">
             <h2 id="portfolio-summary-title" className="sr-only">Resumo da carteira</h2>
-            <div className="grid grid-cols-2 gap-px overflow-hidden rounded-surface bg-border/70 shadow-surface ring-1 ring-black/[0.035] md:grid-cols-5">
+            <div className="grid grid-cols-2 gap-px overflow-hidden rounded-surface bg-border/70 shadow-panel ring-1 ring-black/[0.035] md:grid-cols-5">
               {metrics.map((metric) => {
                 const active = statusFilter === metric.filter;
                 return (
@@ -316,7 +316,7 @@ export function DashboardPage() {
           </section>
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
-            <section aria-labelledby="clients-title" className="min-w-0 overflow-hidden rounded-surface bg-card shadow-surface ring-1 ring-black/[0.035]">
+            <section aria-labelledby="clients-title" className="min-w-0 overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-black/[0.035]">
               <div className="flex items-center justify-between gap-4 px-5 py-5 sm:px-6">
                 <div>
                   <h2 id="clients-title" className="text-lg font-semibold tracking-[-0.02em] text-foreground">Atendimentos recentes</h2>
@@ -431,7 +431,7 @@ export function DashboardPage() {
             </section>
 
             <aside aria-label="Informações do dia" className="space-y-6">
-              <section aria-labelledby="notes-title" className="rounded-surface bg-card p-5 shadow-surface ring-1 ring-black/[0.035]">
+              <section aria-labelledby="notes-title" className="rounded-surface bg-card p-5 shadow-panel ring-1 ring-black/[0.035]">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <h2 id="notes-title" className="text-base font-semibold tracking-[-0.015em] text-foreground">Lembretes</h2>
@@ -525,7 +525,7 @@ export function DashboardPage() {
                 </div>
               </section>
 
-              <section aria-labelledby="today-title" className="overflow-hidden rounded-surface bg-card shadow-surface ring-1 ring-black/[0.035]">
+              <section aria-labelledby="today-title" className="overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-black/[0.035]">
                 <div className="p-5">
                   <h2 id="today-title" className="text-base font-semibold tracking-[-0.015em] text-foreground">Pontos de atenção</h2>
                   <div className="mt-3 flex items-center justify-between gap-3 rounded-control bg-warning-subtle px-3 py-3 text-sm">

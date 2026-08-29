@@ -136,7 +136,7 @@ export function RuralDataForm({
     <fieldset
       disabled={loading}
       aria-busy={loading}
-      className="overflow-hidden rounded-surface bg-card shadow-surface ring-1 ring-black/[0.035] disabled:opacity-70"
+      className="overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-black/[0.035] disabled:opacity-70"
     >
       <legend className="sr-only">Ficha de atividade rural</legend>
 

@@ -280,7 +280,7 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
             type="button"
             onClick={handleSave}
             disabled={loading}
-            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-control bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-brand-hover hover:shadow-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-control bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-brand-hover hover:shadow-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
           >
             <Save size={17} aria-hidden="true" />
             {loading ? 'Salvando…' : 'Salvar cliente'}
@@ -355,7 +355,7 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
         )}
 
         {activeTab === 'anamnese' && (
-          <section className="rounded-surface bg-card p-5 shadow-surface ring-1 ring-black/[0.035] sm:p-6">
+          <section className="rounded-surface bg-card p-5 shadow-panel ring-1 ring-black/[0.035] sm:p-6">
             <div>
               <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
                 <PenTool className="text-primary" size={19} aria-hidden="true" /> Histórico do caso

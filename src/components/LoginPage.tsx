@@ -82,7 +82,7 @@ export function LoginPage() {
       <div className="pointer-events-none absolute -left-24 top-[-8rem] h-80 w-80 rounded-full bg-brand/5 blur-3xl" aria-hidden="true" />
       <div className="pointer-events-none absolute -bottom-40 right-[-8rem] h-96 w-96 rounded-full bg-navy/5 blur-3xl" aria-hidden="true" />
 
-      <section className="relative w-full max-w-[27rem] rounded-[1.75rem] bg-card/[0.92] p-6 shadow-surface ring-1 ring-black/[0.045] backdrop-blur-xl sm:p-8">
+      <section className="relative w-full max-w-[27rem] rounded-[1.75rem] bg-card/[0.92] p-6 shadow-panel ring-1 ring-black/[0.045] backdrop-blur-xl sm:p-8">
         <div className="flex items-center gap-3" aria-label="PrevRural">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary text-xs font-semibold tracking-[0.06em] text-primary ring-1 ring-black/[0.035]">
             PR
@@ -161,7 +161,7 @@ export function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-control bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-all duration-200 ease-product hover:bg-brand-hover hover:shadow-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-65"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-control bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-all duration-200 ease-product hover:bg-brand-hover hover:shadow-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-65"
               >
                 {loading ? (
                   <>

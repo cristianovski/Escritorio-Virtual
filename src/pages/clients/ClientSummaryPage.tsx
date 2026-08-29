@@ -102,7 +102,7 @@ export function ClientSummaryPage({ cliente }: WithClientProps) {
           actions={(
             <Link
               to={'/cliente/' + cliente.id + '/cadastro'}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-brand-hover hover:shadow-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-brand-hover hover:shadow-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               Editar cadastro <ArrowRight size={16} aria-hidden="true" />
             </Link>
@@ -142,7 +142,7 @@ export function ClientSummaryPage({ cliente }: WithClientProps) {
               </div>
             </section>
 
-            <section aria-labelledby="essential-data-title" className="overflow-hidden rounded-surface bg-card shadow-surface ring-1 ring-black/[0.035]">
+            <section aria-labelledby="essential-data-title" className="overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-black/[0.035]">
               <div className="px-5 py-5 sm:px-6">
                 <h2 id="essential-data-title" className="text-lg font-semibold tracking-[-0.02em] text-foreground">Informações essenciais</h2>
                 <p className="mt-1 text-sm text-muted-foreground">Dados usados com maior frequência durante o atendimento.</p>
@@ -169,7 +169,7 @@ export function ClientSummaryPage({ cliente }: WithClientProps) {
           </div>
 
           <aside>
-            <section aria-labelledby="completion-title" className="rounded-surface bg-card p-5 shadow-surface ring-1 ring-black/[0.035] sm:p-6">
+            <section aria-labelledby="completion-title" className="rounded-surface bg-card p-5 shadow-panel ring-1 ring-black/[0.035] sm:p-6">
               <div className="flex items-end justify-between gap-4">
                 <div>
                   <h2 id="completion-title" className="text-base font-semibold tracking-[-0.015em] text-foreground">Cadastro essencial</h2>

@@ -138,7 +138,7 @@ export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0
     <fieldset
       disabled={loading}
       aria-busy={loading}
-      className="overflow-hidden rounded-surface bg-card shadow-surface ring-1 ring-black/[0.035] disabled:cursor-wait disabled:opacity-75"
+      className="overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-black/[0.035] disabled:cursor-wait disabled:opacity-75"
     >
       <legend className="sr-only">Dados civis e de contato do cliente</legend>
       <section aria-labelledby={`${formId}-personal-heading`} className="border-b border-border/70 last:border-0">

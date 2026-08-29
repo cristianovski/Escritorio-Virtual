@@ -114,7 +114,7 @@ export default {
         dialog: "1.25rem",
       },
       boxShadow: {
-        surface: "0 1px 2px rgb(0 0 0 / 0.025), 0 8px 24px rgb(0 0 0 / 0.035)",
+        panel: "0 1px 2px rgba(0, 0, 0, 0.025), 0 8px 24px rgba(0, 0, 0, 0.035)",
         floating: "0 12px 36px rgb(0 0 0 / 0.08)",
         overlay: "0 28px 80px rgb(0 0 0 / 0.16)",
       },

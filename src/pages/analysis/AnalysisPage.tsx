@@ -86,7 +86,7 @@ const EMPTY_FORM: Partial<Periodo> = {
 };
 
 const fieldClassName =
-  'h-11 w-full rounded-control border border-input bg-card px-3 text-sm text-foreground shadow-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/70 disabled:cursor-not-allowed disabled:bg-muted motion-reduce:transition-none';
+  'h-11 w-full rounded-control border border-input bg-surface-subtle/55 px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70 disabled:cursor-not-allowed disabled:bg-muted motion-reduce:transition-none';
 
 interface PeriodPresentation {
   label: string;
@@ -100,31 +100,31 @@ const PERIOD_PRESENTATION: Record<PeriodoType, PeriodPresentation> = {
     label: 'Atividade rural',
     status: 'Conta como carência rural',
     Icon: CheckCircle2,
-    iconClassName: 'bg-neutral-subtle text-foreground',
+    iconClassName: 'bg-brand-subtle text-brand',
   },
   urbano: {
     label: 'Urbano / CNIS',
     status: 'Vínculo urbano no CNIS',
     Icon: BriefcaseBusiness,
-    iconClassName: 'bg-danger-subtle text-danger-foreground',
+    iconClassName: 'bg-secondary text-foreground',
   },
   beneficio: {
     label: 'Benefício INSS',
     status: 'Benefício intercalado',
     Icon: Landmark,
-    iconClassName: 'bg-warning-subtle text-warning-foreground',
+    iconClassName: 'bg-secondary text-foreground',
   },
   lacuna: {
     label: 'Sem atividade',
     status: 'Lacuna sem atividade registrada',
     Icon: CircleDashed,
-    iconClassName: 'bg-neutral-subtle text-muted-foreground',
+    iconClassName: 'bg-secondary text-muted-foreground',
   },
   'prova de retorno': {
     label: 'Prova de retorno',
     status: 'Documento pontual',
     Icon: Paperclip,
-    iconClassName: 'bg-info-subtle text-info-foreground',
+    iconClassName: 'bg-secondary text-foreground',
   },
 };
 

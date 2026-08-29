@@ -39,24 +39,15 @@ const getStatusStyle = (status?: BenefitStatus) => {
     case 'Finalizado':
       return { dot: 'bg-success', badge: 'bg-success-subtle text-success-foreground' };
     case 'Em Andamento':
-      return { dot: 'bg-info', badge: 'bg-info-subtle text-info-foreground' };
+      return { dot: 'bg-brand', badge: 'bg-brand-subtle text-brand' };
     case 'Suspenso':
-      return { dot: 'bg-danger', badge: 'bg-danger-subtle text-danger-foreground' };
-    default:
       return { dot: 'bg-warning', badge: 'bg-warning-subtle text-warning-foreground' };
+    default:
+      return { dot: 'bg-muted-foreground/65', badge: 'bg-secondary text-muted-foreground' };
   }
 };
 
-const getPhaseStyle = (phase?: string) => {
-  switch (phase) {
-    case 'Judicial':
-      return 'bg-info-subtle text-info-foreground';
-    case 'Execução':
-      return 'bg-warning-subtle text-warning-foreground';
-    default:
-      return 'bg-secondary text-muted-foreground';
-  }
-};
+const getPhaseStyle = () => 'bg-secondary text-muted-foreground';
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -250,12 +241,12 @@ export function DashboardPage() {
     suspenso: clients.filter((client) => client.status_processo === 'Suspenso').length,
   };
 
-  const metrics: Array<{ label: string; value: number; filter: StatusFilter; tone: string }> = [
-    { label: 'Todos', value: stats.total, filter: 'Todos', tone: 'bg-primary' },
-    { label: 'A iniciar', value: stats.iniciar, filter: 'A Iniciar', tone: 'bg-warning' },
-    { label: 'Em andamento', value: stats.andamento, filter: 'Em Andamento', tone: 'bg-info' },
-    { label: 'Finalizados', value: stats.finalizado, filter: 'Finalizado', tone: 'bg-success' },
-    { label: 'Suspensos', value: stats.suspenso, filter: 'Suspenso', tone: 'bg-danger' },
+  const metrics: Array<{ label: string; value: number; filter: StatusFilter }> = [
+    { label: 'Todos', value: stats.total, filter: 'Todos' },
+    { label: 'A iniciar', value: stats.iniciar, filter: 'A Iniciar' },
+    { label: 'Em andamento', value: stats.andamento, filter: 'Em Andamento' },
+    { label: 'Finalizados', value: stats.finalizado, filter: 'Finalizado' },
+    { label: 'Suspensos', value: stats.suspenso, filter: 'Suspenso' },
   ];
 
   const filteredClients = clients.filter((client) => (
@@ -291,7 +282,7 @@ export function DashboardPage() {
 
           <section aria-labelledby="portfolio-summary-title">
             <h2 id="portfolio-summary-title" className="sr-only">Resumo da carteira</h2>
-            <div className="grid grid-cols-2 gap-px overflow-hidden rounded-surface bg-border/70 shadow-panel ring-1 ring-black/[0.035] md:grid-cols-5">
+            <div className="grid grid-cols-2 gap-px overflow-hidden rounded-surface bg-border/70 shadow-panel ring-1 ring-border/80 md:grid-cols-5">
               {metrics.map((metric) => {
                 const active = statusFilter === metric.filter;
                 return (
@@ -302,11 +293,10 @@ export function DashboardPage() {
                     onClick={() => setStatusFilter(metric.filter)}
                     className={cn(
                       'relative min-h-24 bg-card px-5 py-4 text-left transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
-                      active ? 'bg-brand-subtle' : 'hover:bg-secondary/70',
+                      active ? 'bg-brand-subtle/80' : 'hover:bg-secondary/70',
                       metric.filter === 'Suspenso' && 'col-span-2 md:col-span-1',
                     )}
                   >
-                    <span className={cn('absolute right-4 top-4 h-2 w-2 rounded-full', metric.tone)} aria-hidden="true" />
                     <span className="block text-[1.75rem] font-semibold leading-none tracking-[-0.03em] tabular-nums text-foreground">{metric.value}</span>
                     <span className="mt-2 block text-sm text-muted-foreground">{metric.label}</span>
                   </button>
@@ -316,7 +306,7 @@ export function DashboardPage() {
           </section>
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
-            <section aria-labelledby="clients-title" className="min-w-0 overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-black/[0.035]">
+            <section aria-labelledby="clients-title" className="min-w-0 overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-border/80">
               <div className="flex items-center justify-between gap-4 px-5 py-5 sm:px-6">
                 <div>
                   <h2 id="clients-title" className="text-lg font-semibold tracking-[-0.02em] text-foreground">Atendimentos recentes</h2>
@@ -370,7 +360,7 @@ export function DashboardPage() {
                             {clientName.charAt(0).toUpperCase()}
                           </span>
                           <span className="min-w-0">
-                            <span className="block truncate text-sm font-medium text-foreground group-hover:text-primary">{clientName}</span>
+                            <span className="block truncate text-sm font-medium text-foreground group-hover:text-brand">{clientName}</span>
                             <span className="mt-0.5 block truncate text-xs tabular-nums text-muted-foreground">{client.cpf || 'CPF não informado'}</span>
                           </span>
                         </button>
@@ -386,7 +376,7 @@ export function DashboardPage() {
                             onClick={(event) => void togglePhase(client, event)}
                             className={cn(
                               'min-h-10 rounded-full px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-9',
-                              getPhaseStyle(getClientPhase(client)),
+                              getPhaseStyle(),
                             )}
                             aria-label={'Alterar fase de ' + clientName + '. Fase atual: ' + getClientPhase(client)}
                             title="Alterar fase"
@@ -431,7 +421,7 @@ export function DashboardPage() {
             </section>
 
             <aside aria-label="Informações do dia" className="space-y-6">
-              <section aria-labelledby="notes-title" className="rounded-surface bg-card p-5 shadow-panel ring-1 ring-black/[0.035]">
+              <section aria-labelledby="notes-title" className="rounded-surface bg-card p-5 shadow-panel ring-1 ring-border/80">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <h2 id="notes-title" className="text-base font-semibold tracking-[-0.015em] text-foreground">Lembretes</h2>
@@ -448,12 +438,12 @@ export function DashboardPage() {
                     value={newNote}
                     onChange={(event) => setNewNote(event.target.value)}
                     placeholder="Adicionar lembrete"
-                    className="h-11 min-w-0 flex-1 rounded-control border border-input bg-card px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/70"
+                    className="h-11 min-w-0 flex-1 rounded-control border border-input bg-surface-subtle/55 px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70"
                   />
                   <button
                     type="submit"
                     disabled={!newNote.trim()}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-primary text-primary-foreground transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-primary text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
                     aria-label="Adicionar lembrete"
                   >
                     <Plus size={17} aria-hidden="true" />
@@ -477,7 +467,7 @@ export function DashboardPage() {
                               id={'note-' + note.id}
                               value={editNoteText}
                               onChange={(event) => setEditNoteText(event.target.value)}
-                              className="w-full resize-none rounded-control border border-input bg-card p-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/70"
+                              className="w-full resize-none rounded-control border border-input bg-surface-subtle/55 p-2.5 text-sm outline-none focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70"
                               rows={3}
                             />
                             <div className="flex justify-end gap-2">
@@ -510,7 +500,7 @@ export function DashboardPage() {
                               <button
                                 type="button"
                                 onClick={() => setExpandedNotes((current) => ({ ...current, [note.id]: !expanded }))}
-                                className="mt-1 inline-flex min-h-10 items-center gap-1 text-xs font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                className="mt-1 inline-flex min-h-10 items-center gap-1 text-xs font-medium text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 aria-expanded={expanded}
                               >
                                 {expanded ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
@@ -525,7 +515,7 @@ export function DashboardPage() {
                 </div>
               </section>
 
-              <section aria-labelledby="today-title" className="overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-black/[0.035]">
+              <section aria-labelledby="today-title" className="overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-border/80">
                 <div className="p-5">
                   <h2 id="today-title" className="text-base font-semibold tracking-[-0.015em] text-foreground">Pontos de atenção</h2>
                   <div className="mt-3 flex items-center justify-between gap-3 rounded-control bg-warning-subtle px-3 py-3 text-sm">
@@ -536,7 +526,7 @@ export function DashboardPage() {
 
                 <div className="border-t border-border/70 p-5">
                   <div className="flex items-center justify-between gap-3">
-                    <h3 className="flex items-center gap-2 text-sm font-medium text-foreground"><Cake size={16} className="text-warning" aria-hidden="true" /> Aniversariantes</h3>
+                    <h3 className="flex items-center gap-2 text-sm font-medium text-foreground"><Cake size={16} className="text-muted-foreground" aria-hidden="true" /> Aniversariantes</h3>
                     <span className="text-xs capitalize text-muted-foreground">{monthName}</span>
                   </div>
                   {birthdays.length === 0 ? (
@@ -547,7 +537,7 @@ export function DashboardPage() {
                         const phone = client.telefone?.replace(/\D/g, '') || '';
                         return (
                           <div key={client.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-warning-subtle text-sm font-semibold tabular-nums text-warning-foreground">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold tabular-nums text-foreground">
                               {client.data_nascimento?.split('-')[2]}
                             </span>
                             <div className="min-w-0 flex-1">
@@ -556,7 +546,7 @@ export function DashboardPage() {
                                 type="button"
                                 disabled={!phone}
                                 onClick={() => window.open('https://wa.me/55' + phone, '_blank', 'noopener,noreferrer')}
-                                className="mt-0.5 inline-flex min-h-10 items-center gap-1.5 text-xs font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:text-muted-foreground"
+                                className="mt-0.5 inline-flex min-h-10 items-center gap-1.5 text-xs font-medium text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:text-muted-foreground"
                                 aria-label={phone ? 'Enviar mensagem para ' + client.nome : client.nome + ' não possui telefone cadastrado'}
                               >
                                 <MessageCircle size={14} aria-hidden="true" /> {phone ? 'Enviar mensagem' : 'Sem telefone'}

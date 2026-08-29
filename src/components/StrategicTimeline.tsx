@@ -42,14 +42,14 @@ const TIMELINE_PRESENTATION: Record<Periodo['tipo'], TimelinePresentation> = {
   urbano: {
     label: 'Urbano / CNIS',
     shortLabel: 'U',
-    barClassName: 'h-5 rounded-sm border-y-2 border-danger-foreground bg-danger',
-    legendClassName: 'h-5 w-5 rounded-sm border-y-2 border-danger-foreground bg-danger',
+    barClassName: 'h-5 rounded-sm border-y-2 border-muted-foreground bg-muted-foreground/70',
+    legendClassName: 'h-5 w-5 rounded-sm border-y-2 border-muted-foreground bg-muted-foreground/70',
   },
   beneficio: {
     label: 'Benefício INSS',
     shortLabel: 'B',
-    barClassName: 'h-3 rounded-none border border-warning-foreground bg-warning',
-    legendClassName: 'h-3 w-5 rounded-none border border-warning-foreground bg-warning',
+    barClassName: 'h-3 rounded-none border border-foreground/55 bg-card',
+    legendClassName: 'h-3 w-5 rounded-none border border-foreground/55 bg-card',
   },
   lacuna: {
     label: 'Sem atividade',
@@ -60,13 +60,13 @@ const TIMELINE_PRESENTATION: Record<Periodo['tipo'], TimelinePresentation> = {
   'prova de retorno': {
     label: 'Prova de retorno',
     shortLabel: 'P',
-    barClassName: 'h-8 rounded-sm bg-info',
-    legendClassName: 'h-7 w-1.5 rounded-sm bg-info',
+    barClassName: 'h-8 rounded-sm bg-brand',
+    legendClassName: 'h-7 w-1.5 rounded-sm bg-brand',
   },
 };
 
 const fieldClassName =
-  'h-11 w-full rounded-control border border-input bg-card px-3 text-sm text-foreground shadow-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/70 motion-reduce:transition-none';
+  'h-11 w-full rounded-control border border-input bg-surface-subtle/55 px-3 text-sm text-foreground outline-none transition-colors focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70 motion-reduce:transition-none';
 
 const UNKNOWN_TIMELINE_PRESENTATION: TimelinePresentation = {
   label: 'Registro legado',
@@ -291,11 +291,11 @@ export default function StrategicTimeline({ der, periodos, clienteNome = 'Client
             {ninetyMonthMarks.map((mark) => (
               <div key={`${mark.label}-${mark.percent}`}>
                 <div
-                  className="absolute top-1/2 z-10 h-6 w-0.5 -translate-x-1/2 -translate-y-1/2 bg-info"
+                  className="absolute top-1/2 z-10 h-6 w-0.5 -translate-x-1/2 -translate-y-1/2 bg-brand"
                   style={{ left: `${mark.percent}%` }}
                 />
                 <div
-                  className="absolute -bottom-6 z-10 -translate-x-1/2 whitespace-nowrap text-xs font-medium text-info-foreground"
+                  className="absolute -bottom-6 z-10 -translate-x-1/2 whitespace-nowrap text-xs font-medium text-brand"
                   style={{ left: `${mark.percent}%` }}
                 >
                   {mark.label}
@@ -327,16 +327,16 @@ export default function StrategicTimeline({ der, periodos, clienteNome = 'Client
                       className="absolute top-1/2 z-30 flex -translate-x-1/2 -translate-y-[130%] flex-col items-center"
                       style={{ left: `${leftDoc}%` }}
                     >
-                      <div className="z-20 flex h-6 w-6 items-center justify-center rounded-full border-2 border-card bg-info text-xs font-semibold text-white print:border-info-foreground">
+                      <div className="z-20 flex h-6 w-6 items-center justify-center rounded-full border-2 border-card bg-foreground text-xs font-semibold text-background print:border-foreground">
                         {periodo.num}
                       </div>
-                      <div className="h-4 w-0.5 bg-info/65" />
+                      <div className="h-4 w-0.5 bg-foreground/55" />
                     </div>
                   ) : null}
 
                   {leftPos <= 100 && leftPos + width >= 0 ? (
                     <div
-                      className={`absolute top-1/2 z-10 -translate-y-1/2 border border-black/10 opacity-90 transition-opacity hover:opacity-100 motion-reduce:transition-none ${presentation.barClassName}`}
+                      className={`absolute top-1/2 z-10 -translate-y-1/2 border border-border/80 opacity-90 transition-opacity hover:opacity-100 motion-reduce:transition-none ${presentation.barClassName}`}
                       style={{
                         left: `${leftPos}%`,
                         width: isProvaRetorno ? '6px' : `${Math.max(width, 0.5)}%`,
@@ -394,7 +394,7 @@ export default function StrategicTimeline({ der, periodos, clienteNome = 'Client
         {provasNumeradas.length > 0 ? (
           <div className="border-t border-border p-5 sm:p-6 print:mt-4 print:border-t-2 print:border-foreground print:px-0">
             <h3 className="mb-5 flex items-center gap-2 text-sm font-semibold text-foreground">
-              <FileText aria-hidden="true" size={17} className="text-info-foreground print:text-foreground" />
+              <FileText aria-hidden="true" size={17} className="text-brand print:text-foreground" />
               Fundamentação das provas utilizadas
             </h3>
             <ol className="space-y-5">
@@ -411,7 +411,7 @@ export default function StrategicTimeline({ der, periodos, clienteNome = 'Client
                     className="flex items-start gap-3 print:mb-6 print:break-inside-avoid"
                     style={{ pageBreakInside: 'avoid' }}
                   >
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-info-subtle text-sm font-semibold text-info-foreground print:border print:border-foreground print:bg-transparent print:text-foreground">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-subtle text-sm font-semibold text-brand print:border print:border-foreground print:bg-transparent print:text-foreground">
                       {prova.num}
                     </div>
                     <div className="min-w-0">

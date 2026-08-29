@@ -48,8 +48,8 @@ export function ProtectedRoute() {
 
   if (loading) {
     return (
-      <div className="min-h-dvh w-full flex flex-col items-center justify-center bg-slate-50 text-slate-500 gap-4">
-        <Loader2 className="animate-spin text-emerald-600" size={40} />
+      <div className="flex min-h-dvh w-full flex-col items-center justify-center gap-4 bg-background text-muted-foreground">
+        <Loader2 className="animate-spin text-brand" size={40} />
         <p className="font-medium animate-pulse">Verificando sessão...</p>
       </div>
     );

@@ -102,7 +102,7 @@ export function ClientSummaryPage({ cliente }: WithClientProps) {
           actions={(
             <Link
               to={'/cliente/' + cliente.id + '/cadastro'}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-brand-hover hover:shadow-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary-hover hover:shadow-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               Editar cadastro <ArrowRight size={16} aria-hidden="true" />
             </Link>
@@ -117,11 +117,11 @@ export function ClientSummaryPage({ cliente }: WithClientProps) {
             >
               <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-start gap-4">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-card text-primary shadow-sm" aria-hidden="true">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-card text-brand shadow-sm" aria-hidden="true">
                     {pendingItem ? <FileSearch size={20} /> : <CheckCircle2 size={20} />}
                   </span>
                   <div>
-                    <p className="text-xs font-medium text-primary">Próximo passo</p>
+                    <p className="text-xs font-medium text-brand">Próximo passo</p>
                     <h2 id="next-action-title" className="mt-1 text-lg font-semibold tracking-[-0.02em] text-foreground">
                       {pendingItem ? 'Completar ' + pendingItem.label.toLowerCase() : 'Organizar os documentos'}
                     </h2>
@@ -134,7 +134,7 @@ export function ClientSummaryPage({ cliente }: WithClientProps) {
                 </div>
                 <Link
                   to={nextLink}
-                  className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-control bg-card px-4 py-2.5 text-sm font-medium text-foreground shadow-sm ring-1 ring-black/[0.045] transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-control bg-card px-4 py-2.5 text-sm font-medium text-foreground shadow-sm ring-1 ring-border transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {pendingItem ? 'Revisar cadastro' : 'Ver documentos'}
                   <ArrowRight size={15} aria-hidden="true" />
@@ -142,7 +142,7 @@ export function ClientSummaryPage({ cliente }: WithClientProps) {
               </div>
             </section>
 
-            <section aria-labelledby="essential-data-title" className="overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-black/[0.035]">
+            <section aria-labelledby="essential-data-title" className="overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-border/80">
               <div className="px-5 py-5 sm:px-6">
                 <h2 id="essential-data-title" className="text-lg font-semibold tracking-[-0.02em] text-foreground">Informações essenciais</h2>
                 <p className="mt-1 text-sm text-muted-foreground">Dados usados com maior frequência durante o atendimento.</p>
@@ -169,7 +169,7 @@ export function ClientSummaryPage({ cliente }: WithClientProps) {
           </div>
 
           <aside>
-            <section aria-labelledby="completion-title" className="rounded-surface bg-card p-5 shadow-panel ring-1 ring-black/[0.035] sm:p-6">
+            <section aria-labelledby="completion-title" className="rounded-surface bg-card p-5 shadow-panel ring-1 ring-border/80 sm:p-6">
               <div className="flex items-end justify-between gap-4">
                 <div>
                   <h2 id="completion-title" className="text-base font-semibold tracking-[-0.015em] text-foreground">Cadastro essencial</h2>
@@ -186,7 +186,7 @@ export function ClientSummaryPage({ cliente }: WithClientProps) {
                 aria-valuemax={100}
                 aria-valuenow={completion}
               >
-                <div className="h-full rounded-full bg-primary" style={{ width: completion + '%' }} />
+                <div className="h-full rounded-full bg-brand" style={{ width: completion + '%' }} />
               </div>
 
               <ul className="mt-5 divide-y divide-border/70">

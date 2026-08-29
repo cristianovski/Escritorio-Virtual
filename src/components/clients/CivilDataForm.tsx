@@ -27,7 +27,7 @@ interface FieldProps {
 }
 
 const controlClassName =
-  "block h-11 w-full rounded-control border border-input bg-card px-3 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground/70 focus:border-ring focus:ring-2 focus:ring-ring/70 disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-muted-foreground";
+  "block h-11 w-full rounded-control border border-input bg-surface-subtle/55 px-3 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground/70 focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70 disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-muted-foreground";
 
 function Field({ id, label, children, className, error, required }: FieldProps) {
   return (
@@ -138,7 +138,7 @@ export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0
     <fieldset
       disabled={loading}
       aria-busy={loading}
-      className="overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-black/[0.035] disabled:cursor-wait disabled:opacity-75"
+      className="overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-border/80 disabled:cursor-wait disabled:opacity-75"
     >
       <legend className="sr-only">Dados civis e de contato do cliente</legend>
       <section aria-labelledby={`${formId}-personal-heading`} className="border-b border-border/70 last:border-0">
@@ -246,7 +246,7 @@ export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0
                   type="checkbox"
                   id={idFor("analfabeto")}
                   {...register("analfabeto")}
-                  className="h-4 w-4 rounded border-input accent-brand focus:ring-2 focus:ring-ring/25"
+                  className="h-4 w-4 rounded border-input accent-brand focus:ring-2 focus:ring-ring/70"
                 />
                 <label htmlFor={idFor("analfabeto")} className="flex flex-1 cursor-pointer select-none items-center gap-2 text-sm font-medium">
                   <PenTool size={16} aria-hidden="true" /> Não assina / pessoa analfabeta

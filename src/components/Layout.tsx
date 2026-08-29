@@ -72,13 +72,13 @@ function Navigation({ pathname, onNavigate }: NavigationProps) {
             aria-current={active ? "page" : undefined}
             className={`flex min-h-11 items-center gap-3 rounded-control px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-product focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
               active
-                ? "bg-card text-foreground shadow-panel ring-1 ring-black/[0.035]"
-                : "text-muted-foreground hover:bg-card/60 hover:text-foreground"
+                ? "bg-brand-subtle/80 text-foreground"
+                : "text-muted-foreground hover:bg-card/70 hover:text-foreground"
             }`}
           >
             <Icon
               aria-hidden="true"
-              className={active ? "text-primary" : "text-muted-foreground"}
+              className={active ? "text-brand" : "text-muted-foreground"}
               size={19}
               strokeWidth={1.8}
             />
@@ -103,7 +103,7 @@ function Brand({ compact = false, onNavigate }: BrandProps) {
       aria-label="PrevRural — ir para a visão geral"
       className="flex min-h-11 items-center gap-3 rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-card text-xs font-semibold tracking-[0.06em] text-primary shadow-panel ring-1 ring-black/[0.04]">
+      <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-foreground text-xs font-semibold tracking-[0.06em] text-background shadow-sm after:absolute after:bottom-1.5 after:right-1.5 after:h-1.5 after:w-1.5 after:rounded-full after:bg-brand">
         PR
       </span>
       <span className="min-w-0">
@@ -134,7 +134,7 @@ function LogoutButton({ isSigningOut, onLogout, compact = false }: LogoutButtonP
       disabled={isSigningOut}
       aria-busy={isSigningOut}
       aria-label={compact ? (isSigningOut ? "Encerrando sessão" : "Encerrar sessão") : undefined}
-      className={`flex min-h-11 items-center rounded-control text-sm font-medium text-muted-foreground transition-colors hover:bg-card hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60 ${compact ? "w-11 justify-center" : "w-full gap-3 px-3 py-2.5 text-left"}`}
+      className={`flex min-h-11 items-center rounded-control text-sm font-medium text-muted-foreground transition-colors hover:bg-card/75 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60 ${compact ? "w-11 justify-center" : "w-full gap-3 px-3 py-2.5 text-left"}`}
     >
       <LogOut aria-hidden="true" size={19} strokeWidth={1.8} />
       {!compact ? <span>{isSigningOut ? "Encerrando sessão..." : "Encerrar sessão"}</span> : null}
@@ -146,7 +146,7 @@ function MobileNavigation({ pathname }: { pathname: string }) {
   return (
     <nav
       aria-label="Navegação móvel"
-      className="shrink-0 border-t border-black/[0.055] bg-card/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
+      className="shrink-0 border-t border-border/90 bg-card/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
     >
       <div className="grid grid-cols-4">
         {navigationItems.map((item) => {
@@ -158,7 +158,7 @@ function MobileNavigation({ pathname }: { pathname: string }) {
               key={item.to}
               to={item.to}
               aria-current={active ? "page" : undefined}
-              className={`flex min-h-16 flex-col items-center justify-center gap-1 px-1 text-[0.6875rem] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${active ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+              className={`flex min-h-16 flex-col items-center justify-center gap-1 px-1 text-[0.6875rem] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${active ? "text-brand" : "text-muted-foreground hover:text-foreground"}`}
             >
               <Icon aria-hidden="true" size={21} strokeWidth={active ? 2.1 : 1.7} />
               <span>{item.label === "Visão geral" ? "Visão" : item.label}</span>
@@ -196,7 +196,7 @@ export function Layout() {
         Pular para o conteúdo
       </a>
 
-      <aside className="hidden h-dvh w-64 shrink-0 flex-col border-r border-black/[0.055] bg-background px-4 py-5 lg:flex">
+      <aside className="hidden h-dvh w-64 shrink-0 flex-col border-r border-border/90 bg-surface-subtle px-4 py-5 lg:flex">
         <div className="px-1">
           <Brand />
         </div>
@@ -205,13 +205,13 @@ export function Layout() {
           <Navigation pathname={location.pathname} />
         </div>
 
-        <div className="border-t border-black/[0.055] pt-3">
+        <div className="border-t border-border/90 pt-3">
           <LogoutButton isSigningOut={isSigningOut} onLogout={handleLogout} />
         </div>
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header className="flex min-h-14 shrink-0 items-center justify-between border-b border-black/[0.055] bg-background/[0.85] px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-xl lg:hidden">
+        <header className="flex min-h-14 shrink-0 items-center justify-between border-b border-border/90 bg-background/[0.85] px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-xl lg:hidden">
           <Brand compact />
           <LogoutButton compact isSigningOut={isSigningOut} onLogout={handleLogout} />
         </header>

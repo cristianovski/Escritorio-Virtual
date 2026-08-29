@@ -8,17 +8,13 @@ const statusBadgeVariants = cva(
     variants: {
       tone: {
         neutral:
-          'bg-neutral-subtle text-muted-foreground before:bg-muted-foreground/70',
+          'bg-secondary/75 text-muted-foreground before:bg-muted-foreground/65',
         brand:
           'bg-brand-subtle text-brand before:bg-brand',
-        navy:
-          'bg-navy-subtle text-navy before:bg-navy',
-        bronze:
-          'bg-bronze-subtle text-bronze-foreground before:bg-bronze',
         success:
           'bg-success-subtle text-success-foreground before:bg-success',
         info:
-          'bg-info-subtle text-info-foreground before:bg-info',
+          'bg-brand-subtle text-brand before:bg-brand',
         warning:
           'bg-warning-subtle text-warning-foreground before:bg-warning',
         danger:

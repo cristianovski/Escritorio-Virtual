@@ -22,7 +22,7 @@ export function Toaster() {
         return (
           <ToastPrimitive.Root
             key={id}
-            className="toast-root group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-surface bg-card/95 p-4 pr-10 text-foreground shadow-floating ring-1 ring-black/[0.05] backdrop-blur-xl transition-transform data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)]"
+            className="toast-root group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-surface bg-card/95 p-4 pr-10 text-foreground shadow-floating ring-1 ring-border backdrop-blur-xl transition-transform data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)]"
             {...props}
           >
             <div className="flex gap-3 items-start">

@@ -25,7 +25,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Surface } from '../../components/ui/Surface';
 
 const fieldClassName =
-  'h-11 w-full min-w-0 rounded-control border border-input bg-card px-3 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/70';
+  'h-11 w-full min-w-0 rounded-control border border-input bg-surface-subtle/55 px-3 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70';
 
 export function CashFlowPage() {
   const { toast } = useToast();
@@ -295,7 +295,7 @@ export function CashFlowPage() {
 
                 <div className="rounded-control bg-surface-subtle p-4">
                   <label htmlFor="cash-recurring" className="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-medium text-foreground">
-                    <input id="cash-recurring" type="checkbox" checked={isRecurring} onChange={(event) => setIsRecurring(event.target.checked)} className="h-4 w-4 rounded border-input accent-primary" />
+                    <input id="cash-recurring" type="checkbox" checked={isRecurring} onChange={(event) => setIsRecurring(event.target.checked)} className="h-4 w-4 rounded border-input accent-brand" />
                     <RefreshCw size={16} className="text-muted-foreground" aria-hidden="true" />
                     Repetir lançamento
                   </label>
@@ -337,7 +337,7 @@ export function CashFlowPage() {
                     return (
                       <article key={transaction.id} className={`flex min-w-0 flex-col gap-3 px-4 py-4 transition-colors sm:flex-row sm:items-center sm:justify-between sm:px-6 ${isPaid ? 'bg-surface-subtle/60' : 'hover:bg-surface-subtle/50'}`}>
                         <div className="flex min-w-0 items-start gap-3">
-                          <button type="button" onClick={() => void toggleStatus(transaction.id, transaction.status)} className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isPaid ? 'border-success/20 bg-success-subtle text-success' : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-primary'}`} aria-label={isPaid ? `Marcar ${transaction.description} como pendente` : `Marcar ${transaction.description} como pago`} aria-pressed={isPaid}>
+                          <button type="button" onClick={() => void toggleStatus(transaction.id, transaction.status)} className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isPaid ? 'border-success/20 bg-success-subtle text-success' : 'border-border bg-card text-muted-foreground hover:border-brand/30 hover:text-brand'}`} aria-label={isPaid ? `Marcar ${transaction.description} como pendente` : `Marcar ${transaction.description} como pago`} aria-pressed={isPaid}>
                             <CheckCircle2 size={19} aria-hidden="true" />
                           </button>
                           <div className="min-w-0 pt-0.5">

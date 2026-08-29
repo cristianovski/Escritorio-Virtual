@@ -114,7 +114,7 @@ export function TimelinePage({ cliente }: TimelinePageProps) {
                   placeholder="Buscar por documento, ano ou tipo"
                   value={filter}
                   onChange={(event) => setFilter(event.target.value)}
-                  className="h-11 w-full rounded-control border border-input bg-card pl-10 pr-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/70"
+                  className="h-11 w-full rounded-control border border-input bg-surface-subtle/55 pl-10 pr-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70"
                   autoComplete="off"
                 />
               </div>
@@ -210,7 +210,7 @@ export function TimelinePage({ cliente }: TimelinePageProps) {
                             type="button"
                             onClick={() => void handleOpenDocument(item)}
                             aria-label={`Abrir documento ${title}`}
-                            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-control bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm outline-none transition-colors hover:bg-brand-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:w-auto"
+                            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-control bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm outline-none transition-colors hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:w-auto"
                           >
                             <ExternalLink size={16} aria-hidden="true" />
                             Abrir documento
@@ -221,7 +221,7 @@ export function TimelinePage({ cliente }: TimelinePageProps) {
                             target="_blank"
                             rel="noopener noreferrer"
                             aria-label={`Abrir documento ${title}`}
-                            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-control bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm outline-none transition-colors hover:bg-brand-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:w-auto"
+                            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-control bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm outline-none transition-colors hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:w-auto"
                           >
                             <ExternalLink size={16} aria-hidden="true" />
                             Abrir documento

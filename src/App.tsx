@@ -21,7 +21,7 @@ const CashFlowPage = lazy(() => import('./pages/finance/CashFlowPage').then(modu
 
 function RouteFallback() {
   return (
-    <div className="min-h-48 flex items-center justify-center text-sm text-slate-500" role="status">
+    <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground" role="status">
       Carregando…
     </div>
   );
@@ -59,7 +59,7 @@ function ClientLoader({ Component }: { Component: ClientComponent }) {
   if (!id) {
     return (
       <div className="flex h-full items-center justify-center p-6 text-center" role="alert">
-        <p className="text-sm text-slate-600">Não foi possível identificar o cliente.</p>
+        <p className="text-sm text-muted-foreground">Não foi possível identificar o cliente.</p>
       </div>
     );
   }
@@ -72,7 +72,7 @@ function ClientLoader({ Component }: { Component: ClientComponent }) {
         aria-live="polite"
         aria-busy="true"
       >
-        <p className="text-sm text-slate-600">Carregando contexto do cliente…</p>
+        <p className="text-sm text-muted-foreground">Carregando contexto do cliente…</p>
       </div>
     );
   }
@@ -80,7 +80,7 @@ function ClientLoader({ Component }: { Component: ClientComponent }) {
   if (!loadedClient.client) {
     return (
       <div className="flex h-full items-center justify-center p-6 text-center" role="alert">
-        <p className="text-sm text-slate-700">Cliente não encontrado.</p>
+        <p className="text-sm text-foreground">Cliente não encontrado.</p>
       </div>
     );
   }

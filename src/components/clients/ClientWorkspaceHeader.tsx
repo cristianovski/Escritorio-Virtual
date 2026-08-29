@@ -9,10 +9,10 @@ interface ClientWorkspaceHeaderProps {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  'A Iniciar': 'bg-warning-subtle text-warning-foreground',
-  'Em Andamento': 'bg-info-subtle text-info-foreground',
+  'A Iniciar': 'bg-secondary text-muted-foreground',
+  'Em Andamento': 'bg-brand-subtle text-brand',
   Finalizado: 'bg-success-subtle text-success-foreground',
-  Suspenso: 'bg-danger-subtle text-danger-foreground',
+  Suspenso: 'bg-warning-subtle text-warning-foreground',
 };
 
 export function ClientWorkspaceHeader({ client: cliente }: ClientWorkspaceHeaderProps) {
@@ -69,7 +69,7 @@ export function ClientWorkspaceHeader({ client: cliente }: ClientWorkspaceHeader
   }, [location.pathname]);
 
   return (
-    <header className="shrink-0 border-b border-black/[0.055] bg-background/[0.88] backdrop-blur-xl" aria-labelledby="client-workspace-title">
+    <header className="shrink-0 border-b border-border/90 bg-background/[0.88] backdrop-blur-xl" aria-labelledby="client-workspace-title">
       <div className="mx-auto w-full max-w-content px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <Link

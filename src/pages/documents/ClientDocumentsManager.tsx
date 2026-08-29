@@ -22,7 +22,7 @@ interface PageProps {
 }
 
 const DOCUMENT_FILTERS = ['Todos', 'Provas', 'Pessoal', 'Processual', 'Diversos'];
-const fieldClassName = 'min-h-11 w-full rounded-control border border-input bg-card px-3 py-2.5 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/70 disabled:border-transparent disabled:bg-secondary/55 disabled:text-muted-foreground';
+const fieldClassName = 'min-h-11 w-full rounded-control border border-input bg-surface-subtle/55 px-3 py-2.5 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70 disabled:border-transparent disabled:bg-secondary/55 disabled:text-muted-foreground';
 const labelClassName = 'mb-1.5 block text-sm font-medium text-foreground';
 
 export function ClientDocumentsManager({ cliente, onBack }: PageProps) {
@@ -50,9 +50,9 @@ export function ClientDocumentsManager({ cliente, onBack }: PageProps) {
   const getFileIcon = (url: string) => {
     const isPdf = url.toLocaleLowerCase().split('?')[0].endsWith('.pdf');
     return isPdf ? (
-      <FileText aria-hidden="true" className="h-[1.125rem] w-[1.125rem] text-danger" />
+      <FileText aria-hidden="true" className="h-[1.125rem] w-[1.125rem] text-muted-foreground" />
     ) : (
-      <ImageIcon aria-hidden="true" className="h-[1.125rem] w-[1.125rem] text-info" />
+      <ImageIcon aria-hidden="true" className="h-[1.125rem] w-[1.125rem] text-muted-foreground" />
     );
   };
 
@@ -84,14 +84,14 @@ export function ClientDocumentsManager({ cliente, onBack }: PageProps) {
   return (
     <>
       <div className="flex h-full min-h-0 flex-col bg-background text-foreground">
-        <header className="shrink-0 border-b border-black/[0.055] bg-background/90 px-4 py-4 backdrop-blur-xl sm:px-6">
+        <header className="shrink-0 border-b border-border/90 bg-background/90 px-4 py-4 backdrop-blur-xl sm:px-6">
           <div className="mx-auto flex w-full max-w-content flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-start gap-3">
               <Button type="button" variant="ghost" size="icon" onClick={onBack} aria-label="Voltar" className="shrink-0 rounded-full">
                 <ArrowLeft aria-hidden="true" size={19} />
               </Button>
               <div className="min-w-0 pt-0.5">
-                <p className="text-xs font-medium text-primary">Documentos do cliente</p>
+                <p className="text-xs font-medium text-brand">Documentos do cliente</p>
                 <h1 className="mt-1 truncate text-2xl font-semibold tracking-[-0.03em]">Gestão de documentos</h1>
                 <p className="mt-1 truncate text-sm text-muted-foreground">{resultDescription} de {cliente.nome}</p>
               </div>
@@ -127,7 +127,7 @@ export function ClientDocumentsManager({ cliente, onBack }: PageProps) {
             className={cn('min-w-0 flex-1 flex-col', selectedDoc ? 'hidden md:flex' : 'flex')}
           >
             <h2 id="document-list-title" className="sr-only">Lista de documentos</h2>
-            <div className="shrink-0 space-y-3 border-b border-black/[0.055] bg-background px-4 py-4 sm:px-6">
+            <div className="shrink-0 space-y-3 border-b border-border/90 bg-background px-4 py-4 sm:px-6">
               <div>
                 <label htmlFor="document-search" className="sr-only">Buscar documento pelo nome</label>
                 <div className="relative">
@@ -139,7 +139,7 @@ export function ClientDocumentsManager({ cliente, onBack }: PageProps) {
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
                     placeholder="Buscar documento"
-                    className="h-11 w-full rounded-control border border-input bg-card pl-10 pr-3 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/70"
+                    className="h-11 w-full rounded-control border border-input bg-surface-subtle/55 pl-10 pr-3 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70"
                   />
                 </div>
               </div>
@@ -155,7 +155,7 @@ export function ClientDocumentsManager({ cliente, onBack }: PageProps) {
                       className={cn(
                         'min-h-11 shrink-0 rounded-full px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                         active
-                          ? 'bg-brand-subtle text-primary'
+                          ? 'bg-brand-subtle text-brand'
                           : 'bg-secondary/70 text-muted-foreground hover:bg-secondary hover:text-foreground',
                       )}
                     >
@@ -209,9 +209,9 @@ export function ClientDocumentsManager({ cliente, onBack }: PageProps) {
                           aria-pressed={selected}
                           aria-describedby={metadataId}
                           className={cn(
-                            'flex min-h-[5.25rem] w-full items-start gap-3 rounded-surface bg-card p-4 text-left shadow-panel ring-1 ring-black/[0.035] transition-all duration-200 ease-product focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:gap-4',
+                            'flex min-h-[5.25rem] w-full items-start gap-3 rounded-surface bg-card p-4 text-left shadow-panel ring-1 ring-border/80 transition-all duration-200 ease-product focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:gap-4',
                             selected
-                              ? 'bg-brand-subtle ring-primary/20'
+                              ? 'bg-brand-subtle ring-brand/20'
                               : 'hover:bg-secondary/35',
                           )}
                         >
@@ -239,9 +239,9 @@ export function ClientDocumentsManager({ cliente, onBack }: PageProps) {
           {selectedDoc ? (
             <aside
               aria-labelledby="document-details-title"
-              className="flex min-h-0 w-full shrink-0 flex-col bg-card md:w-[22rem] md:border-l md:border-black/[0.055] xl:w-[28rem]"
+              className="flex min-h-0 w-full shrink-0 flex-col bg-card md:w-[22rem] md:border-l md:border-border/90 xl:w-[28rem]"
             >
-              <div className="flex min-h-16 shrink-0 items-center justify-between gap-3 border-b border-black/[0.055] px-4 sm:px-5">
+              <div className="flex min-h-16 shrink-0 items-center justify-between gap-3 border-b border-border/90 px-4 sm:px-5">
                 <div className="min-w-0">
                   <p className="text-xs text-muted-foreground">Documento selecionado</p>
                   <h2
@@ -422,7 +422,7 @@ export function ClientDocumentsManager({ cliente, onBack }: PageProps) {
       <Dialog open={isUploadModalOpen} onOpenChange={(open) => { if (!uploading) setIsUploadModalOpen(open); }}>
         <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-lg gap-0 overflow-y-auto p-0" aria-busy={uploading}>
           <DialogHeader className="px-5 pb-4 pt-6 pr-16 text-left sm:px-6 sm:pt-6">
-            <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-control bg-brand-subtle text-primary">
+            <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-control bg-brand-subtle text-brand">
               <UploadCloud aria-hidden="true" size={21} />
             </span>
             <DialogTitle className="text-xl tracking-[-0.025em]">Adicionar documento</DialogTitle>
@@ -498,7 +498,7 @@ export function ClientDocumentsManager({ cliente, onBack }: PageProps) {
               </div>
             </div>
 
-            <DialogFooter className="gap-2 border-t border-black/[0.055] bg-secondary/35 px-5 py-4 sm:px-6 sm:space-x-0">
+            <DialogFooter className="gap-2 border-t border-border/90 bg-secondary/35 px-5 py-4 sm:px-6 sm:space-x-0">
               <Button type="button" variant="ghost" onClick={() => setIsUploadModalOpen(false)} disabled={uploading}>Cancelar</Button>
               <Button type="submit" disabled={uploading || !uploadMetadata.customName.trim()} aria-busy={uploading}>
                 {uploading

@@ -280,7 +280,7 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
             type="button"
             onClick={handleSave}
             disabled={loading}
-            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-control bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-brand-hover hover:shadow-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-control bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary-hover hover:shadow-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
           >
             <Save size={17} aria-hidden="true" />
             {loading ? 'Salvando…' : 'Salvar cliente'}
@@ -355,10 +355,10 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
         )}
 
         {activeTab === 'anamnese' && (
-          <section className="rounded-surface bg-card p-5 shadow-panel ring-1 ring-black/[0.035] sm:p-6">
+          <section className="rounded-surface bg-card p-5 shadow-panel ring-1 ring-border/80 sm:p-6">
             <div>
               <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
-                <PenTool className="text-primary" size={19} aria-hidden="true" /> Histórico do caso
+                <PenTool className="text-brand" size={19} aria-hidden="true" /> Histórico do caso
               </h3>
               <p className="mt-1 text-sm text-muted-foreground">
                 Registre o relato em texto livre. Use o roteiro abaixo para manter as entrevistas consistentes.
@@ -386,7 +386,7 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
                   onChange={(e) => setHistorico(e.target.value)}
                   disabled={loading}
                   rows={16}
-                  className="min-h-80 w-full resize-y rounded-control border border-input bg-card p-4 text-sm leading-6 text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/70 disabled:cursor-wait disabled:bg-muted"
+                  className="min-h-80 w-full resize-y rounded-control border border-input bg-surface-subtle/55 p-4 text-sm leading-6 text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70 disabled:cursor-wait disabled:bg-muted"
                   placeholder="Descreva o histórico rural, a rotina de trabalho, os períodos e as provas citadas pelo cliente…"
                 />
               </div>

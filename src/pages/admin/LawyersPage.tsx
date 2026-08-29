@@ -44,7 +44,7 @@ const EMPTY_FORM: LawyerFormData = {
 };
 
 const fieldClassName =
-  'h-11 w-full rounded-control border border-input bg-card px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/70 disabled:cursor-not-allowed disabled:opacity-60';
+  'h-11 w-full rounded-control border border-input bg-surface-subtle/55 px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70 disabled:cursor-not-allowed disabled:opacity-60';
 
 async function loadLawyers() {
   const { data, error } = await supabase.from('lawyers').select('*').order('nome');

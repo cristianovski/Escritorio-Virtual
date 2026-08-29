@@ -23,16 +23,16 @@ type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 const getStatusTone = (
   status?: Client['status_processo'],
-): 'neutral' | 'info' | 'warning' | 'success' | 'danger' => {
+): 'neutral' | 'brand' | 'warning' | 'success' => {
   switch (status) {
     case 'Em Andamento':
-      return 'info';
+      return 'brand';
     case 'Finalizado':
       return 'success';
     case 'Suspenso':
-      return 'danger';
-    case 'A Iniciar':
       return 'warning';
+    case 'A Iniciar':
+      return 'neutral';
     default:
       return 'neutral';
   }
@@ -62,7 +62,7 @@ function ClientListSkeleton() {
     <div role="status" aria-live="polite" aria-label="Carregando clientes">
       <span className="sr-only">Carregando clientes…</span>
 
-      <div className="hidden overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-black/[0.035] xl:block">
+      <div className="hidden overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-border/80 xl:block">
         <div className="h-11 animate-pulse border-b border-border bg-surface-subtle" />
         {[1, 2, 3, 4].map((item) => (
           <div key={item} className="grid grid-cols-[2fr_1.2fr_1.2fr_0.8fr_0.7fr] gap-4 border-b border-border px-5 py-4 last:border-0">
@@ -75,7 +75,7 @@ function ClientListSkeleton() {
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-black/[0.035] xl:hidden">
+      <div className="overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-border/80 xl:hidden">
         {[1, 2, 3].map((item) => (
           <div key={item} className="border-b border-border/70 p-4 last:border-0">
             <div className="h-12 animate-pulse rounded-md bg-surface-subtle" />
@@ -188,7 +188,7 @@ export function ClientListPage() {
                   placeholder="Buscar por nome ou CPF"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  className="h-11 w-full rounded-control border border-input bg-card pl-10 pr-3 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/70"
+                  className="h-11 w-full rounded-control border border-input bg-surface-subtle/55 pl-10 pr-3 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70"
                 />
               </div>
               </div>
@@ -200,7 +200,7 @@ export function ClientListPage() {
                   id="client-status-filter"
                   value={statusFilter}
                   onChange={(event) => updateStatusFilter(event.target.value as StatusFilter)}
-                  className="h-11 w-full rounded-control border border-input bg-card px-3 text-sm text-foreground outline-none transition-all focus:border-ring focus:ring-2 focus:ring-ring/70"
+                  className="h-11 w-full rounded-control border border-input bg-surface-subtle/55 px-3 text-sm text-foreground outline-none transition-all focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70"
                 >
                   {STATUS_FILTERS.map((status) => (
                     <option key={status} value={status}>{status}</option>
@@ -260,7 +260,7 @@ export function ClientListPage() {
             />
           ) : (
             <>
-              <div className="hidden overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-black/[0.035] xl:block">
+              <div className="hidden overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-border/80 xl:block">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[880px] border-collapse text-left">
                     <caption className="sr-only">
@@ -289,7 +289,7 @@ export function ClientListPage() {
                               <div className="min-w-0">
                                 <Link
                                   to={`/cliente/${client.id}`}
-                                  className="block truncate text-sm font-medium text-foreground hover:text-primary focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                  className="block truncate text-sm font-medium text-foreground hover:text-brand focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 >
                                   {client.nome || 'Cliente sem nome'}
                                 </Link>
@@ -329,7 +329,7 @@ export function ClientListPage() {
                 </div>
               </div>
 
-              <div className="divide-y divide-border/70 overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-black/[0.035] xl:hidden">
+              <div className="divide-y divide-border/70 overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-border/80 xl:hidden">
                 {filteredClients.map((client) => (
                   <Link
                     key={client.id}

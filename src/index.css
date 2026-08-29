@@ -6,11 +6,11 @@
   :root {
     color-scheme: light;
 
-    /* Base neutra: o conteúdo conduz a hierarquia e a marca vira acento. */
-    --canvas: 240 8% 96%;
+    /* Porcelana quente: a interface recua e deixa o conteúdo conduzir. */
+    --canvas: 60 10% 96.1%;
     --surface: 0 0% 100%;
-    --surface-subtle: 240 6% 94%;
-    --ink: 240 4% 12%;
+    --surface-subtle: 60 9.1% 93.5%;
+    --ink: 240 3.3% 11.8%;
 
     --background: var(--canvas);
     --foreground: var(--ink);
@@ -19,47 +19,42 @@
     --popover: 0 0% 100%;
     --popover-foreground: var(--ink);
 
-    /* O verde identifica ação e seleção; não estrutura mais a tela inteira. */
-    --brand: 162 44% 24%;
-    --brand-hover: 162 47% 19%;
-    --brand-foreground: 150 17% 98%;
-    --brand-subtle: 156 24% 94%;
-    --navy: 220 18% 22%;
-    --navy-foreground: 210 25% 98%;
-    --navy-subtle: 220 10% 94%;
-    --bronze: 37 42% 49%;
-    --bronze-foreground: 36 64% 18%;
-    --bronze-subtle: 39 42% 92%;
+    /* O eucalipto identifica marca, foco e seleção; ações usam grafite. */
+    --brand: 162.1 64.6% 25.5%;
+    --brand-hover: 161.7 66.7% 21.2%;
+    --brand-foreground: 0 0% 100%;
+    --brand-subtle: 153.3 24.3% 92.7%;
 
     /* Compatibilidade com os componentes shadcn/CVA existentes. */
-    --primary: var(--brand);
-    --primary-foreground: var(--brand-foreground);
-    --secondary: 240 6% 93%;
+    --primary: var(--ink);
+    --primary-hover: 240 3.3% 6%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: var(--surface-subtle);
     --secondary-foreground: var(--ink);
     --muted: var(--surface-subtle);
-    --muted-foreground: 240 3% 43%;
-    --accent: 240 6% 92%;
+    --muted-foreground: 240 2.9% 40.8%;
+    --accent: 60 7% 91.5%;
     --accent-foreground: var(--ink);
-    --destructive: 0 47% 46%;
+    --destructive: 356.3 67.4% 42.2%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 6% 88%;
-    --input: 240 4% 58%;
-    --ring: 162 44% 30%;
+    --border: 60 5.7% 86.3%;
+    --input: 60 1.6% 52.5%;
+    --ring: var(--brand);
 
     /* Estados semânticos. As cores fortes ficam reservadas para significado. */
-    --success: 156 42% 30%;
-    --success-foreground: 156 42% 25%;
-    --success-subtle: 148 29% 94%;
-    --info: 205 45% 37%;
-    --info-foreground: 205 49% 29%;
-    --info-subtle: 207 38% 94%;
-    --warning: 37 69% 36%;
-    --warning-foreground: 37 68% 28%;
-    --warning-subtle: 40 64% 92%;
-    --danger: 0 47% 46%;
-    --danger-foreground: 0 49% 37%;
-    --danger-subtle: 0 52% 94%;
-    --neutral-subtle: 240 5% 94%;
+    --success: 150.3 59.5% 30%;
+    --success-foreground: 150 61% 24%;
+    --success-subtle: 145 40% 94.1%;
+    --info: var(--brand);
+    --info-foreground: var(--brand-hover);
+    --info-subtle: var(--brand-subtle);
+    --warning: 39.1 100% 27.1%;
+    --warning-foreground: 39 100% 23%;
+    --warning-subtle: 43.9 100% 92%;
+    --danger: 356.3 67.4% 42.2%;
+    --danger-foreground: 356 68% 35%;
+    --danger-subtle: 356.7 81.8% 95.7%;
+    --neutral-subtle: var(--surface-subtle);
 
     --radius: 0.75rem;
   }

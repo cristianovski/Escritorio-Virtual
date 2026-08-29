@@ -41,16 +41,6 @@ export default {
           foreground: "hsl(var(--brand-foreground))",
           subtle: "hsl(var(--brand-subtle))",
         },
-        navy: {
-          DEFAULT: "hsl(var(--navy))",
-          foreground: "hsl(var(--navy-foreground))",
-          subtle: "hsl(var(--navy-subtle))",
-        },
-        bronze: {
-          DEFAULT: "hsl(var(--bronze))",
-          foreground: "hsl(var(--bronze-foreground))",
-          subtle: "hsl(var(--bronze-subtle))",
-        },
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
@@ -81,6 +71,7 @@ export default {
         foreground: "hsl(var(--foreground))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
+          hover: "hsl(var(--primary-hover))",
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
@@ -114,8 +105,8 @@ export default {
         dialog: "1.25rem",
       },
       boxShadow: {
-        panel: "0 1px 2px rgba(0, 0, 0, 0.025), 0 8px 24px rgba(0, 0, 0, 0.035)",
-        floating: "0 12px 36px rgb(0 0 0 / 0.08)",
+        panel: "0 1px 2px rgba(29, 29, 31, 0.02), 0 10px 30px rgba(29, 29, 31, 0.028)",
+        floating: "0 14px 40px rgb(29 29 31 / 0.08)",
         overlay: "0 28px 80px rgb(0 0 0 / 0.16)",
       },
       maxWidth: {

@@ -15,7 +15,7 @@ interface RuralDataFormProps {
 }
 
 const labelClassName = "mb-1.5 block text-sm font-medium text-foreground";
-const controlClassName = "min-h-11 w-full rounded-control border border-input bg-card px-3 py-2.5 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/70";
+const controlClassName = "min-h-11 w-full rounded-control border border-input bg-surface-subtle/55 px-3 py-2.5 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground focus-visible:border-ring focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/70";
 const textareaClassName = `${controlClassName} resize-y`;
 
 interface SectionHeaderProps {
@@ -136,7 +136,7 @@ export function RuralDataForm({
     <fieldset
       disabled={loading}
       aria-busy={loading}
-      className="overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-black/[0.035] disabled:opacity-70"
+      className="overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-border/80 disabled:opacity-70"
     >
       <legend className="sr-only">Ficha de atividade rural</legend>
 

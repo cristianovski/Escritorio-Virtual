@@ -79,12 +79,9 @@ export function LoginPage() {
 
   return (
     <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-background px-4 py-8 sm:px-6">
-      <div className="pointer-events-none absolute -left-24 top-[-8rem] h-80 w-80 rounded-full bg-brand/5 blur-3xl" aria-hidden="true" />
-      <div className="pointer-events-none absolute -bottom-40 right-[-8rem] h-96 w-96 rounded-full bg-navy/5 blur-3xl" aria-hidden="true" />
-
-      <section className="relative w-full max-w-[27rem] rounded-[1.75rem] bg-card/[0.92] p-6 shadow-panel ring-1 ring-black/[0.045] backdrop-blur-xl sm:p-8">
+      <section className="relative w-full max-w-[27rem] rounded-[1.75rem] bg-card p-6 shadow-panel ring-1 ring-border sm:p-8">
         <div className="flex items-center gap-3" aria-label="PrevRural">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary text-xs font-semibold tracking-[0.06em] text-primary ring-1 ring-black/[0.035]">
+          <span className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-foreground text-xs font-semibold tracking-[0.06em] text-background shadow-sm after:absolute after:bottom-1.5 after:right-1.5 after:h-1.5 after:w-1.5 after:rounded-full after:bg-brand">
             PR
           </span>
           <span>
@@ -115,7 +112,7 @@ export function LoginPage() {
                   autoComplete="email"
                   disabled={loading}
                   aria-describedby={msg ? "login-error" : undefined}
-                  className="h-12 w-full rounded-control border border-input bg-card px-3.5 text-[0.9375rem] text-foreground outline-none transition-all placeholder:text-muted-foreground/70 focus:border-ring focus:ring-2 focus:ring-ring/70 disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-70"
+                  className="h-12 w-full rounded-control border border-input bg-surface-subtle/55 px-3.5 text-[0.9375rem] text-foreground outline-none transition-all placeholder:text-muted-foreground/70 focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70 disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-70"
                   placeholder="nome@escritorio.com.br"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
@@ -133,7 +130,7 @@ export function LoginPage() {
                     autoComplete="current-password"
                     disabled={loading}
                     aria-describedby={msg ? "login-error" : undefined}
-                    className="h-12 w-full rounded-control border border-input bg-card px-3.5 pr-12 text-[0.9375rem] text-foreground outline-none transition-all placeholder:text-muted-foreground/70 focus:border-ring focus:ring-2 focus:ring-ring/70 disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-70"
+                    className="h-12 w-full rounded-control border border-input bg-surface-subtle/55 px-3.5 pr-12 text-[0.9375rem] text-foreground outline-none transition-all placeholder:text-muted-foreground/70 focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70 disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-70"
                     placeholder="Digite sua senha"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
@@ -161,7 +158,7 @@ export function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-control bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-all duration-200 ease-product hover:bg-brand-hover hover:shadow-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-65"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-control bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-all duration-200 ease-product hover:bg-primary-hover hover:shadow-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-65"
               >
                 {loading ? (
                   <>

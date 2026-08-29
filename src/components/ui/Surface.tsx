@@ -7,10 +7,10 @@ const surfaceVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-card shadow-panel ring-1 ring-black/[0.035]',
+        default: 'bg-card shadow-panel ring-1 ring-border/80',
         subtle: 'bg-surface-subtle shadow-none',
         outlined: 'bg-transparent shadow-none ring-1 ring-inset ring-border',
-        elevated: 'bg-card shadow-floating ring-1 ring-black/[0.04]',
+        elevated: 'bg-card shadow-floating ring-1 ring-border/90',
       },
       padding: {
         none: 'p-0',

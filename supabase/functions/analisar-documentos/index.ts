@@ -94,19 +94,37 @@ serve(async (req) => {
 
     // Extrair texto de cada documento (com cache)
     let extractedText = "";
+
+    // Buscar caches existentes em lote (Otimização)
+    const documentIdsToProcess = docs.map(doc => doc.id);
+    const cachedTextsMap = new Map<string, string>();
+
+    if (documentIdsToProcess.length > 0) {
+      console.log(`🔍 Buscando cache de OCR para ${documentIdsToProcess.length} documentos...`);
+      const { data: cachedData, error: cacheError } = await supabase
+        .from("document_ocr_cache")
+        .select("document_id, extracted_text")
+        .in("document_id", documentIdsToProcess);
+
+      if (!cacheError && cachedData) {
+        for (const cache of cachedData) {
+          cachedTextsMap.set(cache.document_id, cache.extracted_text);
+        }
+        console.log(`✅ ${cachedData.length} caches de OCR encontrados`);
+      }
+    }
+
+    const newOcrCaches: { document_id: string; extracted_text: string }[] = [];
+
     for (const doc of docs) {
       console.log(`📄 Processando documento: ${doc.title}`);
       try {
-        // Verificar se já temos OCR no cache
-        const { data: cache } = await supabase
-          .from("document_ocr_cache")
-          .select("extracted_text")
-          .eq("document_id", doc.id)
-          .maybeSingle(); // usar maybeSingle em vez de single para evitar erro se não existir
+        // Verificar se já temos OCR no cache (usando o Map)
+        const cachedText = cachedTextsMap.get(doc.id);
 
-        if (cache) {
+        if (cachedText) {
           console.log(`✅ Cache encontrado para ${doc.title}`);
-          extractedText += `\n--- Documento: ${doc.title} ---\n${cache.extracted_text}\n`;
+          extractedText += `\n--- Documento: ${doc.title} ---\n${cachedText}\n`;
           continue;
         }
 
@@ -159,8 +177,8 @@ serve(async (req) => {
         const text = ocrData.choices[0]?.message?.content || "";
         console.log(`✅ Texto extraído (${text.length} caracteres)`);
 
-        // Salvar no cache
-        await supabase.from("document_ocr_cache").insert({
+        // Adicionar à lista para salvar no cache em lote
+        newOcrCaches.push({
           document_id: doc.id,
           extracted_text: text
         });
@@ -170,6 +188,20 @@ serve(async (req) => {
       } catch (docError: any) {
         console.error(`❌ Erro ao processar documento ${doc.title}:`, docError.message);
         failedDocs.push(doc.title);
+      }
+    }
+
+    // Inserir novos caches em lote (Otimização)
+    if (newOcrCaches.length > 0) {
+      console.log(`💾 Salvando ${newOcrCaches.length} novos textos extraídos no cache...`);
+      const { error: insertCacheError } = await supabase
+        .from("document_ocr_cache")
+        .insert(newOcrCaches);
+
+      if (insertCacheError) {
+        console.error("❌ Erro ao salvar cache de OCR em lote:", insertCacheError);
+      } else {
+        console.log(`✅ Caches salvos com sucesso`);
       }
     }
 

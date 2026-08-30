@@ -1,5 +1,6 @@
 // ARQUIVO: src/types/index.ts
 export type BenefitStatus = 'A Iniciar' | 'Em Andamento' | 'Finalizado' | 'Suspenso';
+export type ProcessPhase = 'Administrativo' | 'Judicial' | 'Execução';
 export type DocumentCategory = 'Provas' | 'Pessoal' | 'Processual' | 'Diversos';
 export type PeriodType = 'rural' | 'urbano' | 'beneficio' | 'lacuna';
 
@@ -22,8 +23,8 @@ export interface Client {
   bairro?: string;
   nit?: string;
   ctps?: string;
-  senha_meu_inss?: string;
   status_processo?: BenefitStatus;
+  fase_processo?: ProcessPhase;
   possui_cnpj?: boolean;
   possui_outra_renda?: boolean;
   honorarios?: number;
@@ -97,6 +98,31 @@ export interface LibraryThesis {
   content: string;
   category: string;
   created_at?: string;
+}
+
+export interface FinancialTransaction {
+  id: string;
+  client_id?: number | null;
+  description: string;
+  amount: number;
+  type: 'entrada' | 'saida';
+  status: 'pendente' | 'pago';
+  due_date: string;
+  payment_date?: string | null;
+  category: string;
+  recurrence_id?: string | null;
+  clients?: { nome: string } | null;
+}
+
+export interface FinancialTransactionInsert {
+  client_id?: number | string | null;
+  description: string;
+  amount: number;
+  type: 'entrada' | 'saida';
+  status: 'pendente' | 'pago';
+  due_date: string;
+  category: string;
+  recurrence_id?: string;
 }
 
 export type ClientFormData = Omit<Client, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'personal_docs'>;

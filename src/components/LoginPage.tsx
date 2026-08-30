@@ -1,8 +1,48 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
+import {
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Loader2,
+} from "lucide-react";
+import { useAuth } from "../hooks/authContext";
 import { supabase } from "../lib/supabase";
-import { LayoutDashboard, LogIn, UserPlus, AlertCircle } from "lucide-react";
+
+function getFriendlyAuthMessage(error: unknown) {
+  const code = (
+    typeof error === "object" && error !== null && "code" in error
+      ? String(error.code)
+      : ""
+  ).toLowerCase();
+  const technicalMessage = error instanceof Error ? error.message.toLowerCase() : "";
+
+  if (code === "invalid_credentials" || technicalMessage.includes("invalid login credentials")) {
+    return "E-mail ou senha não conferem. Revise os dados e tente novamente.";
+  }
+
+  if (code === "email_not_confirmed" || technicalMessage.includes("email not confirmed")) {
+    return "Seu e-mail ainda não foi confirmado. Consulte o administrador do escritório.";
+  }
+
+  if (
+    code.includes("rate_limit") ||
+    technicalMessage.includes("too many requests") ||
+    technicalMessage.includes("rate limit")
+  ) {
+    return "Houve muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.";
+  }
+
+  if (
+    technicalMessage.includes("failed to fetch") ||
+    technicalMessage.includes("network") ||
+    technicalMessage.includes("fetch")
+  ) {
+    return "Não foi possível conectar ao serviço. Verifique sua internet e tente novamente.";
+  }
+
+  return "Não foi possível entrar agora. Tente novamente ou consulte o administrador do escritório.";
+}
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -10,7 +50,7 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false); // Alternar entre Login e Cadastro
+  const [showPassword, setShowPassword] = useState(false);
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
@@ -19,98 +59,121 @@ export function LoginPage() {
     }
   }, [session, navigate]);
 
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAuth = async (event: React.FormEvent) => {
+    event.preventDefault();
     setLoading(true);
     setMsg("");
 
     try {
-      if (isSignUp) {
-        // CADASTRO
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-        if (error) throw error;
-        setMsg("✅ Cadastro realizado! Verifique seu e-mail ou faça login.");
-      } else {
-        // LOGIN
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-      }
-    } catch (error: any) {
-      setMsg("❌ " + error.message);
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) throw error;
+    } catch (error: unknown) {
+      setMsg(getFriendlyAuthMessage(error));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-xl p-8 space-y-6 animate-in fade-in zoom-in-95 duration-300">
-        
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary mx-auto">
-             <LayoutDashboard size={24} />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">PrevRural</h1>
-          <p className="text-muted-foreground">O sistema definitivo para Direito Previdenciário Rural.</p>
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-background px-4 py-8 sm:px-6">
+      <section className="relative w-full max-w-[27rem] rounded-[1.75rem] bg-card p-6 shadow-panel ring-1 ring-border sm:p-8">
+        <div className="flex items-center gap-3" aria-label="PrevRural">
+          <span className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-foreground text-xs font-semibold tracking-[0.06em] text-background shadow-sm after:absolute after:bottom-1.5 after:right-1.5 after:h-1.5 after:w-1.5 after:rounded-full after:bg-brand">
+            PR
+          </span>
+          <span>
+            <span className="block text-base font-semibold leading-tight tracking-[-0.02em] text-foreground">PrevRural</span>
+            <span className="block text-xs text-muted-foreground">Gestão previdenciária</span>
+          </span>
         </div>
 
-        <form onSubmit={handleAuth} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">E-mail Profissional</label>
-            <input 
-              type="email" 
-              required
-              className="w-full bg-secondary/30 border border-input rounded-xl p-3 outline-none focus:border-primary transition-colors"
-              placeholder="seu@email.com"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Senha</label>
-            <input 
-              type="password" 
-              required
-              className="w-full bg-secondary/30 border border-input rounded-xl p-3 outline-none focus:border-primary transition-colors"
-              placeholder="••••••••"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-            />
-          </div>
+        <div className="mb-8 mt-10">
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.035em] text-foreground">Acesse sua conta</h1>
+          <p className="mt-2 text-[0.9375rem] leading-6 text-muted-foreground">
+            Use o e-mail profissional vinculado ao escritório.
+          </p>
+        </div>
 
-          {msg && (
-            <div className="p-3 bg-secondary/50 rounded-lg text-sm flex items-center gap-2">
-              <AlertCircle size={14} />
-              {msg}
-            </div>
-          )}
+        <form onSubmit={handleAuth} className="space-y-5" aria-busy={loading}>
+              <div className="space-y-1.5">
+                <label htmlFor="email" className="text-sm font-medium text-foreground">E-mail profissional</label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  inputMode="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  autoComplete="email"
+                  disabled={loading}
+                  aria-describedby={msg ? "login-error" : undefined}
+                  className="h-12 w-full rounded-control border border-input bg-surface-subtle/55 px-3.5 text-[0.9375rem] text-foreground outline-none transition-all placeholder:text-muted-foreground/70 focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70 disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-70"
+                  placeholder="nome@escritorio.com.br"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+              </div>
 
-          <button 
-            disabled={loading}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-          >
-            {loading ? "Processando..." : (isSignUp ? "Criar Conta Grátis" : "Entrar no Sistema")}
-            {!loading && (isSignUp ? <UserPlus size={18} /> : <LogIn size={18} />)}
-          </button>
+              <div className="space-y-1.5">
+                <label htmlFor="password" className="text-sm font-medium text-foreground">Senha</label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    autoComplete="current-password"
+                    disabled={loading}
+                    aria-describedby={msg ? "login-error" : undefined}
+                    className="h-12 w-full rounded-control border border-input bg-surface-subtle/55 px-3.5 pr-12 text-[0.9375rem] text-foreground outline-none transition-all placeholder:text-muted-foreground/70 focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70 disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-70"
+                    placeholder="Digite sua senha"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((visible) => !visible)}
+                    disabled={loading}
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                    aria-pressed={showPassword}
+                    className="absolute right-0.5 top-0.5 flex h-11 w-11 items-center justify-center rounded-[0.65rem] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                  </button>
+                </div>
+              </div>
+
+              {msg && (
+                <div id="login-error" role="alert" aria-live="polite" className="flex items-start gap-2.5 rounded-control bg-danger-subtle p-3 text-sm leading-5 text-danger-foreground">
+                  <AlertCircle className="mt-0.5 shrink-0" size={17} aria-hidden="true" />
+                  <span>{msg}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-control bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-all duration-200 ease-product hover:bg-primary-hover hover:shadow-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-65"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="animate-spin" size={18} aria-hidden="true" /> Entrando…
+                  </>
+                ) : (
+                  "Entrar"
+                )}
+              </button>
         </form>
 
-        <div className="text-center">
-          <button 
-            onClick={() => { setIsSignUp(!isSignUp); setMsg(""); }}
-            className="text-sm text-muted-foreground hover:text-primary transition-colors"
-          >
-            {isSignUp ? "Já tem uma conta? Faça Login" : "Não tem conta? Cadastre-se"}
-          </button>
-        </div>
-
-      </div>
-    </div>
+        <p className="mt-7 text-center text-xs leading-5 text-muted-foreground">
+          Ambiente restrito aos profissionais autorizados.
+        </p>
+      </section>
+    </main>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Client } from '../types';
 
@@ -14,94 +14,142 @@ export interface UnifiedTimelineItem {
   law: string;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function readString(record: Record<string, unknown>, key: string): string {
+  const value = record[key];
+  return typeof value === 'string' ? value : '';
+}
+
+function readId(record: Record<string, unknown>, fallback: string): string | number {
+  const value = record.id;
+  return typeof value === 'string' || typeof value === 'number' ? value : fallback;
+}
+
+function displayYearFromDate(date: string): string | number {
+  if (!date || date === 'S/D') return '?';
+  const year = date.slice(0, 4);
+  return /^\d{4}$/.test(year) ? year : '?';
+}
+
 export function useTimeline(cliente: Client) {
+  const clientId = cliente.id;
   const [loading, setLoading] = useState(true);
   const [timeline, setTimeline] = useState<UnifiedTimelineItem[]>([]);
 
   useEffect(() => {
-    if (cliente?.id) loadUnifiedTimeline();
-  }, [cliente]);
+    if (!clientId) return;
 
-  const loadUnifiedTimeline = async () => {
-    setLoading(true);
-    let combinedDocs: UnifiedTimelineItem[] = [];
+    let active = true;
 
-    try {
-      const [interviewRes, clientRes, newDocsRes] = await Promise.all([
-        supabase.from('interviews').select('timeline_json').eq('client_id', cliente.id).maybeSingle(),
-        supabase.from('clients').select('personal_docs').eq('id', cliente.id).single(),
-        supabase.from('client_documents').select('*').eq('client_id', cliente.id)
-      ]);
+    const loadUnifiedTimeline = async () => {
+      setLoading(true);
+      let combinedDocs: UnifiedTimelineItem[] = [];
 
-      // 1. Da entrevista (Calculadora) - Geralmente são provas
-      const interviewData = interviewRes.data;
-      if (interviewData?.timeline_json && Array.isArray(interviewData.timeline_json)) {
-        const docsFicha = interviewData.timeline_json.map((doc: Record<string, any>) => ({
-          id: doc.id || Math.random().toString(),
-          type: doc.type || "Registro Ficha",
-          customName: doc.description || "",
-          issueDate: doc.issueDate || (doc.year ? `${doc.year}-01-01` : 'S/D'),
-          displayYear: doc.year || (doc.issueDate ? doc.issueDate.split('-')[0] : "?"),
-          fileUrl: doc.fileUrl || null,
-          fileName: doc.fileName || null,
-          source: 'Entrevista Rural',
-          law: doc.law || ""
-        }));
-        combinedDocs = [...combinedDocs, ...docsFicha];
+      try {
+        const [interviewRes, clientRes, newDocsRes] = await Promise.all([
+          supabase.from('interviews').select('timeline_json').eq('client_id', clientId).maybeSingle(),
+          supabase.from('clients').select('personal_docs').eq('id', clientId).single(),
+          supabase.from('client_documents').select('*').eq('client_id', clientId),
+        ]);
+
+        if (interviewRes.error) throw interviewRes.error;
+        if (clientRes.error) throw clientRes.error;
+        if (newDocsRes.error) throw newDocsRes.error;
+
+        const interviewTimeline = interviewRes.data?.timeline_json;
+        if (Array.isArray(interviewTimeline)) {
+          const docsFicha = interviewTimeline.flatMap((value, index): UnifiedTimelineItem[] => {
+            if (!isRecord(value)) return [];
+
+            const year = readString(value, 'year');
+            const issueDate = readString(value, 'issueDate') || (year ? `${year}-01-01` : 'S/D');
+
+            return [{
+              id: readId(value, `entrevista-${index}`),
+              type: readString(value, 'type') || 'Registro Ficha',
+              customName: readString(value, 'description'),
+              issueDate,
+              displayYear: year || displayYearFromDate(issueDate),
+              fileUrl: readString(value, 'fileUrl') || null,
+              fileName: readString(value, 'fileName') || null,
+              source: 'Entrevista Rural',
+              law: readString(value, 'law'),
+            }];
+          });
+          combinedDocs = [...combinedDocs, ...docsFicha];
+        }
+
+        const personalDocs = clientRes.data?.personal_docs;
+        if (Array.isArray(personalDocs)) {
+          const docsCadastro = personalDocs.flatMap((value, index): UnifiedTimelineItem[] => {
+            if (!isRecord(value)) return [];
+
+            const category = readString(value, 'category');
+            if (!category.toLowerCase().includes('prova')) return [];
+
+            const issueDate = readString(value, 'issueDate');
+            const fallbackDate = new Date().toISOString().slice(0, 10);
+
+            return [{
+              id: `ged-${index}`,
+              type: category || 'Documento Pessoal',
+              customName: readString(value, 'name') || 'Upload',
+              issueDate: issueDate || fallbackDate,
+              displayYear: displayYearFromDate(issueDate || fallbackDate),
+              fileUrl: readString(value, 'url') || null,
+              fileName: readString(value, 'fileName') || 'arquivo_anexo',
+              source: 'GED / Cadastro',
+              law: '',
+            }];
+          });
+          combinedDocs = [...combinedDocs, ...docsCadastro];
+        }
+
+        if (newDocsRes.data) {
+          const docsDb = newDocsRes.data.flatMap((document): UnifiedTimelineItem[] => {
+            const category = document.category || '';
+            if (!category.toLowerCase().includes('prova')) return [];
+
+            const issueDate = document.reference_date || document.created_at || 'S/D';
+
+            return [{
+              id: document.id,
+              type: category || 'Geral',
+              customName: document.title || 'Sem Título',
+              issueDate,
+              displayYear: displayYearFromDate(issueDate),
+              fileUrl: document.file_url || null,
+              fileName: document.title || 'arquivo',
+              source: 'GED (Novo)',
+              law: '',
+            }];
+          });
+          combinedDocs = [...combinedDocs, ...docsDb];
+        }
+
+        const sorted = [...combinedDocs].sort((a, b) => {
+          const dateA = new Date(a.issueDate === 'S/D' ? '1900-01-01' : a.issueDate).getTime();
+          const dateB = new Date(b.issueDate === 'S/D' ? '1900-01-01' : b.issueDate).getTime();
+          return dateA - dateB;
+        });
+
+        if (active) setTimeline(sorted);
+      } catch (error: unknown) {
+        console.error('Erro ao carregar timeline:', error);
+      } finally {
+        if (active) setLoading(false);
       }
+    };
 
-      // 2. Do cadastro legado - FILTRANDO SÓ PROVAS
-      const clientData = clientRes.data;
-      if (clientData?.personal_docs && Array.isArray(clientData.personal_docs)) {
-        const docsCadastro = clientData.personal_docs
-          .filter((doc: Record<string, any>) => (doc.category || "").toLowerCase().includes("prova"))
-          .map((doc: Record<string, any>, idx: number) => ({
-            id: `ged-${idx}`,
-            type: doc.category || "Documento Pessoal",
-            customName: doc.name || "Upload",
-            issueDate: doc.issueDate || new Date().toISOString().split('T')[0],
-            displayYear: doc.issueDate ? doc.issueDate.split('-')[0] : new Date().getFullYear(),
-            fileUrl: doc.url || null,
-            fileName: doc.fileName || "arquivo_anexo",
-            source: 'GED / Cadastro',
-            law: ""
-        }));
-        combinedDocs = [...combinedDocs, ...docsCadastro];
-      }
+    void loadUnifiedTimeline();
 
-      // 3. Da nova tabela client_documents - FILTRANDO SÓ PROVAS
-      const newDocs = newDocsRes.data;
-      if (newDocs) {
-        const docsDb = newDocs
-          .filter((doc: Record<string, any>) => (doc.category || "").toLowerCase().includes("prova"))
-          .map((doc: Record<string, any>) => ({
-            id: doc.id,
-            type: doc.category || "Geral",
-            customName: doc.title || doc.original_name || "Sem Título",
-            issueDate: doc.reference_date || doc.created_at,
-            displayYear: new Date(doc.reference_date || doc.created_at).getFullYear(),
-            fileUrl: doc.file_url || null,
-            fileName: doc.title || doc.original_name || "arquivo",
-            source: 'GED (Novo)',
-            law: ""
-        }));
-        combinedDocs = [...combinedDocs, ...docsDb];
-      }
-
-      // Ordenar por data
-      const sorted = combinedDocs.sort((a, b) => {
-        const dateA = new Date(a.issueDate === 'S/D' ? '1900-01-01' : a.issueDate).getTime();
-        const dateB = new Date(b.issueDate === 'S/D' ? '1900-01-01' : b.issueDate).getTime();
-        return dateA - dateB;
-      });
-
-      setTimeline(sorted);
-    } catch (err) {
-      console.error("Erro ao carregar timeline:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    return () => {
+      active = false;
+    };
+  }, [clientId]);
 
   return { loading, timeline };
 }

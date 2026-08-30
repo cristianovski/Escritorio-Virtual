@@ -1,101 +1,230 @@
 import { useState } from "react";
-import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, LogOut, DollarSign, Menu, X } from "lucide-react";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import {
+  BriefcaseBusiness,
+  DollarSign,
+  LayoutDashboard,
+  LogOut,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { supabase } from "../lib/supabase";
+
+interface NavigationItem {
+  label: string;
+  to: string;
+  icon: LucideIcon;
+  matches: (pathname: string) => boolean;
+}
+
+const navigationItems: NavigationItem[] = [
+  {
+    label: "Visão geral",
+    to: "/",
+    icon: LayoutDashboard,
+    matches: (pathname) => pathname === "/",
+  },
+  {
+    label: "Clientes",
+    to: "/clientes",
+    icon: Users,
+    matches: (pathname) => (
+      pathname === "/clientes" ||
+      pathname.startsWith("/documentos/") ||
+      pathname.startsWith("/analise/") ||
+      pathname.startsWith("/linha-tempo/") ||
+      (pathname.startsWith("/cliente/") && !pathname.endsWith("/financeiro"))
+    ),
+  },
+  {
+    label: "Financeiro",
+    to: "/fluxo-caixa",
+    icon: DollarSign,
+    matches: (pathname) => (
+      pathname === "/fluxo-caixa" || pathname.endsWith("/financeiro")
+    ),
+  },
+  {
+    label: "Equipe",
+    to: "/advogados",
+    icon: BriefcaseBusiness,
+    matches: (pathname) => pathname === "/advogados",
+  },
+];
+
+interface NavigationProps {
+  pathname: string;
+  onNavigate?: () => void;
+}
+
+function Navigation({ pathname, onNavigate }: NavigationProps) {
+  return (
+    <nav aria-label="Navegação principal" className="space-y-1">
+      {navigationItems.map((item) => {
+        const active = item.matches(pathname);
+        const Icon = item.icon;
+
+        return (
+          <Link
+            key={item.to}
+            to={item.to}
+            onClick={onNavigate}
+            aria-current={active ? "page" : undefined}
+            className={`flex min-h-11 items-center gap-3 rounded-control px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-product focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+              active
+                ? "bg-brand-subtle/80 text-foreground"
+                : "text-muted-foreground hover:bg-card/70 hover:text-foreground"
+            }`}
+          >
+            <Icon
+              aria-hidden="true"
+              className={active ? "text-brand" : "text-muted-foreground"}
+              size={19}
+              strokeWidth={1.8}
+            />
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+interface BrandProps {
+  compact?: boolean;
+  onNavigate?: () => void;
+}
+
+function Brand({ compact = false, onNavigate }: BrandProps) {
+  return (
+    <Link
+      to="/"
+      onClick={onNavigate}
+      aria-label="PrevRural — ir para a visão geral"
+      className="flex min-h-11 items-center gap-3 rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+    >
+      <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-foreground text-xs font-semibold tracking-[0.06em] text-background shadow-sm after:absolute after:bottom-1.5 after:right-1.5 after:h-1.5 after:w-1.5 after:rounded-full after:bg-brand">
+        PR
+      </span>
+      <span className="min-w-0">
+        <span className="block text-base font-semibold leading-tight tracking-[-0.02em] text-foreground">
+          PrevRural
+        </span>
+        {!compact && (
+          <span className="block truncate text-xs text-muted-foreground">
+            Gestão previdenciária
+          </span>
+        )}
+      </span>
+    </Link>
+  );
+}
+
+interface LogoutButtonProps {
+  isSigningOut: boolean;
+  onLogout: () => void;
+  compact?: boolean;
+}
+
+function LogoutButton({ isSigningOut, onLogout, compact = false }: LogoutButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onLogout}
+      disabled={isSigningOut}
+      aria-busy={isSigningOut}
+      aria-label={compact ? (isSigningOut ? "Encerrando sessão" : "Encerrar sessão") : undefined}
+      className={`flex min-h-11 items-center rounded-control text-sm font-medium text-muted-foreground transition-colors hover:bg-card/75 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60 ${compact ? "w-11 justify-center" : "w-full gap-3 px-3 py-2.5 text-left"}`}
+    >
+      <LogOut aria-hidden="true" size={19} strokeWidth={1.8} />
+      {!compact ? <span>{isSigningOut ? "Encerrando sessão..." : "Encerrar sessão"}</span> : null}
+    </button>
+  );
+}
+
+function MobileNavigation({ pathname }: { pathname: string }) {
+  return (
+    <nav
+      aria-label="Navegação móvel"
+      className="shrink-0 border-t border-border/90 bg-card/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
+    >
+      <div className="grid grid-cols-4">
+        {navigationItems.map((item) => {
+          const active = item.matches(pathname);
+          const Icon = item.icon;
+
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              aria-current={active ? "page" : undefined}
+              className={`flex min-h-16 flex-col items-center justify-center gap-1 px-1 text-[0.6875rem] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${active ? "text-brand" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <Icon aria-hidden="true" size={21} strokeWidth={active ? 2.1 : 1.7} />
+              <span>{item.label === "Visão geral" ? "Visão" : item.label}</span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
 
 export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate(0);
+    if (isSigningOut) return;
+
+    setIsSigningOut(true);
+    try {
+      await supabase.auth.signOut();
+      navigate(0);
+    } finally {
+      setIsSigningOut(false);
+    }
   };
 
-  const isActive = (path: string) => location.pathname === path;
-
   return (
-    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden font-sans text-slate-800 selection:bg-emerald-100 selection:text-emerald-900">
-      
-      {/* HEADER / TOPBAR FIXO COM EFEITO VIDRO */}
-      <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm flex items-center justify-between px-4 md:px-8 z-50 shrink-0">
-        <div className="flex items-center gap-8 lg:gap-12">
-          
-          {/* Apenas Ícone da Logo */}
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md shadow-emerald-200">
-              <LayoutDashboard size={18}/>
-            </div>
-          </div>
+    <div className="flex h-dvh min-h-dvh overflow-hidden bg-background font-sans text-foreground">
+      <a
+        href="#main-content"
+        className="sr-only fixed left-4 top-4 z-[100] rounded-control bg-foreground px-4 py-3 text-sm font-medium text-background shadow-floating focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+      >
+        Pular para o conteúdo
+      </a>
 
-          {/* Navegação Desktop - APENAS TEXTO */}
-          <nav className="hidden md:flex items-center gap-2">
-            <Link 
-              to="/" 
-              className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${isActive('/') ? 'bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-100' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}
-            >
-               Início
-            </Link>
-            <Link 
-              to="/fluxo-caixa" 
-              className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${isActive('/fluxo-caixa') ? 'bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-100' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}
-            >
-               Financeiro
-            </Link>
-          </nav>
+      <aside className="hidden h-dvh w-64 shrink-0 flex-col border-r border-border/90 bg-surface-subtle px-4 py-5 lg:flex">
+        <div className="px-1">
+          <Brand />
         </div>
 
-        {/* Ações (Sair e Menu Mobile) */}
-        <div className="flex items-center gap-2">
-           <button 
-             onClick={handleLogout} 
-             className="hidden md:flex text-slate-400 hover:text-red-600 items-center gap-2 px-4 py-2 text-sm font-bold hover:bg-red-50 rounded-lg transition-colors"
-           >
-              Sair <LogOut size={18}/>
-           </button>
-
-           {/* Botão Hambúrguer (Apenas Celular) */}
-           <button 
-             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-             className="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-           >
-             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-           </button>
+        <div className="mt-8 flex-1">
+          <Navigation pathname={location.pathname} />
         </div>
-      </header>
 
-      {/* Menu Mobile Dropdown */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-16 left-0 right-0 bg-white/95 backdrop-blur-xl border-b border-slate-200 shadow-lg z-40 flex flex-col p-4 space-y-2 animate-in slide-in-from-top-2">
-          <Link 
-            onClick={() => setIsMobileMenuOpen(false)} 
-            to="/" 
-            className={`px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-3 ${isActive('/') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}
-          >
-             <LayoutDashboard size={18}/> Início
-          </Link>
-          <Link 
-            onClick={() => setIsMobileMenuOpen(false)} 
-            to="/fluxo-caixa" 
-            className={`px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-3 ${isActive('/fluxo-caixa') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}
-          >
-             <DollarSign size={18}/> Financeiro
-          </Link>
-          <div className="border-t border-slate-100 my-2"></div>
-          <button 
-            onClick={handleLogout} 
-            className="w-full text-left text-red-500 flex items-center gap-3 px-4 py-3 text-sm font-bold hover:bg-red-50 rounded-xl transition-colors"
-          >
-             <LogOut size={18}/> Encerrar Sessão
-          </button>
+        <div className="border-t border-border/90 pt-3">
+          <LogoutButton isSigningOut={isSigningOut} onLogout={handleLogout} />
         </div>
-      )}
+      </aside>
 
-      {/* ÁREA DE CONTEÚDO DINÂMICO */}
-      <main className="flex-1 flex flex-col overflow-hidden relative bg-slate-50">
-        <Outlet />
-      </main>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <header className="flex min-h-14 shrink-0 items-center justify-between border-b border-border/90 bg-background/[0.85] px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-xl lg:hidden">
+          <Brand compact />
+          <LogoutButton compact isSigningOut={isSigningOut} onLogout={handleLogout} />
+        </header>
+
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background focus:outline-none"
+        >
+          <Outlet />
+        </main>
+        <MobileNavigation pathname={location.pathname} />
+      </div>
     </div>
   );
 }

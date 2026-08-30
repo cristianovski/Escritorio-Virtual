@@ -1,92 +1,139 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, Wallet, TrendingUp, Calendar, CheckCircle, 
-  Clock, Plus, Trash2, Target, DollarSign, AlertCircle
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useParams } from 'react-router-dom';
+import {
+  AlertCircle,
+  Calendar,
+  CheckCircle2,
+  CircleDollarSign,
+  Clock3,
+  Plus,
+  Target,
+  Trash2,
+  TrendingUp,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../hooks/use-toast';
-import { Client } from '../../types';
+import type { Client, FinancialTransaction, FinancialTransactionInsert } from '../../types';
+import { Button } from '../../components/ui/button';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { StatusBadge } from '../../components/ui/StatusBadge';
+import { Surface } from '../../components/ui/Surface';
+
+const fieldClassName =
+  'h-11 w-full min-w-0 rounded-control border border-input bg-surface-subtle/55 px-3 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70';
 
 export function ClientFinancePage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   const [cliente, setCliente] = useState<Client | null>(null);
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
-  // Form State
   const [tipoLancamento, setTipoLancamento] = useState<'a_vista' | 'parcelado' | 'estimativa'>('a_vista');
   const [desc, setDesc] = useState('');
   const [amount, setAmount] = useState('');
   const [installments, setInstallments] = useState('2');
   const [startDate, setStartDate] = useState('');
 
-  useEffect(() => {
-    fetchData();
-  }, [id]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const [clientRes, transRes] = await Promise.all([
         supabase.from('clients').select('*').eq('id', id).single(),
-        supabase.from('transactions').select('*').eq('client_id', id).order('due_date', { ascending: true })
+        supabase.from('transactions').select('*').eq('client_id', id).order('due_date', { ascending: true }),
       ]);
-      if (clientRes.data) setCliente(clientRes.data);
-      if (transRes.data) setTransactions(transRes.data);
-    } catch (error) {
-      console.error(error);
+      if (clientRes.error) throw clientRes.error;
+      if (transRes.error) throw transRes.error;
+      setCliente(clientRes.data as Client);
+      setTransactions(transRes.data || []);
+    } catch (error: unknown) {
+      console.error('Falha ao carregar honorários:', error);
+      setLoadError(true);
+      toast({
+        title: 'Honorários indisponíveis',
+        description: 'Não foi possível confirmar os valores deste cliente. Tente novamente.',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, toast]);
+
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
 
   const handleSave = async () => {
-    // Se for estimativa, não exige a data de início
-    if (!desc || !amount || (tipoLancamento !== 'estimativa' && !startDate)) {
+    const normalizedDescription = desc.trim();
+    const totalAmount = Number(amount.replace(',', '.'));
+
+    if (!normalizedDescription || !amount || (tipoLancamento !== 'estimativa' && !startDate)) {
       toast({ title: 'Atenção', description: 'Preencha todos os campos obrigatórios.', variant: 'destructive' });
+      return;
+    }
+    if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
+      toast({ title: 'Valor inválido', description: 'Informe um valor maior que zero.', variant: 'destructive' });
+      return;
+    }
+
+    const parcelas = Number(installments);
+    if (tipoLancamento === 'parcelado' && (!Number.isInteger(parcelas) || parcelas < 2 || parcelas > 120)) {
+      toast({
+        title: 'Parcelamento inválido',
+        description: 'Escolha uma quantidade entre 2 e 120 parcelas.',
+        variant: 'destructive',
+      });
       return;
     }
 
     setSaving(true);
     try {
-      const totalAmount = parseFloat(amount.replace(',', '.'));
-      let inserts = [];
+      const inserts: FinancialTransactionInsert[] = [];
       const recurrenceId = crypto.randomUUID();
 
       if (tipoLancamento === 'a_vista') {
         inserts.push({
-          client_id: id, description: desc, amount: totalAmount, 
-          type: 'entrada', status: 'pendente', due_date: startDate, category: 'Honorários'
+          client_id: id,
+          description: normalizedDescription,
+          amount: totalAmount,
+          type: 'entrada',
+          status: 'pendente',
+          due_date: startDate,
+          category: 'Honorários',
         });
       } else if (tipoLancamento === 'estimativa') {
         inserts.push({
-          client_id: id, description: `[Estimativa] ${desc}`, amount: totalAmount, 
-          type: 'entrada', status: 'pendente', 
-          due_date: new Date().toISOString().split('T')[0], // Data silenciosa para não quebrar o banco
-          category: 'Estimativa'
+          client_id: id,
+          description: `[Estimativa] ${normalizedDescription}`,
+          amount: totalAmount,
+          type: 'entrada',
+          status: 'pendente',
+          due_date: new Date().toISOString().split('T')[0],
+          category: 'Estimativa',
         });
-      } else if (tipoLancamento === 'parcelado') {
-        const parcelas = parseInt(installments, 10);
+      } else {
         const valorParcela = totalAmount / parcelas;
-        
+
         for (let i = 0; i < parcelas; i++) {
-          const d = new Date(`${startDate}T12:00:00`);
-          d.setMonth(d.getMonth() + i);
-          
+          const date = new Date(`${startDate}T12:00:00`);
+          date.setMonth(date.getMonth() + i);
           inserts.push({
-            client_id: id, 
-            description: `${desc} (${i + 1}/${parcelas})`, 
-            amount: valorParcela, 
-            type: 'entrada', 
-            status: 'pendente', 
-            due_date: d.toISOString().split('T')[0], 
+            client_id: id,
+            description: `${normalizedDescription} (${i + 1}/${parcelas})`,
+            amount: valorParcela,
+            type: 'entrada',
+            status: 'pendente',
+            due_date: date.toISOString().split('T')[0],
             category: 'Honorários',
-            recurrence_id: recurrenceId
+            recurrence_id: recurrenceId,
           });
         }
       }
@@ -94,227 +141,284 @@ export function ClientFinancePage() {
       const { error } = await supabase.from('transactions').insert(inserts);
       if (error) throw error;
 
-      toast({ title: 'Sucesso', description: 'Lançamento financeiro criado.', variant: 'success' });
-      setDesc(''); setAmount(''); setStartDate(''); setTipoLancamento('a_vista');
-      fetchData();
-    } catch (err: any) {
-      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+      toast({ title: 'Lançamento salvo', description: 'A obrigação financeira foi criada.', variant: 'success' });
+      setDesc('');
+      setAmount('');
+      setStartDate('');
+      setTipoLancamento('a_vista');
+      void fetchData();
+    } catch (error: unknown) {
+      const description = error instanceof Error ? error.message : 'Falha ao salvar lançamento.';
+      toast({ title: 'Erro', description, variant: 'destructive' });
     } finally {
       setSaving(false);
     }
   };
 
-  const toggleStatus = async (transId: string, currentStatus: string) => {
-    const novoStatus = currentStatus === 'pago' ? 'pendente' : 'pago';
-    const paymentDate = novoStatus === 'pago' ? new Date().toISOString().split('T')[0] : null;
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void handleSave();
+  };
+
+  const toggleStatus = async (transactionId: string, currentStatus: string) => {
+    const nextStatus = currentStatus === 'pago' ? 'pendente' : 'pago';
+    const paymentDate = nextStatus === 'pago' ? new Date().toISOString().split('T')[0] : null;
 
     try {
-      const { error } = await supabase.from('transactions')
-        .update({ status: novoStatus, payment_date: paymentDate })
-        .eq('id', transId);
+      const { error } = await supabase
+        .from('transactions')
+        .update({ status: nextStatus, payment_date: paymentDate })
+        .eq('id', transactionId);
       if (error) throw error;
-      fetchData();
-    } catch (err) {
-      toast({ title: 'Erro', description: 'Não foi possível atualizar.', variant: 'destructive' });
+      void fetchData();
+    } catch {
+      toast({ title: 'Erro', description: 'Não foi possível atualizar o lançamento.', variant: 'destructive' });
     }
   };
 
-  const handleDelete = async (transId: string) => {
-    if(!confirm("Remover este lançamento?")) return;
+  const handleDelete = async () => {
+    if (!deleteTargetId || deleting) return;
+
+    const targetId = deleteTargetId;
+    setDeleting(true);
     try {
-      const { error } = await supabase.from('transactions').delete().eq('id', transId);
+      const { error } = await supabase.from('transactions').delete().eq('id', targetId);
       if (error) throw error;
-      fetchData();
-    } catch (err) {
-      toast({ title: 'Erro', description: 'Falha ao remover.', variant: 'destructive' });
+      setDeleteTargetId(null);
+      await fetchData();
+    } catch {
+      toast({ title: 'Erro', description: 'Não foi possível remover o lançamento.', variant: 'destructive' });
+    } finally {
+      setDeleting(false);
     }
   };
 
-  const fmtCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-  const fmtDate = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString('pt-BR');
+  const fmtCurrency = (value: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  const fmtDate = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR');
 
-  const entradasReais = transactions.filter(t => t.category !== 'Estimativa');
-  const estimativas = transactions.filter(t => t.category === 'Estimativa');
+  const entradasReais = transactions.filter((transaction) => transaction.category !== 'Estimativa');
+  const estimativas = transactions.filter((transaction) => transaction.category === 'Estimativa');
+  const totalRecebido = entradasReais
+    .filter((transaction) => transaction.status === 'pago')
+    .reduce((total, transaction) => total + Number(transaction.amount), 0);
+  const totalPendente = entradasReais
+    .filter((transaction) => transaction.status === 'pendente')
+    .reduce((total, transaction) => total + Number(transaction.amount), 0);
+  const totalEstimado = estimativas
+    .filter((transaction) => transaction.status === 'pendente')
+    .reduce((total, transaction) => total + Number(transaction.amount), 0);
 
-  const totalRecebido = entradasReais.filter(t => t.status === 'pago').reduce((acc, curr) => acc + Number(curr.amount), 0);
-  const totalPendente = entradasReais.filter(t => t.status === 'pendente').reduce((acc, curr) => acc + Number(curr.amount), 0);
-  const totalEstimado = estimativas.filter(t => t.status === 'pendente').reduce((acc, curr) => acc + Number(curr.amount), 0);
+  const metrics = [
+    { label: 'Já recebido', value: totalRecebido, icon: CheckCircle2, iconClassName: 'text-success' },
+    { label: 'A receber', value: totalPendente, icon: Clock3, iconClassName: 'text-warning' },
+    { label: 'Potencial estimado', value: totalEstimado, icon: Target, iconClassName: 'text-info' },
+  ];
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 font-sans">
-      <header className="bg-white border-b border-slate-200 p-6 flex items-center gap-4 sticky top-0 z-10 shadow-sm">
-        <button onClick={() => navigate(`/cliente/${id}`)} className="p-2 hover:bg-slate-100 rounded-full transition">
-          <ArrowLeft className="text-slate-600" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2">
-            <Wallet className="text-emerald-600" /> Painel Financeiro do Cliente
-          </h1>
-          <p className="text-sm font-bold text-slate-500 mt-1">{cliente?.nome || 'Carregando...'}</p>
-        </div>
-      </header>
+    <>
+      <div className="h-full overflow-y-auto bg-background">
+        <div className="mx-auto w-full max-w-content space-y-7 p-4 sm:p-6 lg:p-8">
+          <PageHeader
+            headingLevel={2}
+            title="Honorários e recebimentos"
+            description={cliente?.nome ? `Acompanhe acordos e valores vinculados a ${cliente.nome}.` : 'Acompanhe acordos, recebimentos e estimativas deste atendimento.'}
+          />
 
-      <main className="flex-1 overflow-y-auto p-6 md:p-8 max-w-7xl mx-auto w-full space-y-8">
-        
-        {/* CARDS DE RESUMO */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100 flex items-center gap-4">
-            <div className="p-4 bg-emerald-50 text-emerald-600 rounded-xl"><CheckCircle size={24} /></div>
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Já Recebido</p>
-              <h3 className="text-2xl font-black text-emerald-600 mt-1">{fmtCurrency(totalRecebido)}</h3>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-amber-100 flex items-center gap-4">
-            <div className="p-4 bg-amber-50 text-amber-600 rounded-xl"><Clock size={24} /></div>
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">A Receber (Ativo)</p>
-              <h3 className="text-2xl font-black text-amber-600 mt-1">{fmtCurrency(totalPendente)}</h3>
-            </div>
-          </div>
-          <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-2xl shadow-md border border-blue-500 flex items-center gap-4 text-white">
-            <div className="p-4 bg-white/10 rounded-xl"><Target size={24} /></div>
-            <div>
-              <p className="text-xs font-bold text-blue-100 uppercase tracking-wide">Estimativa (Potencial)</p>
-              <h3 className="text-2xl font-black mt-1">{fmtCurrency(totalEstimado)}</h3>
-            </div>
-          </div>
-        </div>
+          {loading ? (
+            <Surface role="status" aria-live="polite" className="flex min-h-48 items-center justify-center gap-3 text-sm text-muted-foreground">
+              <Clock3 className="animate-spin motion-reduce:animate-none" size={20} aria-hidden="true" />
+              Carregando valores confirmados…
+            </Surface>
+          ) : loadError ? (
+            <EmptyState
+              icon={<AlertCircle aria-hidden="true" />}
+              title="Valores indisponíveis"
+              description="Os totais não serão exibidos enquanto não for possível confirmar os dados financeiros."
+              action={<Button variant="outline" onClick={() => void fetchData()}>Tentar novamente</Button>}
+            />
+          ) : (
+            <>
+          <Surface padding="none" className="overflow-hidden">
+            <dl className="grid sm:grid-cols-3">
+              {metrics.map((metric, index) => (
+                <div key={metric.label} className={`min-w-0 p-5 ${index > 0 ? 'border-t border-border/70 sm:border-l sm:border-t-0' : ''}`}>
+                  <dt className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                    <metric.icon size={15} className={metric.iconClassName} aria-hidden="true" />
+                    {metric.label}
+                  </dt>
+                  <dd className="mt-2 break-words text-xl font-semibold tracking-[-0.025em] text-tabular text-foreground sm:text-2xl">{fmtCurrency(metric.value)}</dd>
+                </div>
+              ))}
+            </dl>
+          </Surface>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* FORMULÁRIO DE LANÇAMENTO */}
-          <div className="lg:col-span-1">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 sticky top-6">
-              <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2">
-                <Plus className="text-emerald-500" /> Nova Obrigação Financeira
-              </h3>
-              
-              <div className="space-y-5">
+          <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)]">
+            <Surface className="h-fit xl:sticky xl:top-6" padding="lg">
+              <div className="mb-5">
+                <h2 className="text-lg font-semibold tracking-[-0.02em] text-foreground">Novo acordo</h2>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">Registre honorários contratados ou uma estimativa de êxito.</p>
+              </div>
+
+              <form className="space-y-5" onSubmit={handleSubmit}>
                 <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Tipo de Acordo</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button onClick={() => setTipoLancamento('a_vista')} className={`py-2 rounded-lg text-xs font-bold transition-all border ${tipoLancamento === 'a_vista' ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>À Vista</button>
-                    <button onClick={() => setTipoLancamento('parcelado')} className={`py-2 rounded-lg text-xs font-bold transition-all border ${tipoLancamento === 'parcelado' ? 'bg-amber-50 border-amber-500 text-amber-700 shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>Parcelado</button>
-                    <button onClick={() => setTipoLancamento('estimativa')} className={`py-2 rounded-lg text-xs font-bold transition-all border ${tipoLancamento === 'estimativa' ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>Estimativa</button>
+                  <span id="agreement-type-label" className="mb-2 block text-sm font-medium text-foreground">Tipo de acordo</span>
+                  <div className="grid grid-cols-1 gap-1 rounded-control bg-secondary p-1 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3" role="group" aria-labelledby="agreement-type-label">
+                    {([
+                      ['a_vista', 'À vista'],
+                      ['parcelado', 'Parcelado'],
+                      ['estimativa', 'Estimativa'],
+                    ] as const).map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setTipoLancamento(value)}
+                        aria-pressed={tipoLancamento === value}
+                        className={`h-11 rounded-[0.6rem] px-3 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${tipoLancamento === value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Descrição</label>
-                  <input type="text" value={desc} onChange={e => setDesc(e.target.value)} placeholder={tipoLancamento === 'estimativa' ? "Ex: RPV ou Precatório" : "Ex: Honorários Iniciais..."} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 focus:bg-white text-sm font-medium transition-all" />
+                  <label htmlFor="client-finance-description" className="mb-2 block text-sm font-medium text-foreground">Descrição</label>
+                  <input
+                    id="client-finance-description"
+                    type="text"
+                    value={desc}
+                    onChange={(event) => setDesc(event.target.value)}
+                    placeholder={tipoLancamento === 'estimativa' ? 'Ex.: RPV ou precatório' : 'Ex.: honorários iniciais'}
+                    className={fieldClassName}
+                    required
+                  />
                 </div>
 
-                <div className={`grid ${tipoLancamento === 'estimativa' ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
+                <div className={`grid gap-4 ${tipoLancamento !== 'estimativa' ? 'sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2' : ''}`}>
+                  <div className="min-w-0">
+                    <label htmlFor="client-finance-amount" className="mb-2 block text-sm font-medium text-foreground">Valor total</label>
+                    <input id="client-finance-amount" type="number" inputMode="decimal" min="0.01" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="R$ 0,00" className={fieldClassName} required />
+                  </div>
+                  {tipoLancamento !== 'estimativa' ? (
+                    <div className="min-w-0">
+                      <label htmlFor="client-finance-date" className="mb-2 block text-sm font-medium text-foreground">Primeiro vencimento</label>
+                      <input id="client-finance-date" type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className={fieldClassName} required />
+                    </div>
+                  ) : null}
+                </div>
+
+                {tipoLancamento === 'parcelado' ? (
                   <div>
-                    <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Valor Total (R$)</label>
-                    <input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 focus:bg-white text-sm font-medium transition-all" />
+                    <label htmlFor="client-finance-installments" className="mb-2 block text-sm font-medium text-foreground">Quantidade de parcelas</label>
+                    <input id="client-finance-installments" type="number" min="2" max="120" value={installments} onChange={(event) => setInstallments(event.target.value)} className={fieldClassName} required />
+                    <p className="mt-2 text-xs leading-5 text-muted-foreground">O valor será dividido igualmente em {installments} meses.</p>
                   </div>
-                  
-                  {/* ESCONDE O VENCIMENTO SE FOR ESTIMATIVA */}
-                  {tipoLancamento !== 'estimativa' && (
-                    <div>
-                      <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Vencimento Inicial</label>
-                      <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 focus:bg-white text-sm font-medium transition-all" />
-                    </div>
-                  )}
+                ) : null}
+
+                {tipoLancamento === 'estimativa' ? (
+                  <div className="flex gap-3 rounded-control bg-info-subtle p-4 text-info-foreground">
+                    <AlertCircle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+                    <p className="text-xs leading-5">Estimativas não afetam o saldo e permanecem separadas dos honorários contratados.</p>
+                  </div>
+                ) : null}
+
+                <Button type="submit" disabled={saving} className="w-full">
+                  <Plus size={17} aria-hidden="true" />
+                  {saving ? 'Salvando…' : 'Salvar lançamento'}
+                </Button>
+              </form>
+            </Surface>
+
+            <Surface padding="none" className="min-w-0 overflow-hidden">
+              <div className="border-b border-border/70 px-5 py-5 sm:px-6">
+                <h2 className="text-lg font-semibold tracking-[-0.02em] text-foreground">Lançamentos financeiros</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Honorários ativos, recebidos e valores sujeitos a êxito.</p>
+              </div>
+
+              <section aria-labelledby="active-fees-title">
+                <div className="px-5 pb-2 pt-5 sm:px-6">
+                  <h3 id="active-fees-title" className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <TrendingUp size={16} className="text-success" aria-hidden="true" />
+                    Honorários ativos
+                  </h3>
                 </div>
 
-                {tipoLancamento === 'parcelado' && (
-                  <div className="animate-in fade-in slide-in-from-top-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Qtd. de Parcelas</label>
-                    <input type="number" min="2" max="120" value={installments} onChange={e => setInstallments(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 focus:bg-white text-sm font-medium transition-all" />
-                    <p className="text-[10px] text-slate-400 mt-2 font-medium">O valor total será dividido igualmente em {installments} meses a partir do vencimento inicial.</p>
+                {entradasReais.length === 0 ? (
+                  <EmptyState compact icon={<CircleDollarSign aria-hidden="true" />} title="Nenhum honorário lançado" description="Os acordos contratados aparecerão aqui." />
+                ) : (
+                  <div className="divide-y divide-border/70">
+                    {entradasReais.map((transaction) => {
+                      const isPaid = transaction.status === 'pago';
+                      return (
+                        <article key={transaction.id} className={`flex min-w-0 flex-col gap-3 px-4 py-4 transition-colors sm:flex-row sm:items-center sm:justify-between sm:px-6 ${isPaid ? 'bg-surface-subtle/60' : 'hover:bg-surface-subtle/50'}`}>
+                          <div className="flex min-w-0 items-start gap-3">
+                            <button type="button" onClick={() => void toggleStatus(transaction.id, transaction.status)} className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isPaid ? 'border-success/20 bg-success-subtle text-success' : 'border-border bg-card text-muted-foreground hover:border-brand/30 hover:text-brand'}`} aria-label={isPaid ? `Marcar ${transaction.description} como pendente` : `Marcar ${transaction.description} como recebido`} aria-pressed={isPaid}>
+                              <CheckCircle2 size={19} aria-hidden="true" />
+                            </button>
+                            <div className="min-w-0 pt-0.5">
+                              <h4 className={`break-words text-sm font-medium ${isPaid ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{transaction.description}</h4>
+                              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                <span className="inline-flex items-center gap-1.5 text-tabular"><Calendar size={13} aria-hidden="true" />Vence em {fmtDate(transaction.due_date)}</span>
+                                <StatusBadge tone={isPaid ? 'success' : 'warning'} size="sm">{isPaid ? 'Recebido' : 'Pendente'}</StatusBadge>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex min-w-0 items-center justify-between gap-2 pl-14 sm:justify-end sm:pl-0">
+                            <span className={`min-w-0 break-words text-right text-sm font-semibold text-tabular ${isPaid ? 'text-success-foreground opacity-70' : 'text-foreground'}`}>{fmtCurrency(Number(transaction.amount))}</span>
+                            <Button type="button" variant="ghost" size="icon" onClick={() => setDeleteTargetId(transaction.id)} className="shrink-0 text-muted-foreground hover:text-destructive" aria-label={`Excluir lançamento ${transaction.description}`}>
+                              <Trash2 size={17} aria-hidden="true" />
+                            </Button>
+                          </div>
+                        </article>
+                      );
+                    })}
                   </div>
                 )}
+              </section>
 
-                {tipoLancamento === 'estimativa' && (
-                  <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 flex items-start gap-2">
-                    <AlertCircle size={14} className="text-blue-500 mt-0.5 shrink-0" />
-                    <p className="text-[10px] text-blue-800 font-medium">Estimativas dependem do êxito e não exigem data de vencimento. Elas não afetam o seu saldo, servem apenas para compor o seu "Potencial" no Fluxo de Caixa.</p>
+              {estimativas.length > 0 ? (
+                <section aria-labelledby="estimated-fees-title" className="border-t border-border/70">
+                  <div className="bg-surface-subtle/50 px-5 py-4 sm:px-6">
+                    <h3 id="estimated-fees-title" className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <Target size={16} className="text-info" aria-hidden="true" />
+                      Estimativas de êxito
+                    </h3>
                   </div>
-                )}
-
-                <button onClick={handleSave} disabled={saving} className="w-full bg-slate-900 hover:bg-slate-800 text-white p-4 rounded-xl font-black shadow-lg shadow-slate-200 transition-all flex justify-center gap-2 items-center disabled:opacity-50">
-                  {saving ? 'Lançando...' : <><DollarSign size={18}/> Salvar Lançamento</>}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* LISTA DE LANÇAMENTOS */}
-          <div className="lg:col-span-2 space-y-6">
-            
-            {/* Lançamentos Reais (Ativos) */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-              <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2">
-                <TrendingUp className="text-emerald-500" /> Contas e Honorários (Ativos)
-              </h3>
-              
-              {entradasReais.length === 0 ? (
-                <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                  <p className="text-sm font-bold text-slate-400">Nenhum honorário ativo lançado.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {entradasReais.map(t => (
-                    <div key={t.id} className={`flex items-center justify-between p-4 rounded-xl border transition-all ${t.status === 'pago' ? 'bg-emerald-50/50 border-emerald-100' : 'bg-white border-slate-200 hover:border-amber-300'}`}>
-                      <div className="flex items-center gap-4">
-                        <button onClick={() => toggleStatus(t.id, t.status)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${t.status === 'pago' ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 hover:border-amber-500 text-transparent'}`}>
-                          <CheckCircle size={14} />
-                        </button>
-                        <div>
-                          <p className={`font-bold text-sm ${t.status === 'pago' ? 'text-slate-500 line-through' : 'text-slate-800'}`}>{t.description}</p>
-                          <div className="flex items-center gap-2 text-xs font-medium text-slate-400 mt-1">
-                            <Calendar size={12} /> Venc: {fmtDate(t.due_date)}
-                            {t.status === 'pago' && <span className="text-emerald-500 ml-2">• Recebido</span>}
-                          </div>
+                  <div className="divide-y divide-border/70">
+                    {estimativas.map((transaction) => (
+                      <article key={transaction.id} className="flex min-w-0 flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                        <div className="min-w-0">
+                          <h4 className="break-words text-sm font-medium text-foreground">{transaction.description}</h4>
+                          <p className="mt-1 text-xs text-muted-foreground">Valor sujeito ao êxito da ação</p>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <span className={`font-black ${t.status === 'pago' ? 'text-emerald-600 opacity-60' : 'text-amber-600'}`}>
-                          {fmtCurrency(t.amount)}
-                        </span>
-                        <button onClick={() => handleDelete(t.id)} className="text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Estimativas (Potencial) */}
-            {estimativas.length > 0 && (
-              <div className="bg-blue-50 p-6 rounded-2xl shadow-sm border border-blue-100">
-                <h3 className="text-lg font-black text-blue-900 mb-6 flex items-center gap-2">
-                  <Target className="text-blue-500" /> Potencial de Honorários (Estimativas)
-                </h3>
-                <div className="space-y-3">
-                  {estimativas.map(t => (
-                    <div key={t.id} className="flex items-center justify-between p-4 rounded-xl bg-white border border-blue-100 shadow-sm">
-                      <div className="flex items-center gap-4">
-                        <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><Target size={12} /></div>
-                        <div>
-                          <p className="font-bold text-slate-800 text-sm">{t.description}</p>
-                          {/* TEXTO CORRIGIDO: Retirado o calendário */}
-                          <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mt-1">
-                            <Target size={12} /> Valor sujeito a êxito na ação
-                          </div>
+                        <div className="flex min-w-0 items-center justify-between gap-2 sm:justify-end">
+                          <span className="min-w-0 break-words text-right text-sm font-semibold text-tabular text-info-foreground">{fmtCurrency(Number(transaction.amount))}</span>
+                          <Button type="button" variant="ghost" size="icon" onClick={() => setDeleteTargetId(transaction.id)} className="shrink-0 text-muted-foreground hover:text-destructive" aria-label={`Excluir estimativa ${transaction.description}`}>
+                            <Trash2 size={17} aria-hidden="true" />
+                          </Button>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <span className="font-black text-blue-600">{fmtCurrency(t.amount)}</span>
-                        <button onClick={() => handleDelete(t.id)} className="text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+            </Surface>
           </div>
+            </>
+          )}
         </div>
-      </main>
-    </div>
+      </div>
+
+      <ConfirmDialog
+        open={deleteTargetId !== null}
+        onOpenChange={(open) => !open && !deleting && setDeleteTargetId(null)}
+        title="Excluir lançamento?"
+        message="Este lançamento financeiro será removido. Essa ação não pode ser desfeita."
+        onConfirm={() => void handleDelete()}
+        onCancel={() => !deleting && setDeleteTargetId(null)}
+        confirming={deleting}
+      />
+    </>
   );
 }

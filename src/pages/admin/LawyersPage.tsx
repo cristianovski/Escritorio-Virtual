@@ -1,13 +1,33 @@
-import { useState, useEffect } from "react";
-import { 
-  ArrowLeft, Plus, Trash2, User, FileText, 
-  Hash, Briefcase, Save, Building
-} from "lucide-react";
-import { supabase } from "../../lib/supabase";
-import { Lawyer } from "../../types";
-import { useToast } from "../../hooks/use-toast";
-import { useConfirm } from "../../hooks/useConfirm";
-import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import {
+  ArrowLeft,
+  Building2,
+  BriefcaseBusiness,
+  FileText,
+  Hash,
+  Plus,
+  Save,
+  Trash2,
+  UserRound,
+} from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import type { Lawyer } from '../../types';
+import { useToast } from '../../hooks/use-toast';
+import { useConfirm } from '../../hooks/useConfirm';
+import { Button } from '../../components/ui/button';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Surface } from '../../components/ui/Surface';
 
 interface LawyerExtended extends Lawyer {
   nacionalidade?: string;
@@ -15,20 +35,63 @@ interface LawyerExtended extends Lawyer {
 
 type LawyerFormData = Partial<LawyerExtended>;
 
+const EMPTY_FORM: LawyerFormData = {
+  nome: '',
+  nacionalidade: 'Brasileiro',
+  estado_civil: 'Casado',
+  oab: '',
+  cpf: '',
+};
+
+const fieldClassName =
+  'h-11 w-full rounded-control border border-input bg-surface-subtle/55 px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70 disabled:cursor-not-allowed disabled:opacity-60';
+
+async function loadLawyers() {
+  const { data, error } = await supabase.from('lawyers').select('*').order('nome');
+  if (error) throw error;
+  return (data || []) as LawyerExtended[];
+}
+
 function validarCPF(cpf: string) {
   cpf = cpf.replace(/[^\d]+/g, '');
   if (cpf.length !== 11 || !!cpf.match(/(\d)\1{10}/)) return false;
-  let soma = 0, resto;
-  for (let i = 1; i <= 9; i++) soma = soma + parseInt(cpf.substring(i-1, i)) * (11 - i);
+  let soma = 0;
+  let resto;
+  for (let i = 1; i <= 9; i += 1) {
+    soma += parseInt(cpf.substring(i - 1, i), 10) * (11 - i);
+  }
   resto = (soma * 10) % 11;
-  if ((resto === 10) || (resto === 11)) resto = 0;
-  if (resto !== parseInt(cpf.substring(9, 10))) return false;
+  if (resto === 10 || resto === 11) resto = 0;
+  if (resto !== parseInt(cpf.substring(9, 10), 10)) return false;
   soma = 0;
-  for (let i = 1; i <= 10; i++) soma = soma + parseInt(cpf.substring(i-1, i)) * (12 - i);
+  for (let i = 1; i <= 10; i += 1) {
+    soma += parseInt(cpf.substring(i - 1, i), 10) * (12 - i);
+  }
   resto = (soma * 10) % 11;
-  if ((resto === 10) || (resto === 11)) resto = 0;
-  if (resto !== parseInt(cpf.substring(10, 11))) return false;
+  if (resto === 10 || resto === 11) resto = 0;
+  if (resto !== parseInt(cpf.substring(10, 11), 10)) return false;
   return true;
+}
+
+function LawyersSkeleton() {
+  return (
+    <Surface padding="none" role="status" aria-live="polite">
+      <span className="sr-only">Carregando equipe jurídica…</span>
+      {[1, 2, 3].map((item) => (
+        <div
+          key={item}
+          className="flex animate-pulse flex-col gap-4 border-b border-border/70 p-4 motion-reduce:animate-none last:border-0 sm:flex-row sm:items-center sm:p-5"
+        >
+          <div className="h-11 w-11 shrink-0 rounded-full bg-secondary" />
+          <div className="flex-1 space-y-2">
+            <div className="h-4 w-44 max-w-full rounded bg-secondary" />
+            <div className="h-3 w-64 max-w-full rounded bg-secondary" />
+          </div>
+          <div className="h-11 w-full rounded-control bg-secondary sm:w-28" />
+        </div>
+      ))}
+    </Surface>
+  );
 }
 
 export function LawyersPage({ onBack }: { onBack: () => void }) {
@@ -36,180 +99,394 @@ export function LawyersPage({ onBack }: { onBack: () => void }) {
   const { confirm, isOpen, message, handleConfirm, handleCancel } = useConfirm();
 
   const [lawyers, setLawyers] = useState<LawyerExtended[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
-  
-  const [officeAddress, setOfficeAddress] = useState("");
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [officeAddress, setOfficeAddress] = useState(
+    () => localStorage.getItem('officeAddress') || '',
+  );
+  const [formData, setFormData] = useState<LawyerFormData>(EMPTY_FORM);
 
-  const [formData, setFormData] = useState<LawyerFormData>({
-    nome: "",
-    nacionalidade: "Brasileiro",
-    estado_civil: "Casado",
-    oab: "",
-    cpf: ""
-  });
+  const fetchLawyers = useCallback(async () => {
+    setLoading(true);
+    try {
+      setLawyers(await loadLawyers());
+    } catch (error: unknown) {
+      console.error('Falha ao carregar equipe jurídica:', error);
+      toast({
+        title: 'Equipe indisponível',
+        description: 'Não foi possível carregar os advogados. Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
 
   useEffect(() => {
-    fetchLawyers();
-    const savedAddress = localStorage.getItem("officeAddress");
-    if (savedAddress) setOfficeAddress(savedAddress);
-  }, []);
+    void fetchLawyers();
+  }, [fetchLawyers]);
 
-  const fetchLawyers = async () => {
-    setLoading(true);
-    const { data } = await supabase.from('lawyers').select('*').order('nome');
-    if (data) setLawyers(data as LawyerExtended[]);
-    setLoading(false);
-  };
+  const resetForm = () => setFormData(EMPTY_FORM);
 
   const handleSaveLawyer = async () => {
     if (!formData.nome || !formData.oab || !formData.cpf) {
-      toast({ title: "Atenção", description: "Nome, OAB e CPF são obrigatórios.", variant: "destructive" });
+      toast({
+        title: 'Atenção',
+        description: 'Nome, OAB e CPF são obrigatórios.',
+        variant: 'destructive',
+      });
       return;
     }
     if (!validarCPF(formData.cpf)) {
-      toast({ title: "Erro", description: "CPF inválido!", variant: "destructive" });
+      toast({ title: 'Erro', description: 'CPF inválido!', variant: 'destructive' });
       return;
     }
 
     setSaving(true);
-    const payload = {
+    try {
+      const payload = {
         nome: formData.nome,
         nacionalidade: formData.nacionalidade,
         estado_civil: formData.estado_civil,
         oab: formData.oab,
-        cpf: formData.cpf
-    };
+        cpf: formData.cpf,
+      };
 
-    if (formData.id) {
-        await supabase.from('lawyers').update(payload).eq('id', formData.id);
-    } else {
-        await supabase.from('lawyers').insert([payload]);
+      const { error } = formData.id
+        ? await supabase.from('lawyers').update(payload).eq('id', formData.id)
+        : await supabase.from('lawyers').insert([payload]);
+      if (error) throw error;
+
+      setShowModal(false);
+      resetForm();
+      await fetchLawyers();
+      toast({ title: 'Advogado salvo', description: 'Os dados foram atualizados.', variant: 'success' });
+    } catch (error: unknown) {
+      console.error('Falha ao salvar advogado:', error);
+      toast({
+        title: 'Não foi possível salvar',
+        description: 'Nenhuma confirmação foi registrada. Revise a conexão e tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    setShowModal(false);
-    resetForm();
-    fetchLawyers();
-    toast({ title: "Sucesso", description: "Advogado salvo.", variant: "success" });
+  };
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void handleSaveLawyer();
   };
 
   const handleSaveAddress = () => {
-      localStorage.setItem("officeAddress", officeAddress);
-      toast({ title: "Sucesso", description: "Endereço do escritório atualizado!", variant: "success" });
+    localStorage.setItem('officeAddress', officeAddress);
+    toast({
+      title: 'Sucesso',
+      description: 'Endereço do escritório atualizado!',
+      variant: 'success',
+    });
   };
 
   const handleEdit = (lawyer: LawyerExtended) => {
-      setFormData(lawyer);
-      setShowModal(true);
+    setFormData(lawyer);
+    setShowModal(true);
   };
 
   const handleDelete = async (id: number) => {
-    const ok = await confirm("Remover este advogado?");
+    const ok = await confirm('Remover este advogado?');
     if (ok) {
-      await supabase.from('lawyers').delete().eq('id', id);
-      toast({ title: "Sucesso", description: "Advogado removido.", variant: "success" });
-      fetchLawyers();
+      try {
+        const { error } = await supabase.from('lawyers').delete().eq('id', id);
+        if (error) throw error;
+        await fetchLawyers();
+        toast({ title: 'Advogado removido', description: 'O cadastro foi excluído.', variant: 'success' });
+      } catch (error: unknown) {
+        console.error('Falha ao remover advogado:', error);
+        toast({
+          title: 'Não foi possível remover',
+          description: 'O cadastro foi mantido. Tente novamente.',
+          variant: 'destructive',
+        });
+      }
     }
   };
 
-  const resetForm = () => {
-      setFormData({ nome: "", nacionalidade: "Brasileiro", estado_civil: "Casado", oab: "", cpf: "" });
+  const handleCpfChange = (event: ChangeEvent<HTMLInputElement>) => {
+    let value = event.target.value.replace(/\D/g, '');
+    if (value.length > 11) value = value.slice(0, 11);
+    value = value.replace(/(\d{3})(\d)/, '$1.$2');
+    value = value.replace(/(\d{3})(\d)/, '$1.$2');
+    value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    setFormData((current) => ({ ...current, cpf: value }));
   };
 
-  const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let v = e.target.value.replace(/\D/g, "");
-    if (v.length > 11) v = v.slice(0, 11);
-    v = v.replace(/(\d{3})(\d)/, "$1.$2");
-    v = v.replace(/(\d{3})(\d)/, "$1.$2");
-    v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-    setFormData({...formData, cpf: v});
+  const openNewLawyerDialog = () => {
+    resetForm();
+    setShowModal(true);
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-100 font-sans text-slate-800">
-      <header className="bg-slate-900 text-white p-4 shadow-lg shrink-0 z-20 flex justify-between items-center">
-        <div className="flex items-center gap-4">
-            <button onClick={onBack} className="p-2 hover:bg-slate-800 rounded-full text-slate-300 hover:text-white"><ArrowLeft size={20}/></button>
-            <div>
-              <h1 className="text-lg font-bold flex items-center gap-2"><Briefcase className="text-blue-400" size={20}/> Equipe Jurídica</h1>
-              <p className="text-xs text-slate-400 font-medium">Cadastro para Procurações</p>
-            </div>
-        </div>
-        <button onClick={() => { resetForm(); setShowModal(true); }} className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold text-xs shadow-lg transition-all active:scale-95">
-            <Plus size={16}/> Novo Advogado
-        </button>
-      </header>
+    <div className="h-full min-h-0 overflow-y-auto bg-background">
+      <div className="mx-auto w-full max-w-content space-y-8 p-4 sm:p-6 lg:p-8">
+        <PageHeader
+          title="Equipe jurídica"
+          description="Mantenha os dados usados na geração de procurações e documentos do escritório."
+          leading={(
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label="Voltar"
+              className="flex h-11 w-11 items-center justify-center rounded-control text-muted-foreground outline-none transition-colors hover:bg-border/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <ArrowLeft size={19} aria-hidden="true" />
+            </button>
+          )}
+          actions={(
+            <Button onClick={openNewLawyerDialog}>
+              <Plus size={17} aria-hidden="true" />
+              Novo advogado
+            </Button>
+          )}
+        />
 
-      <main className="flex-1 overflow-y-auto p-8">
-        <div className="max-w-5xl mx-auto space-y-8">
-            
-            <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100 shadow-sm flex flex-col md:flex-row gap-4 items-start md:items-end">
-                <div className="flex-1 w-full">
-                    <h3 className="font-bold text-blue-800 mb-2 flex items-center gap-2"><Building size={18}/> Endereço do Escritório (Único)</h3>
-                    <p className="text-xs text-blue-600 mb-3">Este endereço aparecerá na procuração para todos os advogados.</p>
-                    <input 
-                        className="w-full p-3 bg-white border border-blue-200 rounded-lg outline-none focus:border-blue-500 text-slate-700" 
-                        placeholder="Ex: Rua das Flores, 123, Centro, Vitória da Conquista - BA"
-                        value={officeAddress}
-                        onChange={(e) => setOfficeAddress(e.target.value)}
-                    />
+        <section aria-labelledby="office-address-title">
+          <Surface className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end" padding="lg">
+            <div className="min-w-0">
+              <div className="mb-4 flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-secondary text-muted-foreground" aria-hidden="true">
+                  <Building2 size={18} />
+                </span>
+                <div>
+                  <h2 id="office-address-title" className="text-base font-semibold tracking-[-0.015em] text-foreground">
+                    Endereço do escritório
+                  </h2>
+                  <p id="office-address-description" className="mt-1 text-sm leading-6 text-muted-foreground">
+                    Este endereço será utilizado nas procurações de todos os advogados.
+                  </p>
                 </div>
-                <button onClick={handleSaveAddress} className="px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md transition-all whitespace-nowrap flex items-center gap-2">
-                    <Save size={16}/> Salvar Endereço
-                </button>
+              </div>
+              <label htmlFor="office-address" className="mb-1.5 block text-sm font-medium text-foreground">
+                Endereço completo
+              </label>
+              <input
+                id="office-address"
+                className={fieldClassName}
+                placeholder="Rua, número, bairro, cidade e estado"
+                value={officeAddress}
+                onChange={(event) => setOfficeAddress(event.target.value)}
+                aria-describedby="office-address-description"
+                autoComplete="street-address"
+              />
             </div>
+            <Button variant="outline" onClick={handleSaveAddress} className="w-full lg:w-auto">
+              <Save size={16} aria-hidden="true" />
+              Salvar endereço
+            </Button>
+          </Surface>
+        </section>
 
+        <section aria-labelledby="lawyers-title" className="space-y-4">
+          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
             <div>
-                <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2"><User size={18}/> Advogados Cadastrados</h3>
-                {loading ? <div className="text-center text-slate-400">Carregando...</div> : lawyers.length === 0 ? (
-                    <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-200">
-                        <Briefcase size={48} className="mx-auto text-slate-300 mb-4"/><p className="text-slate-500 font-medium">Nenhum advogado cadastrado.</p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {lawyers.map(adv => (
-                            <div key={adv.id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all group relative">
-                                <div className="flex items-center gap-4 mb-4">
-                                    <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 font-bold text-lg group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">{adv.nome?.charAt(0)}</div>
-                                    <div><h3 className="font-bold text-slate-800">{adv.nome}</h3><p className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded w-fit mt-1">OAB: {adv.oab}</p></div>
-                                </div>
-                                <div className="space-y-2 text-xs text-slate-500 mb-4">
-                                    <div className="flex items-center gap-2"><User size={12}/> {adv.nacionalidade}, {adv.estado_civil}</div>
-                                    <div className="flex items-center gap-2"><Hash size={12}/> CPF: {adv.cpf}</div>
-                                </div>
-                                <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100">
-                                    <button onClick={() => handleEdit(adv)} className="flex-1 py-2 bg-slate-50 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-100">Editar</button>
-                                    <button onClick={() => handleDelete(adv.id!)} className="px-3 py-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"><Trash2 size={14}/></button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+              <h2 id="lawyers-title" className="text-lg font-semibold tracking-[-0.02em] text-foreground">
+                Advogados cadastrados
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Dados profissionais disponíveis para os documentos do escritório.
+              </p>
+            </div>
+            {!loading ? (
+              <span className="shrink-0 text-sm tabular-nums text-muted-foreground" aria-live="polite">
+                {lawyers.length} {lawyers.length === 1 ? 'advogado' : 'advogados'}
+              </span>
+            ) : null}
+          </div>
+
+          {loading ? (
+            <LawyersSkeleton />
+          ) : lawyers.length === 0 ? (
+            <Surface padding="none">
+              <EmptyState
+                icon={<BriefcaseBusiness aria-hidden="true" />}
+                title="Nenhum advogado cadastrado"
+                description="Adicione o primeiro profissional para preencher procurações e documentos."
+                action={(
+                  <Button onClick={openNewLawyerDialog}>
+                    <Plus size={16} aria-hidden="true" />
+                    Novo advogado
+                  </Button>
                 )}
-            </div>
-        </div>
-      </main>
+              />
+            </Surface>
+          ) : (
+            <Surface padding="none" className="overflow-hidden">
+              <ul className="divide-y divide-border/70">
+                {lawyers.map((lawyer) => (
+                  <li key={lawyer.id} className="p-4 sm:p-5">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                      <div className="flex min-w-0 flex-1 items-center gap-3.5">
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-medium uppercase text-foreground" aria-hidden="true">
+                          {lawyer.nome?.trim().charAt(0) || '?'}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="truncate text-sm font-semibold text-foreground">
+                              {lawyer.nome || 'Advogado sem nome'}
+                            </h3>
+                            <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                              OAB {lawyer.oab}
+                            </span>
+                          </div>
+                          <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                            <span className="inline-flex items-center gap-1.5">
+                              <UserRound size={13} aria-hidden="true" />
+                              {lawyer.nacionalidade}, {lawyer.estado_civil}
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 tabular-nums">
+                              <Hash size={13} aria-hidden="true" />
+                              CPF {lawyer.cpf}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
-                <div className="bg-slate-50 p-6 border-b border-slate-100 flex justify-between items-center"><h3 className="font-bold text-slate-800 flex items-center gap-2"><FileText size={18} className="text-blue-500"/> Dados do Advogado</h3><button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">✕</button></div>
-                <div className="p-6 space-y-4">
-                    <div><label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Nome Completo</label><input className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" value={formData.nome || ""} onChange={e => setFormData({...formData, nome: e.target.value})} placeholder="Dr. Fulano..." /></div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Nº OAB</label><input className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" value={formData.oab || ""} onChange={e => setFormData({...formData, oab: e.target.value})} placeholder="UF 00.000" /></div>
-                        <div><label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">CPF</label><input className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" value={formData.cpf || ""} onChange={handleCpfChange} placeholder="000.000.000-00" maxLength={14} /></div>
+                      <div className="flex gap-2 border-t border-border/70 pt-3 sm:border-0 sm:pt-0">
+                        <Button
+                          variant="outline"
+                          className="flex-1 sm:flex-none"
+                          onClick={() => handleEdit(lawyer)}
+                        >
+                          Editar
+                        </Button>
+                        {lawyer.id != null ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Remover ${lawyer.nome || 'advogado'}`}
+                            className="shrink-0 text-danger hover:bg-danger-subtle hover:text-danger-foreground"
+                            onClick={() => void handleDelete(lawyer.id as number)}
+                          >
+                            <Trash2 size={17} aria-hidden="true" />
+                          </Button>
+                        ) : null}
+                      </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Nacionalidade</label><input className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" value={formData.nacionalidade || ""} onChange={e => setFormData({...formData, nacionalidade: e.target.value})} /></div>
-                        <div><label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Estado Civil</label><select className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500" value={formData.estado_civil || "Casado"} onChange={e => setFormData({...formData, estado_civil: e.target.value})}><option value="Solteiro">Solteiro(a)</option><option value="Casado">Casado(a)</option><option value="Divorciado">Divorciado(a)</option><option value="Viúvo">Viúvo(a)</option></select></div>
-                    </div>
-                </div>
-                <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3"><button onClick={() => setShowModal(false)} className="px-4 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-lg">Cancelar</button><button onClick={handleSaveLawyer} disabled={saving} className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-lg">{saving ? "Salvando..." : "Salvar Advogado"}</button></div>
+                  </li>
+                ))}
+              </ul>
+            </Surface>
+          )}
+        </section>
+      </div>
+
+      <Dialog open={showModal} onOpenChange={(open) => !saving && setShowModal(open)}>
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto p-0 sm:max-w-xl">
+          <DialogHeader className="border-b border-border/70 px-5 pb-4 pt-5 pr-16 sm:px-6 sm:pt-6">
+            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-control bg-secondary text-muted-foreground" aria-hidden="true">
+              <FileText size={18} />
             </div>
-        </div>
-      )}
+            <DialogTitle>{formData.id ? 'Editar advogado' : 'Novo advogado'}</DialogTitle>
+            <DialogDescription>
+              Informe os dados que serão utilizados nas procurações.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-5 px-5 py-5 sm:px-6">
+              <div>
+                <label htmlFor="lawyer-name" className="mb-1.5 block text-sm font-medium text-foreground">
+                  Nome completo
+                </label>
+                <input
+                  id="lawyer-name"
+                  className={fieldClassName}
+                  value={formData.nome || ''}
+                  onChange={(event) => setFormData((current) => ({ ...current, nome: event.target.value }))}
+                  placeholder="Nome do advogado"
+                  autoComplete="name"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="lawyer-oab" className="mb-1.5 block text-sm font-medium text-foreground">
+                    Número da OAB
+                  </label>
+                  <input
+                    id="lawyer-oab"
+                    className={fieldClassName}
+                    value={formData.oab || ''}
+                    onChange={(event) => setFormData((current) => ({ ...current, oab: event.target.value }))}
+                    placeholder="UF 00.000"
+                    autoComplete="off"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="lawyer-cpf" className="mb-1.5 block text-sm font-medium text-foreground">
+                    CPF
+                  </label>
+                  <input
+                    id="lawyer-cpf"
+                    className={fieldClassName}
+                    value={formData.cpf || ''}
+                    onChange={handleCpfChange}
+                    placeholder="000.000.000-00"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    maxLength={14}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="lawyer-nationality" className="mb-1.5 block text-sm font-medium text-foreground">
+                    Nacionalidade
+                  </label>
+                  <input
+                    id="lawyer-nationality"
+                    className={fieldClassName}
+                    value={formData.nacionalidade || ''}
+                    onChange={(event) => setFormData((current) => ({ ...current, nacionalidade: event.target.value }))}
+                    autoComplete="country-name"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="lawyer-marital-status" className="mb-1.5 block text-sm font-medium text-foreground">
+                    Estado civil
+                  </label>
+                  <select
+                    id="lawyer-marital-status"
+                    className={fieldClassName}
+                    value={formData.estado_civil || 'Casado'}
+                    onChange={(event) => setFormData((current) => ({ ...current, estado_civil: event.target.value }))}
+                  >
+                    <option value="Solteiro">Solteiro(a)</option>
+                    <option value="Casado">Casado(a)</option>
+                    <option value="Divorciado">Divorciado(a)</option>
+                    <option value="Viúvo">Viúvo(a)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2 border-t border-border/70 bg-secondary/35 px-5 py-4 sm:px-6">
+              <DialogClose asChild>
+                <Button type="button" variant="ghost" disabled={saving}>
+                  Cancelar
+                </Button>
+              </DialogClose>
+              <Button type="submit" disabled={saving}>
+                {saving ? 'Salvando…' : 'Salvar advogado'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDialog
         open={isOpen}

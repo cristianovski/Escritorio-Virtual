@@ -1,549 +1,605 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { 
-  Users, UserPlus, Search, AlertCircle, Clock, Calendar, 
-  CheckCircle, ChevronRight, Star, MessageCircle, 
-  FolderOpen, Trash2, UserCog, Calculator, 
-  DollarSign, History, MapPin, Phone, Cake, Plus,
-  ChevronDown, ChevronUp, Edit2
-} from "lucide-react";
-import { supabase } from "../lib/supabase";
-import { useToast } from "../hooks/use-toast";
-import { Client, BenefitStatus } from "../types";
+import { type MouseEvent, useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  AlertCircle,
+  Cake,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Edit2,
+  MapPin,
+  MessageCircle,
+  Phone,
+  Plus,
+  Trash2,
+  UserPlus,
+  Users,
+} from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { cn } from '../lib/utils';
+import { useToast } from '../hooks/use-toast';
+import { useConfirm } from '../hooks/useConfirm';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { EmptyState } from '../components/ui/EmptyState';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Button } from '../components/ui/button';
+import type { BenefitStatus, Client, ProcessPhase } from '../types';
+
+type StatusFilter = 'Todos' | BenefitStatus;
 
 interface Note {
   id: string;
   texto: string;
 }
 
+const getClientPhase = (client: Client) => client.fase_processo ?? 'Administrativo';
+
+const getStatusStyle = (status?: BenefitStatus) => {
+  switch (status) {
+    case 'Finalizado':
+      return { dot: 'bg-success', badge: 'bg-success-subtle text-success-foreground' };
+    case 'Em Andamento':
+      return { dot: 'bg-brand', badge: 'bg-brand-subtle text-brand' };
+    case 'Suspenso':
+      return { dot: 'bg-warning', badge: 'bg-warning-subtle text-warning-foreground' };
+    default:
+      return { dot: 'bg-muted-foreground/65', badge: 'bg-secondary text-muted-foreground' };
+  }
+};
+
+const getPhaseStyle = () => 'bg-secondary text-muted-foreground';
+
 export function DashboardPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+  const {
+    confirm: requestConfirmation,
+    isOpen: isConfirmOpen,
+    message: confirmMessage,
+    handleConfirm,
+    handleCancel,
+  } = useConfirm();
+
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("Todos");
-  
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('Todos');
   const [notes, setNotes] = useState<Note[]>([]);
-  const [newNote, setNewNote] = useState("");
+  const [newNote, setNewNote] = useState('');
   const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
-  
-  // Novos estados para a edição de lembretes
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
-  const [editNoteText, setEditNoteText] = useState("");
+  const [editNoteText, setEditNoteText] = useState('');
 
-  useEffect(() => {
-    fetchClients();
-    fetchNotes(); 
-  }, []);
-
-  const fetchClients = async () => {
+  const fetchClients = useCallback(async () => {
     setLoading(true);
     try {
-        const { data, error } = await supabase.from('clients').select('*').order('created_at', { ascending: false });
-        if (error) throw error;
-        if (data) setClients(data as Client[]);
-    } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Erro desconhecido";
-        toast({ title: "Erro", description: "Falha ao carregar clientes: " + msg, variant: "destructive" });
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setClients((data || []) as Client[]);
+    } catch (error: unknown) {
+      console.error('Falha ao carregar clientes:', error);
+      toast({
+        title: 'Não foi possível carregar os clientes',
+        description: 'Tente novamente em instantes.',
+        variant: 'destructive',
+      });
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const fetchNotes = async () => {
+  const fetchNotes = useCallback(async () => {
     try {
-      const { data, error } = await supabase.from('dashboard_notes').select('*').order('created_at', { ascending: true });
-      if (!error && data) {
-        setNotes(data as Note[]);
-      }
-    } catch (err) {
-      console.error("Erro ao carregar lembretes:", err);
+      const { data, error } = await supabase
+        .from('dashboard_notes')
+        .select('*')
+        .order('created_at', { ascending: true });
+      if (!error && data) setNotes(data as Note[]);
+    } catch (error) {
+      console.error('Erro ao carregar lembretes:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void fetchClients();
+    void fetchNotes();
+  }, [fetchClients, fetchNotes]);
 
   const addNote = async () => {
-      if (!newNote.trim()) return;
-      const texto = newNote;
-      setNewNote(""); 
+    const texto = newNote.trim();
+    if (!texto) return;
+    setNewNote('');
 
-      try {
-        const { data, error } = await supabase.from('dashboard_notes').insert([{ texto }]).select();
-        if (!error && data) {
-          setNotes(prev => [...prev, data[0] as Note]);
-        }
-      } catch (err) {
-        console.error("Erro ao salvar lembrete:", err);
-        toast({ title: "Erro", description: "Não foi possível salvar o lembrete.", variant: "destructive" });
-      }
+    try {
+      const { data, error } = await supabase
+        .from('dashboard_notes')
+        .insert([{ texto }])
+        .select();
+      if (error) throw error;
+      if (data) setNotes((current) => [...current, data[0] as Note]);
+    } catch (error) {
+      console.error('Erro ao salvar lembrete:', error);
+      toast({ title: 'Lembrete não salvo', description: 'Tente novamente.', variant: 'destructive' });
+    }
   };
 
   const updateNote = async (id: string) => {
-    if (!editNoteText.trim()) return;
+    const texto = editNoteText.trim();
+    if (!texto) return;
 
-    setNotes(prev => prev.map(n => n.id === id ? { ...n, texto: editNoteText } : n));
+    setNotes((current) => current.map((note) => (
+      note.id === id ? { ...note, texto } : note
+    )));
     setEditingNoteId(null);
 
     try {
-      const { error } = await supabase.from('dashboard_notes').update({ texto: editNoteText }).eq('id', id);
+      const { error } = await supabase.from('dashboard_notes').update({ texto }).eq('id', id);
       if (error) throw error;
-    } catch (err) {
-      console.error("Erro ao atualizar lembrete:", err);
-      toast({ title: "Erro", description: "Falha ao atualizar na nuvem.", variant: "destructive" });
-      fetchNotes(); 
+    } catch (error) {
+      console.error('Erro ao atualizar lembrete:', error);
+      toast({
+        title: 'Lembrete não atualizado',
+        description: 'A versão anterior foi restaurada.',
+        variant: 'destructive',
+      });
+      void fetchNotes();
     }
   };
 
   const removeNote = async (id: string) => {
-      setNotes(prev => prev.filter(n => n.id !== id));
-      setExpandedNotes(prev => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
+    setNotes((current) => current.filter((note) => note.id !== id));
+    setExpandedNotes((current) => {
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
+
+    try {
+      const { error } = await supabase.from('dashboard_notes').delete().eq('id', id);
+      if (error) throw error;
+    } catch (error) {
+      console.error('Erro ao apagar lembrete:', error);
+      void fetchNotes();
+    }
+  };
+
+  const handleDeleteClient = async (id: number, event: MouseEvent) => {
+    event.stopPropagation();
+    const confirmed = await requestConfirmation(
+      'Esta ação removerá a ficha, os documentos e o histórico do cliente. Não será possível desfazer.',
+    );
+    if (!confirmed) return;
+
+    try {
+      const { error } = await supabase.from('clients').delete().eq('id', id);
+      if (error) throw error;
+      toast({ title: 'Cliente removido', description: 'O registro foi excluído.', variant: 'success' });
+      void fetchClients();
+    } catch (error: unknown) {
+      console.error('Falha ao excluir cliente:', error);
+      toast({
+        title: 'Não foi possível excluir o cliente',
+        description: 'Tente novamente ou verifique suas permissões.',
+        variant: 'destructive',
       });
-
-      try {
-        await supabase.from('dashboard_notes').delete().eq('id', id);
-      } catch (err) {
-        console.error("Erro ao apagar lembrete:", err);
-      }
-  };
-
-  const toggleNoteExpansion = (id: string) => {
-    setExpandedNotes(prev => ({
-      ...prev,
-      [id]: !prev[id]
-    }));
-  };
-
-  const handleDeleteClient = async (id: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (confirm("ATENÇÃO: Apagar este cliente removerá tudo (ficha, documentos, histórico). Continuar?")) {
-        try {
-            const { error } = await supabase.from('clients').delete().eq('id', id);
-            if (error) throw error;
-            toast({ title: "Sucesso", description: "Cliente removido.", variant: "success" });
-            fetchClients();
-        } catch (err: unknown) {
-            const msg = err instanceof Error ? err.message : "Erro ao excluir";
-            toast({ title: "Erro", description: msg, variant: "destructive" });
-        }
     }
   };
 
-  const toggleStatus = async (client: Client, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const ciclo: BenefitStatus[] = ["A Iniciar", "Em Andamento", "Finalizado"];
-    const atual = client.status_processo ?? "A Iniciar";
-    const indexAtual = ciclo.indexOf(atual);
-    const novoIndex = (indexAtual + 1) % ciclo.length;
-    const novoStatus = ciclo[novoIndex];
+  const toggleStatus = async (client: Client, event: MouseEvent) => {
+    event.stopPropagation();
+    const cycle: BenefitStatus[] = ['A Iniciar', 'Em Andamento', 'Finalizado'];
+    const currentStatus = client.status_processo ?? 'A Iniciar';
+    const nextStatus = cycle[(cycle.indexOf(currentStatus) + 1) % cycle.length];
 
-    setClients(prev => prev.map(c => 
-      c.id === client.id ? { ...c, status_processo: novoStatus } : c
-    ) as Client[]);
+    setClients((current) => current.map((item) => (
+      item.id === client.id ? { ...item, status_processo: nextStatus } : item
+    )) as Client[]);
 
     try {
-      const { error } = await supabase.from('clients').update({ status_processo: novoStatus }).eq('id', client.id);
+      const { error } = await supabase
+        .from('clients')
+        .update({ status_processo: nextStatus })
+        .eq('id', client.id);
       if (error) throw error;
-      toast({ title: "Status Atualizado", description: `Novo status: ${novoStatus}`, variant: "default" });
-    } catch (err) {
-      toast({ title: "Erro", description: "Não foi possível atualizar.", variant: "destructive" });
-      fetchClients();
+      toast({ title: 'Status atualizado', description: 'Novo status: ' + nextStatus + '.' });
+    } catch {
+      toast({ title: 'Status não atualizado', description: 'Tente novamente.', variant: 'destructive' });
+      void fetchClients();
     }
   };
 
-  const toggleFase = async (client: Client, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const ciclo = ["Administrativo", "Judicial", "Execução"];
-    const atual = (client as any).fase_processo ?? "Administrativo";
-    const indexAtual = ciclo.indexOf(atual);
-    const novoIndex = (indexAtual + 1) % ciclo.length;
-    const novaFase = ciclo[novoIndex];
+  const togglePhase = async (client: Client, event: MouseEvent) => {
+    event.stopPropagation();
+    const cycle: ProcessPhase[] = ['Administrativo', 'Judicial', 'Execução'];
+    const currentPhase = getClientPhase(client);
+    const nextPhase = cycle[(cycle.indexOf(currentPhase) + 1) % cycle.length];
 
-    setClients(prev => prev.map(c => 
-      c.id === client.id ? { ...c, fase_processo: novaFase } : c
-    ) as Client[]);
+    setClients((current) => current.map((item) => (
+      item.id === client.id ? { ...item, fase_processo: nextPhase } : item
+    )) as Client[]);
 
     try {
-      const { error } = await supabase.from('clients').update({ fase_processo: novaFase }).eq('id', client.id);
+      const { error } = await supabase
+        .from('clients')
+        .update({ fase_processo: nextPhase })
+        .eq('id', client.id);
       if (error) throw error;
-      toast({ title: "Fase Atualizada", description: `Nova fase: ${novaFase}`, variant: "default" });
-    } catch (err) {
-      toast({ title: "Erro", description: "Verifique se a coluna 'fase_processo' existe no Supabase.", variant: "destructive" });
-      fetchClients();
+      toast({ title: 'Fase atualizada', description: 'Nova fase: ' + nextPhase + '.' });
+    } catch {
+      toast({ title: 'Fase não atualizada', description: 'Tente novamente.', variant: 'destructive' });
+      void fetchClients();
     }
   };
-
-  const getStatusStyle = (status?: BenefitStatus) => {
-      switch(status) {
-          case 'Finalizado': return { bg: 'bg-emerald-500', light: 'bg-emerald-50 text-emerald-700 ring-emerald-200' };
-          case 'Em Andamento': return { bg: 'bg-blue-500', light: 'bg-blue-50 text-blue-700 ring-blue-200' };
-          default: return { bg: 'bg-amber-500', light: 'bg-amber-50 text-amber-700 ring-amber-200' };
-      }
-  };
-
-  const getFaseStyle = (fase?: string) => {
-      switch(fase) {
-          case 'Judicial': return 'bg-purple-50 text-purple-700 ring-purple-200';
-          case 'Execução': return 'bg-rose-50 text-rose-700 ring-rose-200';
-          default: return 'bg-slate-100 text-slate-600 ring-slate-200'; 
-      }
-  };
-
-  const clientesFiltrados = clients.filter(c => {
-      const s = searchTerm.toLowerCase();
-      const matchText = s === "" || (c.nome?.toLowerCase()?.includes(s) || c.cpf?.includes(s));
-      const matchStatus = statusFilter === "Todos" || (c.status_processo || "A Iniciar") === statusFilter;
-      return matchText && matchStatus;
-  });
 
   const stats = {
-      iniciar: clients.filter(c => !c.status_processo || c.status_processo === 'A Iniciar').length,
-      andamento: clients.filter(c => c.status_processo === 'Em Andamento').length,
-      finalizado: clients.filter(c => c.status_processo === 'Finalizado').length,
-      total: clients.length || 1
+    total: clients.length,
+    iniciar: clients.filter((client) => !client.status_processo || client.status_processo === 'A Iniciar').length,
+    andamento: clients.filter((client) => client.status_processo === 'Em Andamento').length,
+    finalizado: clients.filter((client) => client.status_processo === 'Finalizado').length,
+    suspenso: clients.filter((client) => client.status_processo === 'Suspenso').length,
   };
 
-  const mesAtual = new Date().getMonth();
-  const aniversariantes = clients.filter(c => {
-      if (!c.data_nascimento) return false;
-      const parts = c.data_nascimento.split('-');
-      if (parts.length !== 3) return false; 
-      const mesNasc = parseInt(parts[1], 10) - 1;
-      return mesNasc === mesAtual;
-  }).sort((a, b) => parseInt(a.data_nascimento!.split('-')[2], 10) - parseInt(b.data_nascimento!.split('-')[2], 10));
+  const metrics: Array<{ label: string; value: number; filter: StatusFilter }> = [
+    { label: 'Todos', value: stats.total, filter: 'Todos' },
+    { label: 'A iniciar', value: stats.iniciar, filter: 'A Iniciar' },
+    { label: 'Em andamento', value: stats.andamento, filter: 'Em Andamento' },
+    { label: 'Finalizados', value: stats.finalizado, filter: 'Finalizado' },
+    { label: 'Suspensos', value: stats.suspenso, filter: 'Suspenso' },
+  ];
+
+  const filteredClients = clients.filter((client) => (
+    statusFilter === 'Todos' || (client.status_processo || 'A Iniciar') === statusFilter
+  ));
+  const visibleClients = filteredClients.slice(0, 8);
+  const clientsWithoutPhone = clients.filter((client) => !client.telefone?.trim()).length;
+  const nextActionClient = clients.find(
+    (client) => !client.status_processo || client.status_processo === 'A Iniciar',
+  ) ?? clients.find((client) => client.status_processo === 'Em Andamento');
+  const nextActionIsNew = !nextActionClient?.status_processo || nextActionClient.status_processo === 'A Iniciar';
+
+  const currentMonth = new Date().getMonth();
+  const monthName = new Date().toLocaleDateString('pt-BR', { month: 'long' });
+  const birthdays = clients
+    .filter((client) => {
+      if (!client.data_nascimento) return false;
+      const parts = client.data_nascimento.split('-');
+      return parts.length === 3 && Number(parts[1]) - 1 === currentMonth;
+    })
+    .sort((a, b) => Number(a.data_nascimento?.split('-')[2]) - Number(b.data_nascimento?.split('-')[2]));
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50/50 p-4 md:p-8 font-sans text-slate-800">
-      <div className="max-w-[1600px] mx-auto space-y-8">
-        
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Painel de Controle</h1>
-            <p className="text-slate-500 font-medium mt-1">Bem-vindo(a). Aqui está o resumo da sua operação.</p>
-          </div>
-          <button 
-            onClick={() => navigate('/cliente/novo')}
-            className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-slate-200 transition-all active:scale-95 shrink-0"
-          >
-            <UserPlus size={20} /> Novo Cliente
-          </button>
-        </div>
+    <>
+      <div className="flex-1 overflow-y-auto bg-background text-foreground">
+        <div className="mx-auto w-full max-w-content space-y-7 px-4 py-6 sm:px-6 md:py-8 lg:px-8">
+          <PageHeader
+            eyebrow="PrevRural"
+            title="Visão geral"
+            description="Acompanhe o movimento do escritório e retome os atendimentos mais recentes."
+            actions={(
+              <Button size="lg" onClick={() => navigate('/cliente/novo')}>
+                <UserPlus size={17} aria-hidden="true" /> Novo cliente
+              </Button>
+            )}
+          />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          {[
-            { label: 'Total na Carteira', value: stats.total, icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-            { label: 'A Iniciar', value: stats.iniciar, icon: AlertCircle, color: 'text-amber-600', bg: 'bg-indigo-50' },
-            { label: 'Em Andamento', value: stats.andamento, icon: Clock, color: 'text-blue-600', bg: 'bg-indigo-50' },
-            { label: 'Finalizados', value: stats.finalizado, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-indigo-50' },
-          ].map((stat, i) => (
-            <div key={i} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow flex items-center gap-4">
-              <div className={`p-4 rounded-2xl ${stat.bg} ${stat.color}`}>
-                <stat.icon size={24} strokeWidth={2.5} />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">{stat.label}</p>
-                <h3 className="text-3xl font-black text-slate-800 leading-none mt-1">{stat.value}</h3>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-          
-          <div className="xl:col-span-3 space-y-6">
-            
-            <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col lg:flex-row gap-4 items-center">
-              <div className="flex-1 relative w-full">
-                <Search className="absolute left-4 top-3 text-slate-400" size={20} />
-                <input
-                  type="text"
-                  placeholder="Buscar por nome ou CPF..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-2.5 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-emerald-500/20 outline-none text-slate-700 font-medium"
-                />
-              </div>
-              <div className="flex gap-2 overflow-x-auto w-full lg:w-auto pb-2 lg:pb-0 hide-scrollbar">
-                {["Todos", "A Iniciar", "Em Andamento", "Finalizado"].map(st => (
-                  <button
-                    key={st}
-                    onClick={() => setStatusFilter(st)}
-                    className={`px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
-                      statusFilter === st 
-                        ? 'bg-slate-900 text-white shadow-md' 
-                        : 'bg-white text-slate-500 hover:bg-slate-100'
-                    }`}
-                  >
-                    {st}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-4 px-1">
-                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                  <FolderOpen className="text-slate-400" size={20}/> Clientes Recentes
+          {!loading && nextActionClient ? (
+            <section
+              aria-labelledby="next-action-title"
+              className="flex flex-col gap-4 border-y border-border/80 bg-card px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+            >
+              <div className="min-w-0 border-l-2 border-brand pl-3.5">
+                <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-brand">Próxima ação</p>
+                <h2 id="next-action-title" className="mt-1 truncate text-base font-semibold tracking-[-0.015em] text-foreground">
+                  {nextActionIsNew ? 'Iniciar atendimento de ' : 'Retomar atendimento de '}
+                  {nextActionClient.nome || 'cliente sem nome'}
                 </h2>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {nextActionIsNew ? 'O cadastro mais recente ainda aguarda andamento.' : 'Este atendimento já está em andamento.'}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                className="shrink-0"
+                onClick={() => navigate('/cliente/' + nextActionClient.id)}
+              >
+                Abrir ficha <ChevronRight size={16} aria-hidden="true" />
+              </Button>
+            </section>
+          ) : null}
+
+          <section aria-labelledby="portfolio-summary-title">
+            <h2 id="portfolio-summary-title" className="sr-only">Resumo da carteira</h2>
+            <div className="flex overflow-x-auto border-y border-border/80 bg-card">
+              {metrics.map((metric) => {
+                const active = statusFilter === metric.filter;
+                return (
+                  <button
+                    type="button"
+                    key={metric.filter}
+                    aria-pressed={active}
+                    onClick={() => setStatusFilter(metric.filter)}
+                    className={cn(
+                      'relative -mb-px min-w-32 flex-1 border-b-2 border-r border-border/70 px-4 py-3.5 text-left transition-colors last:border-r-0 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:transition-none',
+                      active ? 'border-b-brand bg-brand-subtle/45' : 'border-b-transparent hover:bg-secondary/55',
+                    )}
+                  >
+                    <span className="block text-2xl font-semibold leading-none tracking-[-0.03em] tabular-nums text-foreground">{metric.value}</span>
+                    <span className="mt-1.5 block whitespace-nowrap text-xs text-muted-foreground">{metric.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
+            <section aria-labelledby="clients-title" className="min-w-0 overflow-hidden border-y border-border/80 bg-card">
+              <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-5">
+                <div>
+                  <h2 id="clients-title" className="text-base font-semibold tracking-[-0.015em] text-foreground">Atendimentos recentes</h2>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {loading ? 'Carregando…' : filteredClients.length + ' ' + (filteredClients.length === 1 ? 'cliente' : 'clientes') + ' nesta seleção'}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate(
+                    statusFilter === 'Todos'
+                      ? '/clientes'
+                      : '/clientes?status=' + encodeURIComponent(statusFilter),
+                  )}
+                >
+                  Ver todos <ChevronRight size={16} aria-hidden="true" />
+                </Button>
               </div>
 
               {loading ? (
-                <div className="flex flex-col gap-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="bg-white rounded-2xl h-24 border border-slate-200 animate-pulse"></div>
-                  ))}
+                <div className="space-y-px border-t border-border/70 bg-border/70" aria-live="polite" aria-busy="true">
+                  <span className="sr-only">Carregando atendimentos</span>
+                  {[1, 2, 3, 4].map((item) => <div key={item} className="h-[4.25rem] animate-pulse bg-card motion-reduce:animate-none" />)}
                 </div>
-              ) : clientesFiltrados.length === 0 ? (
-                <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-sm flex flex-col items-center">
-                  <div className="bg-slate-50 p-4 rounded-full mb-4"><Users size={40} className="text-slate-300" /></div>
-                  <h3 className="text-lg font-bold text-slate-700 mb-1">Nenhum cliente encontrado</h3>
-                  <p className="text-slate-500 text-sm mb-6">Ajuste os filtros ou cadastre um novo cliente.</p>
-                </div>
+              ) : visibleClients.length === 0 ? (
+                <EmptyState
+                  className="border-t border-border/70"
+                  icon={<Users aria-hidden="true" />}
+                  title="Nenhum cliente nesta situação"
+                  description="Escolha outro indicador para consultar os atendimentos."
+                  action={<Button variant="outline" onClick={() => setStatusFilter('Todos')}>Mostrar todos</Button>}
+                />
               ) : (
-                <div className="flex flex-col gap-4">
-                  {clientesFiltrados.map((client) => {
-                    const styles = getStatusStyle(client.status_processo);
+                <div className="divide-y divide-border/70 border-t border-border/70">
+                  {visibleClients.map((client) => {
+                    const statusStyle = getStatusStyle(client.status_processo);
+                    const clientName = client.nome || 'Cliente sem nome';
+
                     return (
-                      <div 
-                        key={client.id} 
-                        onClick={() => navigate(`/cliente/${client.id}`)} 
-                        className="bg-white rounded-2xl p-4 md:p-5 border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all cursor-pointer group relative flex flex-col md:flex-row md:items-center gap-4 md:gap-8"
+                      <article
+                        key={client.id}
+                        className="grid gap-3 px-4 py-3 transition-colors hover:bg-secondary/35 sm:px-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(10rem,0.8fr)_auto] lg:items-center motion-reduce:transition-none"
                       >
-                        <div 
-                          className={`absolute left-0 top-6 bottom-6 w-1 rounded-r-md transition-all ${styles.bg}`}
-                          title="Status do Processo"
-                        ></div>
+                        <button
+                          type="button"
+                          onClick={() => navigate('/cliente/' + client.id)}
+                          className="group flex min-w-0 items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          aria-label={'Abrir resumo de ' + clientName}
+                        >
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-foreground" aria-hidden="true">
+                            {clientName.charAt(0).toUpperCase()}
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-medium text-foreground group-hover:text-brand">{clientName}</span>
+                            <span className="mt-0.5 block truncate text-xs tabular-nums text-muted-foreground">{client.cpf || 'CPF não informado'}</span>
+                          </span>
+                        </button>
 
-                        <div className="flex justify-between items-start md:items-center pl-3 md:w-[35%] shrink-0">
-                          <div className="flex items-center gap-3 w-full">
-                            <div className="w-12 h-12 bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center text-slate-600 font-black text-lg group-hover:bg-emerald-50 group-hover:text-emerald-700 group-hover:border-emerald-200 transition-colors shrink-0">
-                              {client.nome ? client.nome.charAt(0).toUpperCase() : '?'}
-                            </div>
-                            <div className="min-w-0 pr-2">
-                              <h3 className="font-bold text-slate-800 text-base leading-tight group-hover:text-emerald-700 transition-colors truncate">
-                                {client.nome || 'Sem Nome'}
-                              </h3>
-                              <p className="text-xs text-slate-400 font-mono mt-1 truncate">{client.cpf || 'Sem CPF'}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="md:hidden flex flex-col gap-1.5 shrink-0">
-                            <button 
-                              onClick={(e) => toggleFase(client, e)}
-                              className={`text-[9px] font-bold px-2 py-1 rounded-md ring-1 transition-colors whitespace-nowrap text-center ${getFaseStyle((client as any).fase_processo)} hover:opacity-80`}
-                            >
-                              {(client as any).fase_processo || 'Administrativo'}
-                            </button>
-                            <button 
-                              onClick={(e) => toggleStatus(client, e)}
-                              className={`text-[9px] font-bold px-2 py-1 rounded-md ring-1 transition-colors whitespace-nowrap text-center ${styles.light} hover:opacity-80`}
-                            >
-                              {client.status_processo || 'A Iniciar'}
-                            </button>
-                          </div>
+                        <div className="grid gap-1 text-xs text-muted-foreground sm:grid-cols-2 lg:grid-cols-1">
+                          <p className="flex min-w-0 items-center gap-1.5"><Phone size={13} className="shrink-0" aria-hidden="true" /><span className="truncate">{client.telefone || 'Sem telefone'}</span></p>
+                          <p className="flex min-w-0 items-center gap-1.5"><MapPin size={13} className="shrink-0" aria-hidden="true" /><span className="truncate">{client.cidade || client.endereco || 'Local não informado'}</span></p>
                         </div>
 
-                        <div className="space-y-1.5 pl-3 md:pl-0 md:flex-1 md:flex md:flex-col md:justify-center min-w-0 hidden md:flex">
-                          <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <MapPin size={13} className="text-slate-400 shrink-0" />
-                            <span className="truncate font-medium">{client.cidade || client.endereco || 'Endereço não informado'}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <Phone size={13} className="text-slate-400 shrink-0" />
-                            <span className="font-medium truncate">{client.telefone || 'Sem telefone'}</span>
-                          </div>
+                        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                          <button
+                            type="button"
+                            onClick={(event) => void togglePhase(client, event)}
+                            className={cn(
+                              'min-h-10 rounded-full px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none',
+                              getPhaseStyle(),
+                            )}
+                            aria-label={'Alterar fase de ' + clientName + '. Fase atual: ' + getClientPhase(client)}
+                            title="Alterar fase"
+                          >
+                            {getClientPhase(client)}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => void toggleStatus(client, event)}
+                            className={cn(
+                              'inline-flex min-h-10 items-center gap-2 rounded-full px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none',
+                              statusStyle.badge,
+                            )}
+                            aria-label={'Alterar status de ' + clientName + '. Status atual: ' + (client.status_processo || 'A Iniciar')}
+                            title="Alterar status"
+                          >
+                            <span className={cn('h-1.5 w-1.5 rounded-full', statusStyle.dot)} aria-hidden="true" />
+                            {client.status_processo || 'A Iniciar'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => navigate('/cliente/' + client.id)}
+                            className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+                            aria-label={'Abrir ' + clientName}
+                          >
+                            <ChevronRight size={17} aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => void handleDeleteClient(client.id, event)}
+                            className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-danger-subtle hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger motion-reduce:transition-none"
+                            aria-label={'Excluir ' + clientName}
+                          >
+                            <Trash2 size={16} aria-hidden="true" />
+                          </button>
                         </div>
-
-                        <div className="pt-4 md:pt-0 border-t border-slate-100 md:border-none flex items-center justify-between md:justify-end gap-6 pl-3 md:pl-0 shrink-0">
-                           
-                           <div className="hidden md:flex items-center gap-2 shrink-0">
-                             <button 
-                               onClick={(e) => toggleFase(client, e)}
-                               className={`text-[10px] font-bold px-3 py-1.5 rounded-lg ring-1 transition-colors whitespace-nowrap ${getFaseStyle((client as any).fase_processo)} hover:opacity-80`}
-                             >
-                               {(client as any).fase_processo || 'Administrativo'}
-                             </button>
-                             <button 
-                               onClick={(e) => toggleStatus(client, e)}
-                               className={`text-[10px] font-bold px-3 py-1.5 rounded-lg ring-1 transition-colors whitespace-nowrap ${styles.light} hover:opacity-80`}
-                             >
-                               {client.status_processo || 'A Iniciar'}
-                             </button>
-                           </div>
-
-                           <div className="flex gap-1 overflow-x-auto hide-scrollbar">
-                              {[
-                                { icon: UserCog, route: `/cliente/${client.id}`, color: 'hover:text-blue-600 hover:bg-blue-50', title: 'Ficha Cadastral' },
-                                { icon: FolderOpen, route: `/documentos/${client.id}`, color: 'hover:text-indigo-600 hover:bg-indigo-50', title: 'Inventário GED' },
-                                { icon: DollarSign, route: `/cliente/${client.id}/financeiro`, color: 'hover:text-emerald-600 hover:bg-emerald-50', title: 'Financeiro' },
-                                { icon: Calculator, route: `/analise/${client.id}`, color: 'hover:text-amber-600 hover:bg-amber-50', title: 'Calculadora' },
-                                { icon: History, route: `/linha-tempo/${client.id}`, color: 'hover:text-orange-600 hover:bg-orange-50', title: 'Linha do Tempo' },
-                              ].map((btn, i) => (
-                                <button 
-                                  key={i}
-                                  onClick={(e) => { e.stopPropagation(); navigate(btn.route); }} 
-                                  className={`p-2 rounded-lg text-slate-400 transition-colors ${btn.color}`}
-                                  title={btn.title}
-                                >
-                                  <btn.icon size={16} strokeWidth={2.5}/>
-                                </button>
-                              ))}
-                           </div>
-                           <button 
-                             onClick={(e) => handleDeleteClient(client.id, e)} 
-                             className="p-2 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
-                             title="Excluir Cliente"
-                           >
-                             <Trash2 size={16} />
-                           </button>
-                        </div>
-                      </div>
+                      </article>
                     );
                   })}
                 </div>
               )}
-            </div>
-          </div>
+            </section>
 
-          <div className="space-y-6 xl:col-span-1 flex flex-col">
-            
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col flex-1 min-h-[400px]">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wide mb-4">
-                <Star size={16} className="text-amber-500" /> Lembretes na Nuvem
-              </h3>
-              <div className="flex gap-2 mb-4">
-                <input
-                  type="text"
-                  value={newNote}
-                  onChange={(e) => setNewNote(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && addNote()}
-                  placeholder="Escreva um lembrete..."
-                  className="flex-1 bg-amber-50/50 border border-amber-200/50 rounded-xl px-3 py-2 text-sm focus:border-amber-400 focus:bg-white focus:ring-2 focus:ring-amber-500/20 outline-none text-slate-700 placeholder:text-amber-700/40 transition-all"
-                />
-                <button
-                  onClick={addNote}
-                  className="bg-amber-100 hover:bg-amber-200 text-amber-700 px-3 py-2 rounded-xl font-bold transition-colors shrink-0"
-                >
-                  <Plus size={18}/>
-                </button>
-              </div>
-              <div className="flex-1 space-y-2 overflow-y-auto pr-1">
-                {notes.length === 0 ? (
-                  <div className="h-full flex items-center justify-center">
-                    <p className="text-xs font-medium text-slate-400">Caixa de lembretes vazia.</p>
+            <aside aria-label="Informações do dia" className="divide-y divide-border/80 border-y border-border/80 bg-card">
+              <section aria-labelledby="notes-title" className="p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h2 id="notes-title" className="text-base font-semibold tracking-[-0.015em] text-foreground">Lembretes</h2>
+                    <p className="mt-1 text-xs text-muted-foreground">{notes.length} {notes.length === 1 ? 'item' : 'itens'}</p>
                   </div>
-                ) : (
-                  notes.map((note) => {
-                    const isExpanded = expandedNotes[note.id] || false;
-                    const isLongText = note.texto.length > 150;
-                    const isEditing = editingNoteId === note.id;
+                  <Edit2 size={17} className="text-muted-foreground" aria-hidden="true" />
+                </div>
+
+                <form className="mt-3 flex gap-2" onSubmit={(event) => { event.preventDefault(); void addNote(); }}>
+                  <label htmlFor="new-note" className="sr-only">Novo lembrete</label>
+                  <input
+                    id="new-note"
+                    type="text"
+                    value={newNote}
+                    onChange={(event) => setNewNote(event.target.value)}
+                    placeholder="Adicionar lembrete"
+                    className="h-11 min-w-0 flex-1 rounded-control border border-input bg-surface-subtle/55 px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!newNote.trim()}
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-primary text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
+                    aria-label="Adicionar lembrete"
+                  >
+                    <Plus size={17} aria-hidden="true" />
+                  </button>
+                </form>
+
+                <div className="mt-3 max-h-80 divide-y divide-border/70 overflow-y-auto">
+                  {notes.length === 0 ? (
+                    <p className="py-5 text-center text-sm text-muted-foreground">Nenhum lembrete.</p>
+                  ) : notes.map((note) => {
+                    const expanded = expandedNotes[note.id] || false;
+                    const longText = note.texto.length > 150;
+                    const editing = editingNoteId === note.id;
 
                     return (
-                      <div key={note.id} className="flex flex-col p-3 bg-amber-50/30 rounded-xl border border-amber-100/50 group hover:border-amber-200 transition-colors">
-                        
-                        {isEditing ? (
-                          <div className="flex flex-col gap-2 w-full">
+                      <div key={note.id} className="py-3 first:pt-0 last:pb-0">
+                        {editing ? (
+                          <div className="space-y-2">
+                            <label htmlFor={'note-' + note.id} className="sr-only">Editar lembrete</label>
                             <textarea
+                              id={'note-' + note.id}
                               value={editNoteText}
-                              onChange={(e) => setEditNoteText(e.target.value)}
-                              className="w-full text-sm p-2 rounded border border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white resize-none"
+                              onChange={(event) => setEditNoteText(event.target.value)}
+                              className="w-full resize-none rounded-control border border-input bg-surface-subtle/55 p-2.5 text-sm outline-none focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70"
                               rows={3}
                             />
                             <div className="flex justify-end gap-2">
-                              <button onClick={() => setEditingNoteId(null)} className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1">Cancelar</button>
-                              <button onClick={() => updateNote(note.id)} className="text-xs bg-amber-500 text-white font-bold px-3 py-1 rounded hover:bg-amber-600 transition-colors">Salvar</button>
+                              <Button size="sm" variant="ghost" onClick={() => setEditingNoteId(null)}>Cancelar</Button>
+                              <Button size="sm" onClick={() => void updateNote(note.id)}>Salvar</Button>
                             </div>
                           </div>
                         ) : (
                           <>
-                            <div className="flex items-start justify-between">
-                              <span className={`text-sm font-medium text-slate-700 leading-snug break-words pr-2 ${isExpanded ? '' : 'line-clamp-3'}`}>
-                                {note.texto}
-                              </span>
-                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                <button
-                                  onClick={() => {
-                                    setEditingNoteId(note.id);
-                                    setEditNoteText(note.texto);
-                                  }}
-                                  className="text-slate-300 hover:text-blue-500 mt-0.5 transition-colors"
-                                  title="Editar"
-                                >
-                                  <Edit2 size={14} />
-                                </button>
-                                <button
-                                  onClick={() => removeNote(note.id)}
-                                  className="text-slate-300 hover:text-red-500 mt-0.5 transition-colors"
-                                  title="Excluir"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
-                            </div>
-                            
-                            {isLongText && (
-                              <button 
-                                onClick={() => toggleNoteExpansion(note.id)}
-                                className="text-amber-700 text-xs font-bold mt-2 flex items-center gap-1 hover:text-amber-900 w-fit"
+                            <div className="flex items-start gap-1">
+                              <p className={cn('min-w-0 flex-1 break-words text-sm leading-5 text-foreground', expanded ? '' : 'line-clamp-3')}>{note.texto}</p>
+                              <button
+                                type="button"
+                                onClick={() => { setEditingNoteId(note.id); setEditNoteText(note.texto); }}
+                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+                                aria-label="Editar lembrete"
                               >
-                                {isExpanded ? (
-                                  <><ChevronUp size={14} /> Ver menos</>
-                                ) : (
-                                  <><ChevronDown size={14} /> Ver mais</>
-                                )}
+                                <Edit2 size={14} aria-hidden="true" />
                               </button>
-                            )}
+                              <button
+                                type="button"
+                                onClick={() => void removeNote(note.id)}
+                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-danger-subtle hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger motion-reduce:transition-none"
+                                aria-label="Excluir lembrete"
+                              >
+                                <Trash2 size={14} aria-hidden="true" />
+                              </button>
+                            </div>
+                            {longText ? (
+                              <button
+                                type="button"
+                                onClick={() => setExpandedNotes((current) => ({ ...current, [note.id]: !expanded }))}
+                                className="mt-1 inline-flex min-h-10 items-center gap-1 text-xs font-medium text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                aria-expanded={expanded}
+                              >
+                                {expanded ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
+                                {expanded ? 'Ver menos' : 'Ver mais'}
+                              </button>
+                            ) : null}
                           </>
                         )}
                       </div>
                     );
-                  })
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col h-[280px] shrink-0">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wide">
-                  <Cake size={16} className="text-rose-500" /> Aniversariantes
-                </h3>
-                <span className="text-[10px] font-black bg-rose-100 text-rose-700 px-2 py-1 rounded-lg">
-                  {aniversariantes.length} NO MÊS
-                </span>
-              </div>
-              {aniversariantes.length === 0 ? (
-                <div className="text-center py-6 bg-slate-50 rounded-xl border border-slate-100 flex-1 flex items-center justify-center">
-                  <p className="text-xs font-medium text-slate-400">Nenhum cliente faz aniversário este mês.</p>
+                  })}
                 </div>
-              ) : (
-                <div className="space-y-3 overflow-y-auto pr-1 flex-1">
-                  {aniversariantes.map((c) => (
-                    <div key={c.id} className="flex items-center gap-3 p-3 bg-rose-50/50 hover:bg-rose-50 transition-colors rounded-xl border border-rose-100/50 group">
-                      <div className="w-12 h-12 bg-white border border-rose-100 rounded-xl flex flex-col items-center justify-center text-rose-600 shadow-sm shrink-0">
-                        <span className="text-[9px] font-bold uppercase leading-none mb-0.5 opacity-60">Dia</span>
-                        <span className="text-lg font-black leading-none">{c.data_nascimento?.split('-')[2]}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-slate-800 text-sm truncate">{c.nome}</p>
-                        <button
-                          onClick={() => window.open(`https://wa.me/55${c.telefone?.replace(/\D/g, '') || ''}`, '_blank')}
-                          className="text-[10px] text-rose-600 font-bold hover:text-rose-700 flex items-center gap-1 mt-1 opacity-80 group-hover:opacity-100 transition-opacity"
-                        >
-                          <MessageCircle size={12} /> Enviar Mensagem
-                        </button>
-                      </div>
+              </section>
+
+              <section aria-labelledby="today-title" className="overflow-hidden">
+                <div className="p-5">
+                  <h2 id="today-title" className="text-base font-semibold tracking-[-0.015em] text-foreground">Pontos de atenção</h2>
+                  <div className="mt-3 flex items-center justify-between gap-3 bg-secondary/55 px-3 py-2.5 text-sm">
+                    <span className="flex items-center gap-2 text-foreground"><AlertCircle size={16} className="text-warning" aria-hidden="true" /> Cadastros sem telefone</span>
+                    <strong className="font-semibold tabular-nums text-foreground">{clientsWithoutPhone}</strong>
+                  </div>
+                </div>
+
+                <div className="border-t border-border/70 p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="flex items-center gap-2 text-sm font-medium text-foreground"><Cake size={16} className="text-muted-foreground" aria-hidden="true" /> Aniversariantes</h3>
+                    <span className="text-xs capitalize text-muted-foreground">{monthName}</span>
+                  </div>
+                  {birthdays.length === 0 ? (
+                    <p className="mt-4 text-sm text-muted-foreground">Nenhum aniversário neste mês.</p>
+                  ) : (
+                    <div className="mt-3 max-h-64 divide-y divide-border/70 overflow-y-auto">
+                      {birthdays.map((client) => {
+                        const phone = client.telefone?.replace(/\D/g, '') || '';
+                        return (
+                          <div key={client.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold tabular-nums text-foreground">
+                              {client.data_nascimento?.split('-')[2]}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-foreground">{client.nome}</p>
+                              <button
+                                type="button"
+                                disabled={!phone}
+                                onClick={() => window.open('https://wa.me/55' + phone, '_blank', 'noopener,noreferrer')}
+                                className="mt-0.5 inline-flex min-h-10 items-center gap-1.5 text-xs font-medium text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:text-muted-foreground"
+                                aria-label={phone ? 'Enviar mensagem para ' + client.nome : client.nome + ' não possui telefone cadastrado'}
+                              >
+                                <MessageCircle size={14} aria-hidden="true" /> {phone ? 'Enviar mensagem' : 'Sem telefone'}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-            </div>
-
+              </section>
+            </aside>
           </div>
         </div>
       </div>
-    </div>
+
+      <ConfirmDialog
+        open={isConfirmOpen}
+        onOpenChange={(open) => !open && handleCancel()}
+        title="Excluir cliente?"
+        message={confirmMessage}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
+    </>
   );
 }

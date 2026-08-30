@@ -1,14 +1,19 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { 
-  ArrowLeft, Save, User, PenTool, Tractor
+  ArrowLeft, CheckCircle2, Circle, LoaderCircle, Save, User, PenTool, Tractor
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useToast } from "../../hooks/use-toast";
 import { getLocalDateISO } from "../../lib/utils";
 import { CivilDataForm } from "../../components/clients/CivilDataForm";
 import { RuralDataForm } from "../../components/clients/RuralDataForm";
-import { CivilFormValues, RuralFormValues } from "../../schemas/clientSchemas";
+import {
+  civilSchema,
+  CivilFormValues,
+  ruralSchema,
+  RuralFormValues,
+} from "../../schemas/clientSchemas";
 import { Client, Period } from "../../types";
 
 interface ClientFormProps {
@@ -16,44 +21,118 @@ interface ClientFormProps {
   onBack: () => void;
 }
 
+const UNSAVED_CHANGES_MESSAGE = 'Existem alterações não salvas. Deseja sair e descartá-las?';
+
 export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   
-  const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveActivity, setSaveActivity] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [civilDirty, setCivilDirty] = useState(false);
+  const [ruralDirty, setRuralDirty] = useState(false);
+  const [historyDirty, setHistoryDirty] = useState(false);
   const [activeTab, setActiveTab] = useState<'civil' | 'rural' | 'anamnese'>('civil');
-  const [idade, setIdade] = useState<number | null>(null);
   
   const [civilData, setCivilData] = useState<Partial<CivilFormValues>>({});
   const [ruralData, setRuralData] = useState<Partial<RuralFormValues>>({});
+  const [formResetVersion, setFormResetVersion] = useState(0);
   const [historico, setHistorico] = useState(""); 
   const [timeline, setTimeline] = useState<Period[]>([]);
+  const clientId = cliente?.id;
+  const isExistingClient = Boolean(clientId);
+  const isInterviewRoute = location.pathname.endsWith('/entrevista');
+  const loading = loadingData || saving;
+  const hasUnsavedChanges = civilDirty || ruralDirty || historyDirty;
 
   useEffect(() => {
-    if (cliente?.id) loadFullData();
-  }, [cliente]);
+    if (!hasUnsavedChanges) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (
+        event.defaultPrevented
+        || event.button !== 0
+        || event.metaKey
+        || event.ctrlKey
+        || event.shiftKey
+        || event.altKey
+        || !(event.target instanceof Element)
+      ) return;
+
+      const link = event.target.closest<HTMLAnchorElement>('a[href]');
+      if (!link || link.target === '_blank' || link.hasAttribute('download')) return;
+
+      const destination = new URL(link.href, window.location.href);
+      const current = new URL(window.location.href);
+      const isSameLocation = destination.origin === current.origin
+        && destination.pathname === current.pathname
+        && destination.search === current.search
+        && destination.hash === current.hash;
+
+      if (destination.origin !== current.origin || isSameLocation) return;
+      if (window.confirm(UNSAVED_CHANGES_MESSAGE)) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('click', handleDocumentClick, true);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('click', handleDocumentClick, true);
+    };
+  }, [hasUnsavedChanges]);
+
+  const handleBack = useCallback(() => {
+    if (hasUnsavedChanges && !window.confirm(UNSAVED_CHANGES_MESSAGE)) return;
+    onBack();
+  }, [hasUnsavedChanges, onBack]);
 
   useEffect(() => {
-    if (civilData.data_nascimento) {
-      const hoje = new Date();
-      const nasc = new Date(civilData.data_nascimento);
-      let idadeCalc = hoje.getFullYear() - nasc.getFullYear();
-      const m = hoje.getMonth() - nasc.getMonth();
-      if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) {
-        idadeCalc--;
-      }
-      setIdade(idadeCalc);
-    } else {
-      setIdade(null);
+    if (!isExistingClient) return;
+
+    if (isInterviewRoute) {
+      const section = new URLSearchParams(location.search).get('secao');
+      setActiveTab(section === 'historico' ? 'anamnese' : 'rural');
+      return;
     }
-  }, [civilData.data_nascimento]);
 
-  const loadFullData = async () => {
-    setLoading(true);
+    setActiveTab('civil');
+  }, [isExistingClient, isInterviewRoute, location.search]);
+
+  const handleTabChange = (tab: 'civil' | 'rural' | 'anamnese') => {
+    setActiveTab(tab);
+
+    if (!clientId) return;
+    if (tab === 'civil') {
+      navigate(`/cliente/${clientId}/cadastro`);
+      return;
+    }
+
+    navigate(
+      tab === 'anamnese'
+        ? `/cliente/${clientId}/entrevista?secao=historico`
+        : `/cliente/${clientId}/entrevista`,
+    );
+  };
+
+  const loadFullData = useCallback(async () => {
+    if (!clientId) return;
+
+    setLoadingData(true);
     try {
       const [clientRes, interviewRes] = await Promise.all([
-        supabase.from('clients').select('*').eq('id', cliente!.id).single(),
-        supabase.from('interviews').select('*').eq('client_id', cliente!.id).maybeSingle()
+        supabase.from('clients').select('*').eq('id', clientId).single(),
+        supabase.from('interviews').select('*').eq('client_id', clientId).maybeSingle()
       ]);
 
       if (clientRes.error) throw clientRes.error;
@@ -77,7 +156,6 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
           data_expedicao: clientRes.data.data_expedicao || "",
           nit: clientRes.data.nit || "",
           ctps: clientRes.data.ctps || "",
-          senha_meu_inss: clientRes.data.senha_meu_inss || "",
           nome_mae: clientRes.data.nome_mae || "",
           nome_pai: clientRes.data.nome_pai || "",
           estado_civil: clientRes.data.estado_civil || "Solteiro(a)",
@@ -102,51 +180,110 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
         setCivilData(mapped);
       }
 
-      if (interviewRes.data) {
-        setHistorico(interviewRes.data.historico_locais || "");
-        if (Array.isArray(interviewRes.data.timeline_json)) {
-          setTimeline(interviewRes.data.timeline_json as Period[]);
-        }
-        if (interviewRes.data.dados_rurais) {
-          setRuralData(interviewRes.data.dados_rurais as RuralFormValues);
-        }
-      }
+      setHistorico(interviewRes.data?.historico_locais || "");
+      setTimeline(
+        Array.isArray(interviewRes.data?.timeline_json)
+          ? interviewRes.data.timeline_json as Period[]
+          : []
+      );
+
+      const mappedRural = interviewRes.data?.dados_rurais
+        ? interviewRes.data.dados_rurais as RuralFormValues
+        : {};
+      setRuralData(mappedRural);
+      setFormResetVersion((version) => version + 1);
+      setCivilDirty(false);
+      setRuralDirty(false);
+      setHistoryDirty(false);
+      setSaveActivity('idle');
     } catch (error) {
       console.error("Erro:", error);
       toast({ variant: "destructive", title: "Erro", description: "Falha ao carregar dados." });
     } finally {
-      setLoading(false);
+      setLoadingData(false);
     }
-  };
+  }, [clientId, toast]);
 
-  const handleCivilSubmit = (data: CivilFormValues) => {
+  useEffect(() => {
+    if (clientId) void loadFullData();
+  }, [clientId, loadFullData]);
+
+  const handleCivilSubmit = useCallback((data: CivilFormValues) => {
     setCivilData(data);
-  };
+  }, []);
 
-  const handleRuralSave = (data: RuralFormValues) => {
+  const handleRuralSave = useCallback((data: RuralFormValues) => {
     setRuralData(data);
-  };
+  }, []);
+
+  const handleCivilDirtyChange = useCallback((isDirty: boolean) => {
+    setCivilDirty(isDirty);
+    if (isDirty) setSaveActivity('idle');
+  }, []);
+
+  const handleRuralDirtyChange = useCallback((isDirty: boolean) => {
+    setRuralDirty(isDirty);
+    if (isDirty) setSaveActivity('idle');
+  }, []);
+
+  const focusInvalidField = useCallback((fieldName?: string) => {
+    if (!fieldName) return;
+
+    window.setTimeout(() => {
+      document.querySelector<HTMLElement>(`[name="${fieldName}"]`)?.focus();
+    }, 0);
+  }, []);
 
   const handleSave = async () => {
-    if (!civilData.nome || civilData.nome.trim() === "") {
-      toast({ 
-        title: "Atenção!", 
-        description: "O campo 'Nome Completo' é obrigatório para salvar a ficha do cliente.", 
-        variant: "destructive" 
+    const validatedCivil = civilSchema.safeParse(civilData);
+    if (!validatedCivil.success) {
+      const fieldLabels: Record<string, string> = {
+        nome: "nome completo",
+        cpf: "CPF",
+        data_nascimento: "data de nascimento",
+        sexo: "sexo",
+        analfabeto: "alfabetização",
+        capacidade_civil: "capacidade civil",
+      };
+      const invalidFields = Array.from(new Set(
+        validatedCivil.error.issues.map((issue) => (
+          fieldLabels[String(issue.path[0])] || String(issue.path[0])
+        ))
+      ));
+
+      setActiveTab('civil');
+      focusInvalidField(String(validatedCivil.error.issues[0]?.path[0] || ''));
+      toast({
+        title: "Revise os dados civis",
+        description: `Campos inválidos ou ausentes: ${invalidFields.join(", ")}.`,
+        variant: "destructive",
       });
       return;
     }
 
-    setLoading(true);
+    const validatedRural = ruralSchema.safeParse(ruralData);
+    if (!validatedRural.success) {
+      setActiveTab('rural');
+      focusInvalidField(String(validatedRural.error.issues[0]?.path[0] || ''));
+      toast({
+        title: "Revise a ficha rural",
+        description: validatedRural.error.issues[0]?.message || "Existem dados rurais inválidos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
+    setSaveActivity('saving');
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Sessão expirada.");
 
       const clientPayload = {
-        ...civilData,
+        ...validatedCivil.data,
         user_id: user.id,
-        data_nascimento: civilData.data_nascimento || null,
-        data_expedicao: civilData.data_expedicao || null,
+        data_nascimento: validatedCivil.data.data_nascimento || null,
+        data_expedicao: validatedCivil.data.data_expedicao || null,
       };
 
       if (clientPayload.capacidade_civil === "Plena") {
@@ -174,67 +311,167 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
           client_id: currentClientId,
           historico_locais: historico, 
           timeline_json: timeline,
-          dados_rurais: ruralData,
+          dados_rurais: validatedRural.data,
           updated_at: getLocalDateISO()
         }, { onConflict: 'client_id' });
         if (interviewError) throw interviewError;
       }
 
       toast({ title: "Sucesso!", description: "Ficha salva com sucesso.", variant: "success" });
+      setCivilDirty(false);
+      setRuralDirty(false);
+      setHistoryDirty(false);
+      setSaveActivity('saved');
+      setFormResetVersion((version) => version + 1);
       
       if (!cliente && currentClientId) {
         navigate(`/cliente/${currentClientId}`);
+      } else if (cliente && currentClientId) {
+        const target = activeTab === 'civil'
+          ? `/cliente/${currentClientId}/cadastro`
+          : activeTab === 'anamnese'
+            ? `/cliente/${currentClientId}/entrevista?secao=historico`
+            : `/cliente/${currentClientId}/entrevista`;
+        const current = location.pathname + location.search;
+        if (current !== target) navigate(target, { replace: true });
       }
 
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Erro desconhecido ao guardar.";
+      setSaveActivity('error');
       toast({ title: "Erro", description: errorMessage, variant: "destructive" });
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      {/* EFEITO VIDRO NO HEADER */}
-      <header className="bg-white/90 backdrop-blur-md border-b p-4 sticky top-0 z-20 shadow-sm flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition">
-            <ArrowLeft className="text-slate-600"/>
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-slate-800">{cliente ? "Editar Cadastro" : "Novo Cliente"}</h1>
-            <p className="text-xs text-slate-500 font-medium">Ficha Cadastral</p>
+    <div className="flex h-full min-h-0 flex-col bg-background font-sans">
+      <header className="shrink-0 border-b border-border/70 bg-background/95 px-4 py-4 backdrop-blur-xl sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            {!isExistingClient ? (
+              <button
+                type="button"
+                onClick={handleBack}
+                aria-label="Voltar para clientes"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <ArrowLeft size={20} aria-hidden="true" />
+              </button>
+            ) : null}
+            <div className="min-w-0">
+              {!isExistingClient ? (
+                <>
+                  <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Novo cliente</h1>
+                  <p className="mt-1 text-sm text-muted-foreground">Cadastre as informações do novo atendimento.</p>
+                </>
+              ) : (
+                <h2 className="text-lg font-semibold tracking-[-0.02em] text-foreground">
+                  {activeTab === 'civil' ? 'Cadastro' : activeTab === 'rural' ? 'Entrevista rural' : 'Histórico do caso'}
+                </h2>
+              )}
+            </div>
           </div>
-        </div>
-        
-        <div className="flex flex-wrap items-center gap-2">
-          <button onClick={handleSave} disabled={loading} className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg font-bold shadow flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50">
-            <Save size={18}/> {loading ? "Salvando..." : "Salvar Tudo"}
-          </button>
+
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            {saveActivity !== 'saving' && (hasUnsavedChanges || saveActivity === 'saved' || saveActivity === 'error') ? (
+              <div
+                aria-live="polite"
+                className={`inline-flex items-center gap-1.5 text-xs font-medium ${
+                  saveActivity === 'error'
+                    ? 'text-danger'
+                    : hasUnsavedChanges
+                      ? 'text-muted-foreground'
+                      : 'text-success-foreground'
+                }`}
+              >
+                {hasUnsavedChanges ? (
+                  <Circle size={10} fill="currentColor" aria-hidden="true" />
+                ) : (
+                  <CheckCircle2 size={14} aria-hidden="true" />
+                )}
+                {saveActivity === 'error'
+                  ? 'Não foi possível salvar'
+                  : hasUnsavedChanges
+                    ? 'Alterações não salvas'
+                    : 'Alterações salvas'}
+              </div>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={loading}
+              aria-busy={saveActivity === 'saving'}
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-control bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-[background-color,box-shadow,transform] duration-150 ease-product hover:bg-primary-hover hover:shadow-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:translate-y-px active:shadow-none motion-reduce:transform-none disabled:cursor-wait disabled:translate-y-0 disabled:opacity-60"
+            >
+              {saveActivity === 'saving' ? (
+                <LoaderCircle size={17} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
+              ) : (
+                <Save size={17} aria-hidden="true" />
+              )}
+              {saveActivity === 'saving' ? 'Salvando…' : loadingData ? 'Carregando…' : 'Salvar cliente'}
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* TABS COM EFEITO VIDRO (backdrop-blur) */}
-      <div className="bg-white/80 backdrop-blur-md border-b px-4 flex gap-6 sticky top-[73px] z-10 overflow-x-auto hide-scrollbar">
-        <button onClick={() => setActiveTab('civil')} className={`py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'civil' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-          <User size={18}/> Dados Civis
-        </button>
-        <button onClick={() => setActiveTab('rural')} className={`py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'rural' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-          <Tractor size={18}/> Ficha Rural
-        </button>
-        <button onClick={() => setActiveTab('anamnese')} className={`py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'anamnese' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-          <PenTool size={18}/> Anamnese
-        </button>
-      </div>
+      {!isExistingClient ? (
+        <nav className="shrink-0 overflow-x-auto bg-background px-4 pb-4 sm:px-6" aria-label="Etapas do cadastro">
+          <div className="mx-auto flex min-w-max max-w-6xl gap-1 rounded-control bg-secondary p-1" aria-label="Seções do novo cliente">
+            {[
+              { id: 'civil' as const, label: 'Cadastro', icon: User },
+              { id: 'rural' as const, label: 'Entrevista rural', icon: Tractor },
+              { id: 'anamnese' as const, label: 'Histórico do caso', icon: PenTool },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                aria-pressed={activeTab === tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`inline-flex min-h-11 items-center gap-2 rounded-[0.6rem] px-3 py-2 text-sm font-medium transition-[background-color,color,box-shadow] duration-150 ease-product focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none ${
+                  activeTab === tab.id
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <tab.icon size={17} aria-hidden="true" /> {tab.label}
+              </button>
+            ))}
+          </div>
+        </nav>
+      ) : isInterviewRoute ? (
+        <nav className="shrink-0 bg-background px-4 pb-4 sm:px-6" aria-label="Seções da entrevista rural">
+          <div className="mx-auto flex max-w-6xl gap-1 rounded-control bg-secondary p-1" aria-label="Conteúdo da entrevista rural">
+            <button
+              type="button"
+              aria-pressed={activeTab === 'rural'}
+              onClick={() => handleTabChange('rural')}
+              className={`min-h-11 rounded-[0.6rem] px-3 py-2 text-sm font-medium transition-[background-color,color,box-shadow] duration-150 ease-product focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none ${activeTab === 'rural' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              Dados da atividade
+            </button>
+            <button
+              type="button"
+              aria-pressed={activeTab === 'anamnese'}
+              onClick={() => handleTabChange('anamnese')}
+              className={`min-h-11 rounded-[0.6rem] px-3 py-2 text-sm font-medium transition-[background-color,color,box-shadow] duration-150 ease-product focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none ${activeTab === 'anamnese' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              Histórico do caso
+            </button>
+          </div>
+        </nav>
+      ) : null}
 
-      {/* RESPIRO GIGANTE NO FINAL (pb-64) */}
-      <main className="flex-1 overflow-y-auto p-4 md:p-8 max-w-5xl mx-auto w-full space-y-8 pb-64">
+      <div className="mx-auto w-full max-w-6xl flex-1 overflow-y-auto px-4 pb-8 sm:px-6 lg:px-8">
         {activeTab === 'civil' && (
           <CivilDataForm
             initialData={civilData}
             onSubmit={handleCivilSubmit}
+            onDirtyChange={handleCivilDirtyChange}
             loading={loading}
+            resetVersion={formResetVersion}
           />
         )}
         
@@ -242,26 +479,56 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
           <RuralDataForm
             initialData={ruralData}
             onSave={handleRuralSave}
+            onDirtyChange={handleRuralDirtyChange}
             loading={loading}
+            resetVersion={formResetVersion}
           />
         )}
 
-        {/* ANAMNESE INTELIGENTE (min-h-[60vh] e efeito glow) */}
         {activeTab === 'anamnese' && (
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
-            <h2 className="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2 border-b pb-2 shrink-0">
-              <PenTool className="text-emerald-500"/> Anamnese / Entrevista
-            </h2>
-            <textarea
-              value={historico}
-              onChange={(e) => setHistorico(e.target.value)}
-              disabled={loading}
-              className="w-full flex-1 p-5 border border-slate-300 rounded-2xl outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 resize-none text-base leading-relaxed bg-slate-50 focus:bg-white transition-all min-h-[60vh]"
-              placeholder="Digite aqui todas as anotações, histórico do cliente e pontos importantes da entrevista..."
-            />
-          </div>
+          <section className="rounded-surface bg-card p-5 shadow-panel ring-1 ring-border/80 sm:p-6">
+            <div>
+              <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
+                <PenTool className="text-brand" size={19} aria-hidden="true" /> Histórico do caso
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Registre o relato em texto livre. Use o roteiro abaixo para manter as entrevistas consistentes.
+              </p>
+            </div>
+
+            <div className="mt-5 grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+              <aside className="rounded-control bg-secondary p-4">
+                <p className="text-sm font-semibold text-foreground">Roteiro sugerido</p>
+                <ul className="mt-3 space-y-2 text-sm leading-5 text-muted-foreground">
+                  <li>• Locais e períodos de atividade rural</li>
+                  <li>• Composição e trabalho do grupo familiar</li>
+                  <li>• Culturas, criações e comercialização</li>
+                  <li>• Mudanças, vínculos urbanos e divergências</li>
+                  <li>• Provas mencionadas durante a entrevista</li>
+                </ul>
+              </aside>
+              <div>
+                <label htmlFor="historico-caso" className="mb-2 block text-sm font-medium text-foreground">
+                  Relato da entrevista
+                </label>
+                <textarea
+                  id="historico-caso"
+                  value={historico}
+                  onChange={(e) => {
+                    setHistorico(e.target.value);
+                    setHistoryDirty(true);
+                    setSaveActivity('idle');
+                  }}
+                  disabled={loading}
+                  rows={16}
+                  className="min-h-80 w-full resize-y rounded-control border border-input bg-surface-subtle/55 p-4 text-sm leading-6 text-foreground outline-none transition-[background-color,border-color,box-shadow] duration-150 ease-product placeholder:text-muted-foreground focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70 disabled:cursor-wait disabled:bg-muted"
+                  placeholder="Descreva o histórico rural, a rotina de trabalho, os períodos e as provas citadas pelo cliente…"
+                />
+              </div>
+            </div>
+          </section>
         )}
-      </main>
+      </div>
     </div>
   );
 }

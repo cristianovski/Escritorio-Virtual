@@ -2,9 +2,11 @@ import { z } from "zod";
 
 // Schema para dados civis
 export const civilSchema = z.object({
-  nome: z.string().min(3, "Nome muito curto"),
+  nome: z.string().trim().min(3, "Informe o nome completo"),
   cpf: z.string().length(14, "CPF inválido"),
-  data_nascimento: z.string().refine((val) => !isNaN(Date.parse(val)), "Data inválida"),
+  data_nascimento: z.string()
+    .min(1, "Informe a data de nascimento")
+    .refine((val) => !isNaN(Date.parse(val)), "Data inválida"),
   sexo: z.enum(["Masculino", "Feminino"]),
   analfabeto: z.boolean(),
   capacidade_civil: z.enum(["Plena", "Relativamente Incapaz", "Absolutamente Incapaz"]),
@@ -23,7 +25,6 @@ export const civilSchema = z.object({
   data_expedicao: z.string().optional(),
   nit: z.string().optional(),
   ctps: z.string().optional(),
-  senha_meu_inss: z.string().optional(),
 
   // Filiação
   nome_mae: z.string().optional(),
@@ -50,7 +51,7 @@ export const civilSchema = z.object({
   endereco_divergente: z.boolean().optional(),
   justificativa_endereco: z.string().optional(),
 
-  status_processo: z.enum(["A Iniciar", "Em Andamento", "Finalizado"]).optional(),
+  status_processo: z.enum(["A Iniciar", "Em Andamento", "Finalizado", "Suspenso"]).optional(),
 });
 
 export type CivilFormValues = z.infer<typeof civilSchema>;

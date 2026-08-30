@@ -4,41 +4,87 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    
-    /* MUDANÇA PRINCIPAL: Verde Esmeralda (#10b981) convertido para HSL */
-    --primary: 160 84% 39%;
-    --primary-foreground: 210 40% 98%;
+    color-scheme: light;
 
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    
-    /* O anel de foco também fica verde */
-    --ring: 160 84% 39%;
-    
+    /* Porcelana quente: a interface recua e deixa o conteúdo conduzir. */
+    --canvas: 60 10% 96.1%;
+    --surface: 0 0% 100%;
+    --surface-subtle: 60 9.1% 93.5%;
+    --ink: 240 3.3% 11.8%;
+
+    --background: var(--canvas);
+    --foreground: var(--ink);
+    --card: 0 0% 100%;
+    --card-foreground: var(--ink);
+    --popover: 0 0% 100%;
+    --popover-foreground: var(--ink);
+
+    /* O eucalipto identifica marca, foco e seleção; ações usam grafite. */
+    --brand: 162.1 64.6% 25.5%;
+    --brand-hover: 161.7 66.7% 21.2%;
+    --brand-foreground: 0 0% 100%;
+    --brand-subtle: 153.3 24.3% 92.7%;
+
+    /* Compatibilidade com os componentes shadcn/CVA existentes. */
+    --primary: var(--ink);
+    --primary-hover: 240 3.3% 6%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: var(--surface-subtle);
+    --secondary-foreground: var(--ink);
+    --muted: var(--surface-subtle);
+    --muted-foreground: 240 2.9% 40.8%;
+    --accent: 60 7% 91.5%;
+    --accent-foreground: var(--ink);
+    --destructive: 356.3 67.4% 42.2%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 60 5.7% 86.3%;
+    --input: 60 1.6% 52.5%;
+    --ring: var(--brand);
+
+    /* Estados semânticos. As cores fortes ficam reservadas para significado. */
+    --success: 150.3 59.5% 30%;
+    --success-foreground: 150 61% 24%;
+    --success-subtle: 145 40% 94.1%;
+    --info: var(--brand);
+    --info-foreground: var(--brand-hover);
+    --info-subtle: var(--brand-subtle);
+    --warning: 39.1 100% 27.1%;
+    --warning-foreground: 39 100% 23%;
+    --warning-subtle: 43.9 100% 92%;
+    --danger: 356.3 67.4% 42.2%;
+    --danger-foreground: 356 68% 35%;
+    --danger-subtle: 356.7 81.8% 95.7%;
+    --neutral-subtle: var(--surface-subtle);
+
     --radius: 0.75rem;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
+
+  html {
+    @apply bg-background;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
     @apply bg-background text-foreground antialiased font-sans;
+    min-width: 320px;
+    font-feature-settings: "kern", "liga", "calt";
+    letter-spacing: -0.006em;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  ::selection {
+    background: hsl(var(--brand-subtle));
+    color: hsl(var(--brand-hover));
   }
 }
 
@@ -49,24 +95,100 @@
   .force-select-text * {
     user-select: text !important;
   }
+
+  .text-tabular {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
-/* Personalização da Barra de Rolagem (Scrollbar) */
+/* Scrollbar discreta e neutra. */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: hsl(var(--muted));
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--primary));
-  border-radius: 4px;
+  background: hsl(var(--muted-foreground) / 0.35);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #059669; /* Verde levemente mais escuro */
+  background: hsl(var(--muted-foreground) / 0.55);
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
-/* Garante altura total no mobile */
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
+}
+
+@keyframes overlay-show {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes overlay-hide {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes dialog-show {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes dialog-hide {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -49%) scale(0.985);
+  }
+}
+
+@keyframes toast-show {
+  from {
+    opacity: 0;
+    transform: translateY(-0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-hide {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.dialog-overlay[data-state="open"] { animation: overlay-show 160ms ease-out; }
+.dialog-overlay[data-state="closed"] { animation: overlay-hide 120ms ease-in; }
+.dialog-content[data-state="open"] { animation: dialog-show 180ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.dialog-content[data-state="closed"] { animation: dialog-hide 120ms ease-in; }
+.toast-root[data-state="open"] { animation: toast-show 180ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.toast-root[data-state="closed"] { animation: toast-hide 120ms ease-in; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

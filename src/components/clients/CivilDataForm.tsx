@@ -13,6 +13,7 @@ import { Surface } from "../ui/Surface";
 interface CivilDataFormProps {
   initialData?: Partial<CivilFormValues>;
   onSubmit: (data: CivilFormValues) => void;
+  onDirtyChange?: (isDirty: boolean) => void;
   loading?: boolean;
   resetVersion?: number;
 }
@@ -27,7 +28,7 @@ interface FieldProps {
 }
 
 const controlClassName =
-  "block h-11 w-full rounded-control border border-input bg-surface-subtle/55 px-3 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground/70 focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70 disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-muted-foreground";
+  "block h-11 w-full rounded-control border border-input bg-surface-subtle/55 px-3 text-sm text-foreground outline-none transition-[background-color,border-color,box-shadow] duration-150 ease-product placeholder:text-muted-foreground/70 aria-[invalid=true]:border-danger focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70 aria-[invalid=true]:focus:border-danger aria-[invalid=true]:focus:ring-danger/30 disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-muted-foreground";
 
 function Field({ id, label, children, className, error, required }: FieldProps) {
   return (
@@ -69,11 +70,11 @@ function SectionHeading({ id, title, description }: SectionHeadingProps) {
   );
 }
 
-export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0 }: CivilDataFormProps) {
+export function CivilDataForm({ initialData, onSubmit, onDirtyChange, loading, resetVersion = 0 }: CivilDataFormProps) {
   const initialDataRef = useRef(initialData);
   const formId = useId();
 
-  const { control, register, reset, subscribe, formState: { errors } } = useForm<CivilFormValues>({
+  const { control, register, reset, subscribe, formState: { errors, isDirty } } = useForm<CivilFormValues>({
     resolver: zodResolver(civilSchema),
     mode: "onChange",
     defaultValues: {
@@ -128,6 +129,10 @@ export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0
     });
   }, [subscribe, onSubmit]);
 
+  useEffect(() => {
+    if (isDirty) onDirtyChange?.(true);
+  }, [isDirty, onDirtyChange]);
+
   const isIncapaz = useWatch({ control, name: "capacidade_civil" }) !== "Plena";
   const isAnalfabeto = useWatch({ control, name: "analfabeto" });
   const estadoCivil = useWatch({ control, name: "estado_civil" });
@@ -138,7 +143,7 @@ export function CivilDataForm({ initialData, onSubmit, loading, resetVersion = 0
     <fieldset
       disabled={loading}
       aria-busy={loading}
-      className="overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-border/80 disabled:cursor-wait disabled:opacity-75"
+      className="overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-border/80 disabled:cursor-wait"
     >
       <legend className="sr-only">Dados civis e de contato do cliente</legend>
       <section aria-labelledby={`${formId}-personal-heading`} className="border-b border-border/70 last:border-0">

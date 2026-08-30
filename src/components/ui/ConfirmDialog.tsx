@@ -22,7 +22,7 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !confirming && onOpenChange(nextOpen)}>
-      <DialogContent>
+      <DialogContent closeDisabled={confirming}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>

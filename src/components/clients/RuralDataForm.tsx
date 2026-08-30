@@ -10,12 +10,13 @@ type RuralFormValues = z.infer<typeof ruralSchema>;
 interface RuralDataFormProps {
   initialData?: Partial<RuralFormValues>;
   onSave: (data: RuralFormValues) => void;
+  onDirtyChange?: (isDirty: boolean) => void;
   loading?: boolean;
   resetVersion?: number;
 }
 
 const labelClassName = "mb-1.5 block text-sm font-medium text-foreground";
-const controlClassName = "min-h-11 w-full rounded-control border border-input bg-surface-subtle/55 px-3 py-2.5 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground focus-visible:border-ring focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/70";
+const controlClassName = "min-h-11 w-full rounded-control border border-input bg-surface-subtle/55 px-3 py-2.5 text-sm text-foreground outline-none transition-[background-color,border-color,box-shadow] duration-150 ease-product placeholder:text-muted-foreground aria-[invalid=true]:border-danger disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground focus-visible:border-ring focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/70 aria-[invalid=true]:focus-visible:border-danger aria-[invalid=true]:focus-visible:ring-danger/30";
 const textareaClassName = `${controlClassName} resize-y`;
 
 interface SectionHeaderProps {
@@ -57,6 +58,7 @@ function FieldError({ id, message }: FieldErrorProps) {
 export function RuralDataForm({
   initialData,
   onSave,
+  onDirtyChange,
   loading,
   resetVersion = 0,
 }: RuralDataFormProps) {
@@ -67,7 +69,7 @@ export function RuralDataForm({
     register,
     reset,
     subscribe,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<RuralFormValues>({
     resolver: zodResolver(ruralSchema),
     mode: "onChange",
@@ -123,6 +125,10 @@ export function RuralDataForm({
     });
   }, [subscribe, onSave]);
 
+  useEffect(() => {
+    if (isDirty) onDirtyChange?.(true);
+  }, [isDirty, onDirtyChange]);
+
   const condicaoPosse = useWatch({ control, name: "condicao_posse" });
   const temEmpregados = useWatch({ control, name: "tem_empregados" });
   const showOutorgante = (condicaoPosse || "proprietario") !== "proprietario";
@@ -136,7 +142,7 @@ export function RuralDataForm({
     <fieldset
       disabled={loading}
       aria-busy={loading}
-      className="overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-border/80 disabled:opacity-70"
+      className="overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-border/80"
     >
       <legend className="sr-only">Ficha de atividade rural</legend>
 

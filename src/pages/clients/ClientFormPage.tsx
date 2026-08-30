@@ -1,7 +1,7 @@
 import { useCallback, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { 
-  ArrowLeft, Save, User, PenTool, Tractor
+  ArrowLeft, CheckCircle2, Circle, LoaderCircle, Save, User, PenTool, Tractor
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useToast } from "../../hooks/use-toast";
@@ -21,12 +21,19 @@ interface ClientFormProps {
   onBack: () => void;
 }
 
+const UNSAVED_CHANGES_MESSAGE = 'Existem alterações não salvas. Deseja sair e descartá-las?';
+
 export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
   
-  const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveActivity, setSaveActivity] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [civilDirty, setCivilDirty] = useState(false);
+  const [ruralDirty, setRuralDirty] = useState(false);
+  const [historyDirty, setHistoryDirty] = useState(false);
   const [activeTab, setActiveTab] = useState<'civil' | 'rural' | 'anamnese'>('civil');
   
   const [civilData, setCivilData] = useState<Partial<CivilFormValues>>({});
@@ -37,6 +44,58 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
   const clientId = cliente?.id;
   const isExistingClient = Boolean(clientId);
   const isInterviewRoute = location.pathname.endsWith('/entrevista');
+  const loading = loadingData || saving;
+  const hasUnsavedChanges = civilDirty || ruralDirty || historyDirty;
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (
+        event.defaultPrevented
+        || event.button !== 0
+        || event.metaKey
+        || event.ctrlKey
+        || event.shiftKey
+        || event.altKey
+        || !(event.target instanceof Element)
+      ) return;
+
+      const link = event.target.closest<HTMLAnchorElement>('a[href]');
+      if (!link || link.target === '_blank' || link.hasAttribute('download')) return;
+
+      const destination = new URL(link.href, window.location.href);
+      const current = new URL(window.location.href);
+      const isSameLocation = destination.origin === current.origin
+        && destination.pathname === current.pathname
+        && destination.search === current.search
+        && destination.hash === current.hash;
+
+      if (destination.origin !== current.origin || isSameLocation) return;
+      if (window.confirm(UNSAVED_CHANGES_MESSAGE)) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('click', handleDocumentClick, true);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('click', handleDocumentClick, true);
+    };
+  }, [hasUnsavedChanges]);
+
+  const handleBack = useCallback(() => {
+    if (hasUnsavedChanges && !window.confirm(UNSAVED_CHANGES_MESSAGE)) return;
+    onBack();
+  }, [hasUnsavedChanges, onBack]);
 
   useEffect(() => {
     if (!isExistingClient) return;
@@ -69,7 +128,7 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
   const loadFullData = useCallback(async () => {
     if (!clientId) return;
 
-    setLoading(true);
+    setLoadingData(true);
     try {
       const [clientRes, interviewRes] = await Promise.all([
         supabase.from('clients').select('*').eq('id', clientId).single(),
@@ -133,11 +192,15 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
         : {};
       setRuralData(mappedRural);
       setFormResetVersion((version) => version + 1);
+      setCivilDirty(false);
+      setRuralDirty(false);
+      setHistoryDirty(false);
+      setSaveActivity('idle');
     } catch (error) {
       console.error("Erro:", error);
       toast({ variant: "destructive", title: "Erro", description: "Falha ao carregar dados." });
     } finally {
-      setLoading(false);
+      setLoadingData(false);
     }
   }, [clientId, toast]);
 
@@ -145,13 +208,31 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
     if (clientId) void loadFullData();
   }, [clientId, loadFullData]);
 
-  const handleCivilSubmit = (data: CivilFormValues) => {
+  const handleCivilSubmit = useCallback((data: CivilFormValues) => {
     setCivilData(data);
-  };
+  }, []);
 
-  const handleRuralSave = (data: RuralFormValues) => {
+  const handleRuralSave = useCallback((data: RuralFormValues) => {
     setRuralData(data);
-  };
+  }, []);
+
+  const handleCivilDirtyChange = useCallback((isDirty: boolean) => {
+    setCivilDirty(isDirty);
+    if (isDirty) setSaveActivity('idle');
+  }, []);
+
+  const handleRuralDirtyChange = useCallback((isDirty: boolean) => {
+    setRuralDirty(isDirty);
+    if (isDirty) setSaveActivity('idle');
+  }, []);
+
+  const focusInvalidField = useCallback((fieldName?: string) => {
+    if (!fieldName) return;
+
+    window.setTimeout(() => {
+      document.querySelector<HTMLElement>(`[name="${fieldName}"]`)?.focus();
+    }, 0);
+  }, []);
 
   const handleSave = async () => {
     const validatedCivil = civilSchema.safeParse(civilData);
@@ -170,7 +251,8 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
         ))
       ));
 
-      handleTabChange("civil");
+      setActiveTab('civil');
+      focusInvalidField(String(validatedCivil.error.issues[0]?.path[0] || ''));
       toast({
         title: "Revise os dados civis",
         description: `Campos inválidos ou ausentes: ${invalidFields.join(", ")}.`,
@@ -181,7 +263,8 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
 
     const validatedRural = ruralSchema.safeParse(ruralData);
     if (!validatedRural.success) {
-      handleTabChange("rural");
+      setActiveTab('rural');
+      focusInvalidField(String(validatedRural.error.issues[0]?.path[0] || ''));
       toast({
         title: "Revise a ficha rural",
         description: validatedRural.error.issues[0]?.message || "Existem dados rurais inválidos.",
@@ -190,7 +273,8 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
       return;
     }
 
-    setLoading(true);
+    setSaving(true);
+    setSaveActivity('saving');
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Sessão expirada.");
@@ -234,28 +318,42 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
       }
 
       toast({ title: "Sucesso!", description: "Ficha salva com sucesso.", variant: "success" });
+      setCivilDirty(false);
+      setRuralDirty(false);
+      setHistoryDirty(false);
+      setSaveActivity('saved');
+      setFormResetVersion((version) => version + 1);
       
       if (!cliente && currentClientId) {
         navigate(`/cliente/${currentClientId}`);
+      } else if (cliente && currentClientId) {
+        const target = activeTab === 'civil'
+          ? `/cliente/${currentClientId}/cadastro`
+          : activeTab === 'anamnese'
+            ? `/cliente/${currentClientId}/entrevista?secao=historico`
+            : `/cliente/${currentClientId}/entrevista`;
+        const current = location.pathname + location.search;
+        if (current !== target) navigate(target, { replace: true });
       }
 
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Erro desconhecido ao guardar.";
+      setSaveActivity('error');
       toast({ title: "Erro", description: errorMessage, variant: "destructive" });
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background font-sans">
-      <header className="shrink-0 bg-background px-4 py-4 sm:px-6 lg:px-8">
+      <header className="shrink-0 border-b border-border/70 bg-background/95 px-4 py-4 backdrop-blur-xl sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-3">
             {!isExistingClient ? (
               <button
                 type="button"
-                onClick={onBack}
+                onClick={handleBack}
                 aria-label="Voltar para clientes"
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
@@ -276,15 +374,46 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={loading}
-            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-control bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary-hover hover:shadow-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
-          >
-            <Save size={17} aria-hidden="true" />
-            {loading ? 'Salvando…' : 'Salvar cliente'}
-          </button>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            {saveActivity !== 'saving' && (hasUnsavedChanges || saveActivity === 'saved' || saveActivity === 'error') ? (
+              <div
+                aria-live="polite"
+                className={`inline-flex items-center gap-1.5 text-xs font-medium ${
+                  saveActivity === 'error'
+                    ? 'text-danger'
+                    : hasUnsavedChanges
+                      ? 'text-muted-foreground'
+                      : 'text-success-foreground'
+                }`}
+              >
+                {hasUnsavedChanges ? (
+                  <Circle size={10} fill="currentColor" aria-hidden="true" />
+                ) : (
+                  <CheckCircle2 size={14} aria-hidden="true" />
+                )}
+                {saveActivity === 'error'
+                  ? 'Não foi possível salvar'
+                  : hasUnsavedChanges
+                    ? 'Alterações não salvas'
+                    : 'Alterações salvas'}
+              </div>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={loading}
+              aria-busy={saveActivity === 'saving'}
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-control bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-[background-color,box-shadow,transform] duration-150 ease-product hover:bg-primary-hover hover:shadow-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:translate-y-px active:shadow-none motion-reduce:transform-none disabled:cursor-wait disabled:translate-y-0 disabled:opacity-60"
+            >
+              {saveActivity === 'saving' ? (
+                <LoaderCircle size={17} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
+              ) : (
+                <Save size={17} aria-hidden="true" />
+              )}
+              {saveActivity === 'saving' ? 'Salvando…' : loadingData ? 'Carregando…' : 'Salvar cliente'}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -301,7 +430,7 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
                 type="button"
                 aria-pressed={activeTab === tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`inline-flex min-h-11 items-center gap-2 rounded-[0.6rem] px-3 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                className={`inline-flex min-h-11 items-center gap-2 rounded-[0.6rem] px-3 py-2 text-sm font-medium transition-[background-color,color,box-shadow] duration-150 ease-product focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none ${
                   activeTab === tab.id
                     ? 'bg-card text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
@@ -319,7 +448,7 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
               type="button"
               aria-pressed={activeTab === 'rural'}
               onClick={() => handleTabChange('rural')}
-              className={`min-h-11 rounded-[0.6rem] px-3 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${activeTab === 'rural' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`min-h-11 rounded-[0.6rem] px-3 py-2 text-sm font-medium transition-[background-color,color,box-shadow] duration-150 ease-product focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none ${activeTab === 'rural' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Dados da atividade
             </button>
@@ -327,7 +456,7 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
               type="button"
               aria-pressed={activeTab === 'anamnese'}
               onClick={() => handleTabChange('anamnese')}
-              className={`min-h-11 rounded-[0.6rem] px-3 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${activeTab === 'anamnese' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`min-h-11 rounded-[0.6rem] px-3 py-2 text-sm font-medium transition-[background-color,color,box-shadow] duration-150 ease-product focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none ${activeTab === 'anamnese' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Histórico do caso
             </button>
@@ -340,6 +469,7 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
           <CivilDataForm
             initialData={civilData}
             onSubmit={handleCivilSubmit}
+            onDirtyChange={handleCivilDirtyChange}
             loading={loading}
             resetVersion={formResetVersion}
           />
@@ -349,6 +479,7 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
           <RuralDataForm
             initialData={ruralData}
             onSave={handleRuralSave}
+            onDirtyChange={handleRuralDirtyChange}
             loading={loading}
             resetVersion={formResetVersion}
           />
@@ -383,10 +514,14 @@ export function ClientFormPage({ cliente, onBack }: ClientFormProps) {
                 <textarea
                   id="historico-caso"
                   value={historico}
-                  onChange={(e) => setHistorico(e.target.value)}
+                  onChange={(e) => {
+                    setHistorico(e.target.value);
+                    setHistoryDirty(true);
+                    setSaveActivity('idle');
+                  }}
                   disabled={loading}
                   rows={16}
-                  className="min-h-80 w-full resize-y rounded-control border border-input bg-surface-subtle/55 p-4 text-sm leading-6 text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70 disabled:cursor-wait disabled:bg-muted"
+                  className="min-h-80 w-full resize-y rounded-control border border-input bg-surface-subtle/55 p-4 text-sm leading-6 text-foreground outline-none transition-[background-color,border-color,box-shadow] duration-150 ease-product placeholder:text-muted-foreground focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70 disabled:cursor-wait disabled:bg-muted"
                   placeholder="Descreva o histórico rural, a rotina de trabalho, os períodos e as provas citadas pelo cliente…"
                 />
               </div>

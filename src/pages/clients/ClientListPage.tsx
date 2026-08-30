@@ -63,23 +63,23 @@ function ClientListSkeleton() {
       <span className="sr-only">Carregando clientes…</span>
 
       <div className="hidden overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-border/80 xl:block">
-        <div className="h-11 animate-pulse border-b border-border bg-surface-subtle" />
+        <div className="h-10 animate-pulse border-b border-border bg-surface-subtle motion-reduce:animate-none" />
         {[1, 2, 3, 4].map((item) => (
-          <div key={item} className="grid grid-cols-[2fr_1.2fr_1.2fr_0.8fr_0.7fr] gap-4 border-b border-border px-5 py-4 last:border-0">
-            <div className="h-9 animate-pulse rounded-md bg-surface-subtle" />
-            <div className="h-9 animate-pulse rounded-md bg-surface-subtle" />
-            <div className="h-9 animate-pulse rounded-md bg-surface-subtle" />
-            <div className="h-7 animate-pulse rounded-md bg-surface-subtle" />
-            <div className="h-7 animate-pulse rounded-md bg-surface-subtle" />
+          <div key={item} className="grid grid-cols-[2fr_1.2fr_1.2fr_0.8fr_0.7fr] gap-4 border-b border-border px-4 py-3 last:border-0">
+            <div className="h-8 animate-pulse rounded-md bg-surface-subtle motion-reduce:animate-none" />
+            <div className="h-8 animate-pulse rounded-md bg-surface-subtle motion-reduce:animate-none" />
+            <div className="h-8 animate-pulse rounded-md bg-surface-subtle motion-reduce:animate-none" />
+            <div className="h-6 animate-pulse rounded-md bg-surface-subtle motion-reduce:animate-none" />
+            <div className="h-6 animate-pulse rounded-md bg-surface-subtle motion-reduce:animate-none" />
           </div>
         ))}
       </div>
 
       <div className="overflow-hidden rounded-surface bg-card shadow-panel ring-1 ring-border/80 xl:hidden">
         {[1, 2, 3].map((item) => (
-          <div key={item} className="border-b border-border/70 p-4 last:border-0">
-            <div className="h-12 animate-pulse rounded-md bg-surface-subtle" />
-            <div className="mt-4 h-8 animate-pulse rounded-md bg-surface-subtle" />
+          <div key={item} className="border-b border-border/70 px-4 py-3.5 last:border-0">
+            <div className="h-10 animate-pulse rounded-md bg-surface-subtle motion-reduce:animate-none" />
+            <div className="mt-3 h-7 animate-pulse rounded-md bg-surface-subtle motion-reduce:animate-none" />
           </div>
         ))}
       </div>
@@ -156,7 +156,7 @@ export function ClientListPage() {
 
   return (
     <div className="h-full overflow-y-auto bg-background">
-      <div className="mx-auto w-full max-w-content space-y-8 p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto w-full max-w-content space-y-6 p-4 sm:p-6 lg:p-8">
         <PageHeader
           title="Clientes"
           description="Consulte cadastros e acesse o acompanhamento previdenciário de cada cliente."
@@ -168,31 +168,32 @@ export function ClientListPage() {
           )}
         />
 
-        <section aria-labelledby="client-list-heading" className="space-y-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div className="grid w-full gap-3 sm:max-w-2xl sm:grid-cols-[minmax(0,1fr)_12rem]">
-              <div>
-              <label htmlFor="client-search" className="sr-only">
-                Buscar cliente por nome ou CPF
-              </label>
-              <div className="relative">
-                <Search
-                  aria-hidden="true"
-                  size={18}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                />
-                <input
-                  id="client-search"
-                  type="search"
-                  autoComplete="off"
-                  placeholder="Buscar por nome ou CPF"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  className="h-11 w-full rounded-control border border-input bg-surface-subtle/55 pl-10 pr-3 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70"
-                />
+        <section aria-labelledby="client-list-heading" className="space-y-4">
+          <div className="rounded-surface bg-card p-2.5 shadow-panel ring-1 ring-border/80 sm:p-3">
+            <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center">
+              <div className="min-w-0 flex-1 lg:max-w-sm">
+                <label htmlFor="client-search" className="sr-only">
+                  Buscar cliente por nome ou CPF
+                </label>
+                <div className="relative">
+                  <Search
+                    aria-hidden="true"
+                    size={18}
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  />
+                  <input
+                    id="client-search"
+                    type="search"
+                    autoComplete="off"
+                    placeholder="Buscar por nome ou CPF"
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    className="h-11 w-full rounded-control border border-input bg-surface-subtle/55 pl-10 pr-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70 motion-reduce:transition-none"
+                  />
+                </div>
               </div>
-              </div>
-              <div>
+
+              <div className="lg:hidden">
                 <label htmlFor="client-status-filter" className="sr-only">
                   Filtrar clientes por situação
                 </label>
@@ -200,22 +201,50 @@ export function ClientListPage() {
                   id="client-status-filter"
                   value={statusFilter}
                   onChange={(event) => updateStatusFilter(event.target.value as StatusFilter)}
-                  className="h-11 w-full rounded-control border border-input bg-surface-subtle/55 px-3 text-sm text-foreground outline-none transition-all focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70"
+                  className="h-11 w-full rounded-control border border-input bg-surface-subtle/55 px-3 text-sm text-foreground outline-none transition-colors focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/70 motion-reduce:transition-none"
                 >
                   {STATUS_FILTERS.map((status) => (
-                    <option key={status} value={status}>{status}</option>
+                    <option key={status} value={status}>
+                      {status === 'Todos' ? 'Todas as situações' : status}
+                    </option>
                   ))}
                 </select>
               </div>
-            </div>
 
-            {!loading && !loadError ? (
-              <p className="text-sm text-muted-foreground" aria-live="polite">
-                {filteredClients.length === clients.length
-                  ? `${clients.length} ${clients.length === 1 ? 'cliente' : 'clientes'}`
-                  : `${filteredClients.length} de ${clients.length} clientes`}
-              </p>
-            ) : null}
+              <div
+                role="group"
+                aria-label="Filtrar clientes por situação"
+                className="hidden items-center gap-0.5 rounded-control bg-secondary/65 p-1 lg:flex"
+              >
+                {STATUS_FILTERS.map((status) => {
+                  const selected = statusFilter === status;
+
+                  return (
+                    <button
+                      key={status}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => updateStatusFilter(status)}
+                      className={`h-9 rounded-[0.55rem] px-3 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 motion-reduce:transition-none ${
+                        selected
+                          ? 'bg-card text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:bg-card/55 hover:text-foreground'
+                      }`}
+                    >
+                      {status}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {!loading && !loadError ? (
+                <p className="shrink-0 px-1 text-xs tabular-nums text-muted-foreground lg:border-l lg:border-border/70 lg:pl-3" aria-live="polite">
+                  {filteredClients.length === clients.length
+                    ? `${clients.length} ${clients.length === 1 ? 'cliente' : 'clientes'}`
+                    : `${filteredClients.length} de ${clients.length} clientes`}
+                </p>
+              ) : null}
+            </div>
           </div>
 
           <h2 id="client-list-heading" className="sr-only">
@@ -266,30 +295,30 @@ export function ClientListPage() {
                     <caption className="sr-only">
                       Clientes cadastrados, contato, localidade, situação e data de cadastro
                     </caption>
-                    <thead className="border-b border-border/70 bg-secondary/55">
-                      <tr className="text-xs font-medium text-muted-foreground">
-                        <th scope="col" className="px-5 py-3">Cliente</th>
-                        <th scope="col" className="px-5 py-3">Contato</th>
-                        <th scope="col" className="px-5 py-3">Localidade</th>
-                        <th scope="col" className="px-5 py-3">Situação</th>
-                        <th scope="col" className="px-5 py-3">Cadastro</th>
-                        <th scope="col" className="w-12 px-3 py-3">
+                    <thead className="border-b border-border/70 bg-secondary/45">
+                      <tr className="text-[0.6875rem] font-semibold tracking-[0.025em] text-muted-foreground">
+                        <th scope="col" className="px-4 py-2.5">Cliente</th>
+                        <th scope="col" className="px-4 py-2.5">Contato</th>
+                        <th scope="col" className="px-4 py-2.5">Localidade</th>
+                        <th scope="col" className="px-4 py-2.5">Situação</th>
+                        <th scope="col" className="px-4 py-2.5">Cadastro</th>
+                        <th scope="col" className="w-11 px-2.5 py-2.5">
                           <span className="sr-only">Ações</span>
                         </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/70">
                       {filteredClients.map((client) => (
-                        <tr key={client.id} className="transition-colors hover:bg-secondary/35">
-                          <td className="px-5 py-3.5">
-                            <div className="flex min-w-0 items-center gap-3">
-                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-medium text-foreground" aria-hidden="true">
+                        <tr key={client.id} className="group transition-colors hover:bg-secondary/25 focus-within:bg-secondary/25 motion-reduce:transition-none">
+                          <td className="px-4 py-2.5">
+                            <div className="flex min-w-0 items-center gap-2.5">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[0.55rem] bg-secondary/80 text-xs font-semibold text-foreground" aria-hidden="true">
                                 {client.nome?.trim().charAt(0).toUpperCase() || '?'}
                               </div>
                               <div className="min-w-0">
                                 <Link
                                   to={`/cliente/${client.id}`}
-                                  className="block truncate text-sm font-medium text-foreground hover:text-brand focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                  className="block truncate text-[0.9375rem] font-semibold leading-5 text-foreground transition-colors hover:text-brand focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
                                 >
                                   {client.nome || 'Cliente sem nome'}
                                 </Link>
@@ -299,27 +328,27 @@ export function ClientListPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-5 py-3.5 text-sm text-muted-foreground">
+                          <td className="px-4 py-2.5 text-[0.8125rem] text-muted-foreground">
                             {client.telefone || 'Não informado'}
                           </td>
-                          <td className="max-w-[220px] px-5 py-3.5 text-sm text-muted-foreground">
+                          <td className="max-w-[220px] px-4 py-2.5 text-[0.8125rem] text-muted-foreground">
                             <span className="block truncate">
                               {client.cidade || client.endereco || 'Não informada'}
                             </span>
                           </td>
-                          <td className="px-5 py-3.5">
+                          <td className="px-4 py-2.5">
                             <ClientStatus client={client} />
                           </td>
-                          <td className="px-5 py-3.5 text-sm tabular-nums text-muted-foreground">
+                          <td className="px-4 py-2.5 text-xs tabular-nums text-muted-foreground">
                             {formatCreatedAt(client.created_at)}
                           </td>
-                          <td className="px-3 py-3.5 text-right">
+                          <td className="px-2.5 py-2 text-right">
                             <Link
                               to={`/cliente/${client.id}`}
                               aria-label={`Abrir resumo de ${client.nome || 'cliente'}`}
-                              className="inline-flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground opacity-40 outline-none transition-[color,background-color,opacity] hover:bg-secondary hover:text-foreground hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring group-hover:opacity-100 group-focus-within:opacity-100 motion-reduce:transition-none"
                             >
-                              <ChevronRight aria-hidden="true" size={17} />
+                              <ChevronRight aria-hidden="true" size={16} />
                             </Link>
                           </td>
                         </tr>
@@ -334,16 +363,16 @@ export function ClientListPage() {
                   <Link
                     key={client.id}
                     to={`/cliente/${client.id}`}
-                    className="block p-4 transition-colors hover:bg-secondary/35 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:p-5"
+                    className="block px-4 py-3.5 transition-colors hover:bg-secondary/25 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:transition-none sm:px-5"
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-medium text-foreground" aria-hidden="true">
+                    <div className="flex items-start gap-2.5">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.6rem] bg-secondary/80 text-xs font-semibold text-foreground" aria-hidden="true">
                         {client.nome?.trim().charAt(0).toUpperCase() || '?'}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <h3 className="truncate text-sm font-medium text-foreground">
+                            <h3 className="truncate text-[0.9375rem] font-semibold leading-5 text-foreground">
                               {client.nome || 'Cliente sem nome'}
                             </h3>
                             <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
@@ -353,20 +382,20 @@ export function ClientListPage() {
                           <ClientStatus client={client} />
                         </div>
 
-                        <div className="mt-3 grid gap-1.5 text-xs text-muted-foreground sm:grid-cols-2">
+                        <div className="mt-2.5 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2 sm:gap-3">
                           <span className="flex min-w-0 items-center gap-1.5">
-                            <Phone aria-hidden="true" size={13} className="shrink-0" />
+                            <Phone aria-hidden="true" size={12} className="shrink-0 opacity-70" />
                             <span className="truncate">{client.telefone || 'Telefone não informado'}</span>
                           </span>
                           <span className="flex min-w-0 items-center gap-1.5">
-                            <MapPin aria-hidden="true" size={13} className="shrink-0" />
+                            <MapPin aria-hidden="true" size={12} className="shrink-0 opacity-70" />
                             <span className="truncate">
                               {client.cidade || client.endereco || 'Localidade não informada'}
                             </span>
                           </span>
                         </div>
                       </div>
-                      <ChevronRight aria-hidden="true" size={17} className="mt-2 shrink-0 text-muted-foreground" />
+                      <ChevronRight aria-hidden="true" size={16} className="mt-2 shrink-0 text-muted-foreground/55" />
                     </div>
                   </Link>
                 ))}
